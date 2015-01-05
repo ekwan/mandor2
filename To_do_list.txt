@@ -1,0 +1,11 @@
+Changes to make:
+
+-Collapse ProtoTorsion and AtomTorsion into one class. Best to do this by having ProtoTorsion replace AtomTorsion.
+-Add new fields to Residue (those used in Sidechain Mutator including backbone atoms and Sidechain)
+-Make library searches work with new AminoAcid class 
+	-Need to determine if proline is cis or trans within library
+	-Library will now take residue's
+-Finish PeptideFactory to draw peptides 
+	-Requires implementation of map between Elements and VDW parameters for OPLS calculations
+-Eliminate unnecessary methods from Molecule (check out getOPLSenergy, isInteresting, normalize, shift, transform)
+ 

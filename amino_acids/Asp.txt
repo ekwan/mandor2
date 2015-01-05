@@ -1,0 +1,63 @@
+! == Amino Acid Metadata ==
+! blank lines or data after exclamation marks will be ignored
+
+! == General Metadata ==
+amino_acid asp                ! three-letter abbreviation that will be
+                              ! looked up in the AminoAcid enum
+
+! the description of this amino acid (all fields on one line will be recorded)
+description standard_aspartate
+
+xyz_file Asp.xyz              ! the geometry will be read from this file
+
+residue_type normal_L         ! this is an L-amino acid (could also be
+                              ! normal_D for a D-amino acid or
+                              ! transition_state)
+
+reference_energy -62.44          ! in kcal/mol
+
+! == Torsion Data ==
+! Use tinker atom types.  Errors will be thrown if specifying
+! atom types would be ambiguous; i.e., if multiple atoms correspond
+! to the same atom type.  In this case, you should specify atom
+! numbers instead of atom types by placing an A after the fourth
+! atom number. e.g. Chi2 1 2 3 4 A
+
+! To freeze a torsion add an F after the fourth atom number.
+! e.g. 223 7 8 9 F
+
+! To use atom numbers and freeze, use AF.
+
+! Chis should be in order: chi1, chi2, chi3, chi4
+! If there are no chis, add this line:
+! chi1 null
+
+Phi   223   7   8   9         ! phi backbone torsion
+Psi     7   8   9 225	      ! psi backbone torsion
+Omega 221 223   7   8         ! omega backbone torsion
+Chi1	   7   8 137 139      ! first sidechain rotamer
+Chi2    8 13 14 15 A       ! second sidechain rotamer
+!Chi3    1   2   3   4         ! third sidechain rotamer
+!Chi4    1   2   3   4         ! fourth sidechain rotamer
+
+
+! == Atom Metadata ==
+! Use tinker atom types.  Do not make duplicate entries.
+
+backbone_HN    10             ! the backbone HN atom type
+other_HN     null             ! other amide HNs
+
+imidazole_HN null             ! imidazole hydrogen on nitrogen
+imidazole_N  null             ! imidazole pi-nitrogen
+
+frozen_atoms null             ! atom types of any frozen atoms
+
+! how these ProtoAminoAcids will be connected to form Peptides
+! always put the atom to be deleted second
+NStickyConnection 7 223       ! amino N followed by acetyl cap carbon
+CStickyConnection 9 225       ! amide C followed by amino cap nitrogen
+
+! should be specified even if the amino acid is not chiral
+! place an A after the second atom number to specify atom numbers
+! e.g. prochiral_connection 1 2 A
+prochiral_connection 8 13 A	  ! bond between Calpha and first substitutent atom

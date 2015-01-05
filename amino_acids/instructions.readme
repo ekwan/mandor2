@@ -1,0 +1,32 @@
+=== Instructions for Making Peptide Templates ===
+
+1. Use Tinker PROTEIN to create the structure.  (Alternatively, use another drawing program
+   and convert to Tinker XYZ manually.)  Structure should be AcHN-Xxx-CONH2.
+
+   I've assumed the pH is approximately 7 for these templates.  This means
+   that Arg is protonated and Asp/Glu are deprotonated.
+
+   Sample input to PROTEIN:
+
+   Asp.xyz
+   standard_asparate
+   amoebapro13.prm
+   ACE
+   ASP
+   NH2
+
+   N
+
+   Asp.int and Asp.seq files will be produced in addition to Asp.xyz.  The
+   former can be deleted.  You can check the result with the xyzpdb utility:
+
+   xyzpdb Asp.xyz amoebapro13.prm
+
+2. Update the metadata.  Use an existing text file as a template.
+
+3. Shift the coordinates using translate_one.sh:
+
+   ./translate_one.sh Asp.xyz
+
+   This deals with a flaw in the program design.  The script shifts the
+   positions by a random xyz amount.

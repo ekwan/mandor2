@@ -1,0 +1,66 @@
+HEADER    ts1r2_r.out
+COMPND
+SOURCE
+HETATM    1  C     8     1       1.264   2.200   0.949
+HETATM    2  H    12     1       1.167   2.187   2.042
+HETATM    3  C   410     1       0.926   0.771   0.463
+HETATM    4  C     9     1       2.700   2.614   0.586
+HETATM    5  H   411     1       0.098   0.826  -0.249
+HETATM    6  H   411     1       1.783   0.316  -0.040
+HETATM    7  O   409     1       0.507  -0.050   1.537
+HETATM    8  O    11     1       2.926   3.641  -0.053
+HETATM    9  N   225     1       3.644   1.774   1.029
+HETATM   10  H   226     1       3.349   0.906   1.491
+HETATM   11  H   226     1       4.639   1.920   0.806
+HETATM   12  C   406     1       0.787  -1.778   3.106
+HETATM   13  H   405     1       0.750  -1.112   3.972
+HETATM   14  H   405     1      -0.228  -2.099   2.861
+HETATM   15  H   405     1       1.400  -2.644   3.364
+HETATM   16  C   407     1       1.429  -1.018   1.958
+HETATM   17  O   408     1       2.655  -0.703   2.050
+HETATM   18  N     7     1       0.386   3.200   0.385
+HETATM   19  C   223     1      -0.951   3.164   0.562
+HETATM   20  H    10     1       0.851   3.965  -0.091
+HETATM   21  O   224     1      -1.509   2.255   1.174
+HETATM   22  C   221     1      -1.730   4.311  -0.046
+HETATM   23  H   222     1      -2.255   4.838   0.755
+HETATM   24  H   222     1      -1.100   5.019  -0.589
+HETATM   25  H   222     1      -2.483   3.904  -0.724
+HETATM   26  C   403     1       1.916  -3.283   0.760
+HETATM   27  H   404     1       1.286  -4.023   1.271
+HETATM   28  H   404     1       2.175  -3.650  -0.237
+HETATM   29  H   404     1       2.841  -3.141   1.330
+HETATM   30  O   402     1       1.260  -2.037   0.642
+HETATM   31  H   401     1       0.033  -2.076   0.384
+CONECT    1    2    3    4   18
+CONECT    2    1
+CONECT    3    1    5    6    7
+CONECT    4    1    8    9
+CONECT    5    3
+CONECT    6    3
+CONECT    7    3   16
+CONECT    8    4
+CONECT    9    4   10   11
+CONECT   10    9
+CONECT   11    9
+CONECT   12   13   14   15   16
+CONECT   13   12
+CONECT   14   12
+CONECT   15   12
+CONECT   16    7   12   17   30
+CONECT   17   16
+CONECT   18    1   19   20
+CONECT   19   18   21   22
+CONECT   20   18
+CONECT   21   19
+CONECT   22   19   23   24   25
+CONECT   23   22
+CONECT   24   22
+CONECT   25   22
+CONECT   26   27   28   29   30
+CONECT   27   26
+CONECT   28   26
+CONECT   29   26
+CONECT   30   16   26   31
+CONECT   31   30
+END
