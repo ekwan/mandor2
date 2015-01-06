@@ -8,47 +8,42 @@ import com.google.common.collect.*;
  */
 public class Atom implements Immutable, Serializable, Comparable<Atom>
 {
-    /** for serialization */
+    /** For serialization. */
     public static final long serialVersionUID = 1L;
 
-    /** the Element enum corresponding to this Atom */
+    /** Atomic element. */
     public final Element element;
 
-    /** the location of this Atom */
+    /** Location of the atom. */
     public final Vector3D position;
 
-    /** atom type in the amoebapro13 force field for this Atom */
-    public final int amoebaAtomType;
+    /** AMOEBA atom type. */
+    public final int type1;
 
-    /** atom type in the OPLS force field for this Atom */
-    public final int OPLSAtomType;
+    /** OPLS atom type. */
+    public final int type2;
 
-    /** constructs a new Atom */
-    public Atom(String symbol, Vector3D position, int amoebaAtomType, int OPLSAtomType)
+    /**
+     * Constructs a new atom.
+     * @param symbol the atomic symbol
+     * @param position the location of the atom
+     * @param type1 the AMOEBA atom type
+     * @param type2 the OPLS atom type
+     */
+    public Atom(String symbol, Vector3D position, int type1, int type2)
     {
-        this.element        = Element.getElement(symbol);
-        this.position       = position;
-        if ( amoebaAtomType < 0 )
-            throw new IllegalArgumentException("Amoeba atom type must be positive!");
-        if ( OPLSAtomType < 0 )
-            throw new IllegalArgumentException("OPLS atom type must be positive!");
-        this.amoebaAtomType = amoebaAtomType;
-        this.OPLSAtomType = OPLSAtomType;
-
+        this(Element.getElement(symbol), position, type1, type2);
     }
 
     /** constructs a new Atom */
-    public Atom(Element element, Vector3D position, int amoebaAtomType, int OPLSAtomType)
+    public Atom(Element element, Vector3D position, int type1, int type2)
     {
-        this.element = element;
+        this.element  = element;
         this.position = position;
-        if ( amoebaAtomType < 0 )
-            throw new IllegalArgumentException("Amoeba atom type must be positive!");
-        this.amoebaAtomType = amoebaAtomType;
-        if ( OPLSAtomType < 0 )
-            throw new IllegalArgumentException("OPLS atom type must be positive!");
-        this.OPLSAtomType = OPLSAtomType;
-
+        if ( type1 < 0 || type2 < 0 )
+            throw new IllegalArgumentException("negative atom type");
+        this.type1    = type1;
+        this.type2    = type2;
     }   
 
     /** 
@@ -56,6 +51,7 @@ public class Atom implements Immutable, Serializable, Comparable<Atom>
      * @param a the atom being compared to this atom
      * @return an int representing the result of the comparison (1 - same, 0 - different location) 
      */
+    @Override
     public int compareTo(Atom a)
     {
         double x1 =   position.getX();
@@ -69,34 +65,41 @@ public class Atom implements Immutable, Serializable, Comparable<Atom>
 
     /**
      * Returns a copy of this atom with a new atom type.
-     * @param amoebaAtomType the amoeba atom type for the new atom
-     * @param OPLSAtomType the OPLS atom type for the new atom
-     * @return a new atom with updated atom types */
-    public Atom setAtomType(int amoebaAtomType, int OPLSAtomType)
+     * @param type1 the AMOEBA atom type for the new atom
+     * @param type2 the OPLS atom type for the new atom
+     * @return a new atom with updated atom types
+     */
+    public Atom setAtomType(int type1, int type2)
     {
-        return new Atom(element, position, amoebaAtomType, OPLSAtomType);
+        return new Atom(element, position, type1, type2);
     }
 
     /**
      * Returns a copy of this atom with a new position.
+     * @param newPosition the new position
+     * @return the new atom
      */
     public Atom moveAtom(Vector3D newPosition)
     {
-        return new Atom(element.symbol, newPosition, amoebaAtomType, OPLSAtomType);
+        return new Atom(element.symbol, newPosition, type1, type2);
     }
 
     /**
-     * Factory method to create a new Atom by transforming this one.
-     * The rotation is applied before the translation.  
+     * Rotates and translates this atom.  The rotation is applied before the translation.  
      * @param rot a three-dimensional rotation.
      * @param shift a vector that we add to the position of this after it has been rotated.
+     * @return the new atom
      */
     public Atom transform(Rotation rot, Vector3D shift)
     {
-        return new Atom(element.symbol, rot.applyTo(position).add(shift), amoebaAtomType, OPLSAtomType);
+        return new Atom(element.symbol, rot.applyTo(position).add(shift), type1, type2);
     }
 
-    /** convenience method for moving an atom based on a map of old atoms and new atoms */
+    /**
+     * Convenience method for moving an atom based on a map of old atoms and new atoms.
+     * @param atomMap a map from old atoms to new atoms
+     * @return the new atom if applicable
+     */
     public Atom moveAtom(Map<Atom,Atom> atomMap)
     {
         if (atomMap.containsKey(this))
@@ -105,33 +108,19 @@ public class Atom implements Immutable, Serializable, Comparable<Atom>
             return this;
     }
 
-    /**
-     * Return a string representation of this Atom.
-     * @return the string
-     */
     @Override
     public String toString()
     {
         return String.format("%-2s %10.6f %10.6f %10.6f", element.symbol, position.getX(), position.getY(), position.getZ());
-        //return String.format("%-2s (%3d) %10.6f %10.6f %10.6f", element.symbol, tinkerAtomType, position.getX(), position.getY(), position.getZ());
     }
 
-    /**
-     * Returns the hash code.
-     * @return the hash code
-     */
+    @Override
     public int hashCode()
     {
-        return Objects.hash(element, position, amoebaAtomType, OPLSAtomType);
+        return Objects.hash(element, position, type1, type2);
     }
 
-    public static final double TOLERANCE = 0.000001;
-
-    /** 
-     * Tests for object equality
-     * @param obj another object
-     * @return true if equal
-     */
+    @Override
     public boolean equals(Object obj)
     {
         if ( obj == null )
@@ -141,20 +130,16 @@ public class Atom implements Immutable, Serializable, Comparable<Atom>
         else if ( !(obj instanceof Atom) )
             return false;
 
-        Atom anotherAtom = (Atom)obj;
-        if ( element == anotherAtom.element &&
-             amoebaAtomType == anotherAtom.amoebaAtomType &&
-             OPLSAtomType == anotherAtom.OPLSAtomType)
-            {
-                if ( Math.abs(position.getX() - anotherAtom.position.getX()) < TOLERANCE &&
-                     Math.abs(position.getY() - anotherAtom.position.getY()) < TOLERANCE &&
-                     Math.abs(position.getZ() - anotherAtom.position.getZ()) < TOLERANCE    )
-                return true;
-            }
+        Atom a = (Atom)obj;
+        if ( element == a.element &&
+             position.equals(a.position) &&
+             type1 == a.type1 &&
+             type2 == a.type2 )
+            return true;
         return false;
     }
 
-    /** for testing */
+    /** For testing. */
     public static void main(String[] args)
     {
         Atom atom1 = new Atom("C", new Vector3D(1.0, 2.0, 3.0), 103, 10);

@@ -1,5 +1,5 @@
 /**
- * This class represents an element.
+ * This enum represents an element.
  */
 public enum Element
 {
@@ -9,17 +9,20 @@ public enum Element
     OXYGEN  ("O"),
     SULFUR  ("S");
 
-    /** the atomic symbol for this element */
+    /** The atomic symbol. */
     public String symbol;
 
-    /** Constructor. */
+    /**
+     * Constructs an element.
+     * @param symbol the atomic symbol
+     */
     Element(String symbol)
     {
         this.symbol = symbol;
     }
 
     /**
-     * Returns the Element corresponding to the inputted String.
+     * Identifies the element corresponding to a string.
      * @param symbol the symbol for the requested element
      * @return the corresponding Element enum element
      */

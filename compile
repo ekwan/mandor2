@@ -6,7 +6,7 @@ javac -Xlint:all -Xmaxerrs 5 -cp .:lib/* $filename.java
 
 if [ $? -eq 0 ]; then
     echo Compiled.
-    java --cp .:lib/* $filename
+    java -cp .:lib/* $filename
 fi
 
 rm -f *.class
