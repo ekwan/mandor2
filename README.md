@@ -7,12 +7,17 @@ It is an anagram for "random"!
 
 ---
 
-January 2014: Began major refactoring.
-April 2014: Program started.
+<img href="http://imgs.xkcd.com/comics/purity.png">
+
+---
+
+January 2014: Began major refactoring.<p>
+April 2014: Program started.<p>
 
 Harvard University, Jacobsen Research Group
 Eugene Kwan
 Artur Meller
+Charles Yeung
 
 Newcastle
 Greg Maloney
