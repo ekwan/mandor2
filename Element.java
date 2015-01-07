@@ -10,7 +10,7 @@ public enum Element
     SULFUR  ("S");
 
     /** The atomic symbol. */
-    public String symbol;
+    public final String symbol;
 
     /**
      * Constructs an element.
