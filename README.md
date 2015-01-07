@@ -7,7 +7,7 @@ It is an anagram for "random"!
 
 ---
 
-<img href="http://imgs.xkcd.com/comics/purity.png">
+http://imgs.xkcd.com/comics/purity.png
 
 ---
 
