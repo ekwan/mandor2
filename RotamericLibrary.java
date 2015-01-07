@@ -12,9 +12,9 @@ import com.google.common.collect.*;
 public class RotamericLibrary extends RotamerLibrary implements Immutable
 {
     /**
-      * Data storage is accomplished using map from back bone angles to each rotamer (list of chis)
-      * (phi, psi) ---> [[ X1, X2, ..., Xn ], probability of this rotamer]
-      */ 
+     * Data storage is accomplished using map from back bone angles to each rotamer (list of chis)
+     * (phi, psi) ---> [[ X1, X2, ..., Xn ], probability of this rotamer]
+     */ 
     private final Map<RotamerLibrary.Angles, DiscreteProbabilityDistribution<List<Double>>> dataset; 
     
     /** The number n of chi angles: X1, X2, ..., Xn */
@@ -26,6 +26,7 @@ public class RotamericLibrary extends RotamerLibrary implements Immutable
     /**
      * creates a RotamericLibrary by reading in filename associated with amino acid
      * @param aminoAcid the amino acid for which to create rotameric library
+     * @param filename the file to read the dunbrack rotamer data from
      */
     public RotamericLibrary(AminoAcid aminoAcid, String filename)
     {
@@ -61,10 +62,10 @@ public class RotamericLibrary extends RotamerLibrary implements Immutable
                                 tempNumberOfSidechainTorsions = Integer.valueOf(parts[parts.length-1]);
                                 continue;
                             }
-			            else if (!parts[0].equals(aminoAcid.name()))
+			            else if (parts[0].startsWith("#") || parts[0].trim().length() == 0)
                             continue;
-			
-			            // read backbone angles with parts.get(1) and parts.get(2)
+			            
+                        // read backbone angles with parts.get(1) and parts.get(2)
 			            Double currPhi = Double.parseDouble(parts[1]);
 			            Double currPsi = Double.parseDouble(parts[2]);
                         if ( lastPhi == null )
@@ -100,7 +101,7 @@ public class RotamericLibrary extends RotamerLibrary implements Immutable
 			            List<Double> chis = new ArrayList<Double>();
 			
 	            		// chi values are in columns 9, 10, 11, 12 and probability is in column 8
-	            		for (int i=9; i < 9+tempNumberOfSidechainTorsions; i++)
+                        for (int i=9; i < 9+tempNumberOfSidechainTorsions; i++)
 			                chis.add(Double.valueOf(parts[i]));
 
 			            tempChis.add(ImmutableList.copyOf(chis));
@@ -112,7 +113,7 @@ public class RotamericLibrary extends RotamerLibrary implements Immutable
 		            }
 		
 		        // include edge case
-		        Angles angles = new Angles(lastPhi, lastPsi);
+                Angles angles = new Angles(lastPhi, lastPsi);
 		        
                 // create DiscreteProbabilityDataSet object
                 DiscreteProbabilityDistribution<List<Double>> dpd = new DiscreteProbabilityDistribution<>(
@@ -196,7 +197,7 @@ public class RotamericLibrary extends RotamerLibrary implements Immutable
     /** For testing. */
     public static void main(String[] args)
     {
-	    RotamericLibrary rotLib1 = new RotamericLibrary(AminoAcid.ARG, "rotamer_library/arg.bbdep.rotamers.lib");
+	    RotamericLibrary rotLib1 = new RotamericLibrary(AminoAcid.ARG, "rotamer_library/tpr.bbdep.rotamers.lib");
 	    System.out.println(rotLib1.get(-179.0,-178.0).toString());
     }
 }

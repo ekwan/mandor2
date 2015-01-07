@@ -138,10 +138,10 @@ public class NonRotamericLibrary extends RotamerLibrary
                             {
                                 // compute which field have chis(1,2,...,n-1)
                                 int currentField = 4;
-                                for (int i=currentField; i <= 4+numberOfSidechainTorsions; i++)
+                                for (int i=currentField; i <= 4+tempNumberOfSidechainTorsions; i++)
                                     currentField++;
                                 //System.out.println("chi val start:" + currentField);
-                                for (int i=currentField; i < currentField+numberOfSidechainTorsions; i++)
+                                for (int i=currentField; i < currentField+tempNumberOfSidechainTorsions; i++)
                                     chiFieldNumbers.add(i);
                                 //System.out.println("Chi field numbers: " + chiFieldNumbers.toString());
 
@@ -187,7 +187,7 @@ public class NonRotamericLibrary extends RotamerLibrary
                                 
                                 // create the distribution that stores entries for this entire block
                                 DiscreteProbabilityDistribution<NonRotamericAngles> outerDPD = new DiscreteProbabilityDistribution<>(tempNRA,tempProbabilities); 
-                                dataset.put(bba, outerDPD);
+                                tempDataset.put(bba, outerDPD);
                                 tempNRA = new LinkedList<>();
                                 tempProbabilities = new LinkedList<>();
                             }
@@ -223,7 +223,7 @@ public class NonRotamericLibrary extends RotamerLibrary
 
 		        // create the distribution that stores entries for this entire block
 		        DiscreteProbabilityDistribution<NonRotamericAngles> outerDPD = new DiscreteProbabilityDistribution<>(tempNRA,tempProbabilities);
-		        dataset.put(bba, outerDPD);
+		        tempDataset.put(bba, outerDPD);
             }
         catch (IOException e)
             {
