@@ -293,21 +293,12 @@ public class NonRotamericLibrary extends RotamerLibrary
         if ( !(obj instanceof RotamericLibrary) )
             return false;
 
-        NonRotamericLibrary rotLib = (NonRotamericLibrary) obj;
-
-        //check for matching datasets
-        if (!rotLib.dataset.equals(dataset))
-            return false;
-
-        //check for matching number of torsion angles
-        if (rotLib.numberOfSidechainTorsions != numberOfSidechainTorsions)
-            return false;
-
-        //check for matching amino acid
-        if (!rotLib.aminoAcid.equals(aminoAcid))
-            return false;
-        
-        return true;
+        NonRotamericLibrary l = (NonRotamericLibrary) obj;
+        if ( dataset.equals(l.dataset) &&
+             numberOfSidechainTorsions.equals(l.numberOfSidechainTorsions) &&
+             aminoAcid == l.aminoAcid )
+            return true;
+        return false;
     }
 
     @Override

@@ -72,7 +72,7 @@ public class RotamerDatabase implements Singleton
         TRANS_PROLINE_LIBRARY = transTemp.get();
         DATABASE = ImmutableMap.copyOf(tempMap);
 
-        System.out.printf("%d databases have been loaded.\n", DATABASE.size() + 2);
+        System.out.printf("%d libraries have been loaded.\n", DATABASE.size() + 2);
     }
 
     /** Not instantiable. */
@@ -81,24 +81,82 @@ public class RotamerDatabase implements Singleton
         throw new IllegalArgumentException("not instantiable");
     }
 
-    public static List<List<Double>> getRotamerSpace(AminoAcid aminoAcid, double omega, double phi, double psi)
+    /**
+     * Returns the rotamer library for a given amino acid.  If the amino acid has no rotamers or is
+     * special, an exception will be thrown.  If no entry is available, a NullPinterException is thrown.
+     * @param aminoAcid the amino acid to look up rotamer data for
+     * @param omega the omega dihedral angle value in degrees
+     * @return the rotamer library if available
+     */
+    public static RotamerLibrary getLibrary(AminoAcid aminoAcid, double omega)
     {
-        return null;
+        if ( aminoAcid == AminoAcid.LPRO )
+            {
+                if ( omega > 180.0 || omega < -180.0 )
+                    throw new IllegalArgumentException("omega out of range");
+                if ( omega < 45.0 && omega > -45.0 )
+                    return CIS_PROLINE_LIBRARY;
+                else
+                    return TRANS_PROLINE_LIBRARY;
+            }
+        else if ( aminoAcid.rotamerType == AminoAcid.RotamerType.HAS_NO_ROTAMERS ||
+                  aminoAcid.rotamerType == AminoAcid.RotamerType.SPECIAL )
+            throw new IllegalArgumentException("can't return library for rotamer type " + aminoAcid.rotamerType.toString());
+        else
+            {
+                RotamerLibrary library = DATABASE.get(aminoAcid);
+                if ( library == null )
+                    throw new NullPointerException("library data not found for " + aminoAcid.shortName);
+                return library;
+            }
     }
 
-    public static List<List<Double>> getRotamerSpace(AminoAcid aminoAcid, double phi, double psi)
+    /**
+     * Alias method that assumes this is a an amino acid with a trans peptide bond.
+     */
+    public static RotamerLibrary getLibrary(AminoAcid aminoAcid)
     {
-        return null;
+        return getLibrary(aminoAcid, 180.0);
     }
 
+    /**
+     * Draws a random set of chi angles for the specified amino acid, including the last non-rotameric angle
+     * if appropriate.  If the amino acid does not have any rotamers, then an empty list will be returned.
+     * If this is a special amino acid or no data are available, an exception will be thrown.
+     * @param aminoAcid the amino acid
+     * @param omega the omega torsion angle in degrees
+     * @param phi the phi torsion angle in degrees
+     * @param psi the psi torsion angle in degrees
+     * @return the random chi torsion angles in degrees
+     */
     public static List<Double> getRandomRotamer(AminoAcid aminoAcid, double omega, double phi, double psi)
     {
-        return null;
+        RotamerLibrary library = getLibrary(aminoAcid, omega);
+        if ( library instanceof RotamericLibrary )
+            {
+                RotamericLibrary l = (RotamericLibrary)library;
+                return l.get(phi,psi).getRandom();
+            }
+        else if ( library instanceof NonRotamericLibrary )
+            {
+                NonRotamericLibrary l = (NonRotamericLibrary)library;
+                DiscreteProbabilityDistribution<NonRotamericLibrary.NonRotamericAngles> dpd1 = l.get(phi,psi);
+                NonRotamericLibrary.NonRotamericAngles nrA = dpd1.getRandom();
+                Double lastChi = nrA.getDPD().getRandom();
+                List<Double> returnList = new LinkedList<>(nrA.getRotamericAngles());
+                returnList.add(lastChi);
+                return ImmutableList.copyOf(returnList);
+            }
+        else
+            throw new IllegalArgumentException("unreachable");
     }
 
+    /**
+     * Alias method that assumes this is an amino acid with a trans peptide bond.
+     */
     public static List<Double> getRandomRotamer(AminoAcid aminoAcid, double phi, double psi)
     {
-        return null;
+        return getRandomRotamer(aminoAcid, 180.0, phi, psi);
     }
 
     private static class RegularUnit implements WorkUnit
@@ -157,7 +215,6 @@ public class RotamerDatabase implements Singleton
 
     public static void load()
     {
-        System.out.printf("Database loaded with %d entries.\n", DATABASE.size()+2);
         System.out.println(CIS_PROLINE_LIBRARY);
         System.out.println(TRANS_PROLINE_LIBRARY);
         System.out.println(DATABASE.keySet());
@@ -166,5 +223,7 @@ public class RotamerDatabase implements Singleton
     public static void main(String[] args)
     {
         RotamerDatabase.load();
+        System.out.println(getRandomRotamer(AminoAcid.ARG, 150.0, 0.0));
+        System.out.println(getRandomRotamer(AminoAcid.LEU, 120.0, -120.0));
     }
 }
