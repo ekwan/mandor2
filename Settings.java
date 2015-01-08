@@ -21,13 +21,19 @@ public class Settings implements Immutable, Singleton
 
     // Ramachandran Library Settings
 
-        /** the file containing the backbone-dependent Ramachandran data */
-        public static final String RAMACHANDRAN_DATA_FILENAME = "ramachandran/NDRD_Tonly.txt.gz";
+        ///** the file containing the backbone-dependent Ramachandran data */
+        //public static final String RAMACHANDRAN_DATA_FILENAME = "databases/NDRD_Tonly.txt.gz";
+
+        // the directory where the backbone-dependent Ramachandran data are stoed
+        public static final String RAMACHANDRAN_DIRECTORY = "databases/";
+        
+        // the prefix of all the backbone-dependent Ramachandran data
+        public static final String RAMACHANDRAN_DATA_PREFIX = "NDRD_split";
 
     // Omega Library Settings
 
         /** the file containing the omega data */
-        public static final String OMEGA_DATA_FILENAME = "omega/omegaCDL_OmegaBetweenAsPhi1Psi0_KernRegr_v1.3.1_Aug12-2011.txt";
+        public static final String OMEGA_DATA_FILENAME = "databases/omegaCDL_OmegaBetweenAsPhi1Psi0_KernRegr_v1.3.1_Aug12-2011.txt";
 
     // General Settings
 

@@ -1,6 +1,3 @@
-
-// This class represents an amino acid.
-
 import java.util.*;
 import java.io.*;
 import com.google.common.collect.*;
