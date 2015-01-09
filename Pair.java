@@ -13,10 +13,12 @@ public class Pair<K,V> implements Serializable, Immutable
     private final V secondValue;
     
     /**
-     * Constructs an immutable pair.
+     * Constructs an immutable pair.  Nulls are not allowed.
      */
     public Pair(K firstVal, V secondVal)
     {
+        if ( firstVal == null || secondVal == null )
+            throw new NullPointerException("nulls not allowed");
 	    this.firstValue = firstVal;
 	    this.secondValue = secondVal;
     }
