@@ -23,20 +23,24 @@ public class Atom implements Immutable, Serializable, Comparable<Atom>
     /** OPLS atom type. */
     public final int type2;
 
+    /** The surface tension of this atom in kcal/angstroms^2. */
+    public final double surfaceTension;
+
     /**
      * Constructs a new atom.
      * @param symbol the atomic symbol
      * @param position the location of the atom
      * @param type1 the AMOEBA atom type
      * @param type2 the OPLS atom type
+     * @param surfaceTension the surface tension of this atom in kcal/angstroms^2
      */
-    public Atom(String symbol, Vector3D position, int type1, int type2)
+    public Atom(String symbol, Vector3D position, int type1, int type2, double surfaceTension)
     {
-        this(Element.getElement(symbol), position, type1, type2);
+        this(Element.getElement(symbol), position, type1, type2, surfaceTension);
     }
 
-    /** constructs a new Atom */
-    public Atom(Element element, Vector3D position, int type1, int type2)
+    /** Constructs a new Atom. */
+    public Atom(Element element, Vector3D position, int type1, int type2, double surfaceTension)
     {
         this.element  = element;
         this.position = position;
@@ -44,6 +48,9 @@ public class Atom implements Immutable, Serializable, Comparable<Atom>
             throw new IllegalArgumentException("negative atom type");
         this.type1    = type1;
         this.type2    = type2;
+        if ( surfaceTension < 0.0 )
+            throw new IllegalArgumentException("negative surface tension");
+        this.surfaceTension = surfaceTension;
     }   
 
     /** 
@@ -69,9 +76,9 @@ public class Atom implements Immutable, Serializable, Comparable<Atom>
      * @param type2 the OPLS atom type for the new atom
      * @return a new atom with updated atom types
      */
-    public Atom setAtomType(int type1, int type2)
+    public Atom setAtomType(int newType1, int newType2)
     {
-        return new Atom(element, position, type1, type2);
+        return new Atom(element, position, newType1, newType2, surfaceTension);
     }
 
     /**
@@ -81,7 +88,7 @@ public class Atom implements Immutable, Serializable, Comparable<Atom>
      */
     public Atom moveAtom(Vector3D newPosition)
     {
-        return new Atom(element.symbol, newPosition, type1, type2);
+        return new Atom(element.symbol, newPosition, type1, type2, surfaceTension);
     }
 
     /**
@@ -92,7 +99,7 @@ public class Atom implements Immutable, Serializable, Comparable<Atom>
      */
     public Atom transform(Rotation rot, Vector3D shift)
     {
-        return new Atom(element.symbol, rot.applyTo(position).add(shift), type1, type2);
+        return new Atom(element.symbol, rot.applyTo(position).add(shift), type1, type2, surfaceTension);
     }
 
     /**
@@ -117,7 +124,7 @@ public class Atom implements Immutable, Serializable, Comparable<Atom>
     @Override
     public int hashCode()
     {
-        return Objects.hash(element, position, type1, type2);
+        return Objects.hash(element, position, type1, type2, surfaceTension);
     }
 
     @Override
@@ -134,7 +141,8 @@ public class Atom implements Immutable, Serializable, Comparable<Atom>
         if ( element == a.element &&
              position.equals(a.position) &&
              type1 == a.type1 &&
-             type2 == a.type2 )
+             type2 == a.type2 &&
+             surfaceTension == a.surfaceTension )
             return true;
         return false;
     }
@@ -142,11 +150,11 @@ public class Atom implements Immutable, Serializable, Comparable<Atom>
     /** For testing. */
     public static void main(String[] args)
     {
-        Atom atom1 = new Atom("C", new Vector3D(1.0, 2.0, 3.0), 103, 10);
-        Atom atom2 = new Atom("C", new Vector3D(2.0, 2.0, 3.0), 103, 10);
-        Atom atom3 = new Atom("C", new Vector3D(3.0, 3.0, 3.0), 103, 10);
-        Atom atom4 = new Atom("C", new Vector3D(3.0, 2.0, 3.0), 103, 10);
-        Atom atom5 = new Atom("C", new Vector3D(3.0, 2.0, 4.0), 103, 10);
+        Atom atom1 = new Atom("C", new Vector3D(1.0, 2.0, 3.0), 103, 10, 0.0);
+        Atom atom2 = new Atom("C", new Vector3D(2.0, 2.0, 3.0), 103, 10, 0.0);
+        Atom atom3 = new Atom("C", new Vector3D(3.0, 3.0, 3.0), 103, 10, 0.0);
+        Atom atom4 = new Atom("C", new Vector3D(3.0, 2.0, 3.0), 103, 10, 0.0);
+        Atom atom5 = new Atom("C", new Vector3D(3.0, 2.0, 4.0), 103, 10, 0.0);
         List<Atom> list = new LinkedList<>();
         list.add(atom2);
         list.add(atom1);
