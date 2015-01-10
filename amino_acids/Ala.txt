@@ -18,10 +18,9 @@ chirality L                   ! whether this is L, D, or ACHIRAL
 ! to the same atom type.  In this case, you should specify atom
 ! numbers instead of atom types by placing an A after the fourth
 ! atom number. e.g. Chi2 1 2 3 4 A
-
-
+!
 ! To use atom numbers and freeze, use AF.
-
+!
 ! Chis should be in order: chi1, chi2, chi3, chi4
 ! If there are no chis, add this line:
 ! chi1 null
@@ -40,11 +39,6 @@ Chi1    null			       ! first sidechain rotamer
 backbone_HN    10             ! the backbone HN atom type
 other_HN     null             ! other amide HNs
 
-imidazole_HN null             ! imidazole hydrogen on nitrogen
-imidazole_N  null             ! imidazole pi-nitrogen
-
-frozen_atoms null             ! atom types of any frozen atoms
-
 ! how these ProtoAminoAcids will be connected to form Peptides
 ! always put the atom to be deleted second
 NStickyConnection 7 223       ! amino N followed by acetyl cap carbon
@@ -54,3 +48,31 @@ CStickyConnection 9 225       ! amide C followed by amino cap nitrogen
 ! place an A after the second atom number to specify atom numbers
 ! e.g. prochiral_connection 1 2 A
 prochiral_connection 8 13 A	  ! bond between Calpha and first substitutent atom
+
+! OPLS atom types
+! e.g. the OPLS atom type for atom 1 is 2:
+!      OPLStype 1 2
+OPLStype     1     1
+OPLStype     2    82
+OPLStype     3    83
+OPLStype     4     6
+OPLStype     5     6
+OPLStype     6     6
+OPLStype     7    85
+OPLStype     8    74
+OPLStype     9    82
+OPLStype    10    83
+OPLStype    11    88
+OPLStype    12     6
+OPLStype    13     1
+OPLStype    14     6
+OPLStype    15     6
+OPLStype    16     6
+OPLStype    17    84
+OPLStype    18    87
+OPLStype    19    87
+
+! Surface Tensions
+! e.g., surface tension for atom 1 is 1.0 kcal/A^2
+!       surfaceTension 1 1.0
+

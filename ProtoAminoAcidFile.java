@@ -3,9 +3,8 @@ import java.util.*;
 import com.google.common.collect.*;
 
 /**
- * Metadata files contain information about special atoms, torsions,
- * , etc for ProtoAminoAcids.  toString, equals, and hashCode not implemented.
- * This class is immutable.
+ * Reads files that contain information about special atoms, torsions, etc. for ProtoAminoAcids.
+ * toString, equals, and hashCode not implemented.
  */
 public class ProtoAminoAcidFile extends OutputFileFormat implements Serializable, Immutable
 {
@@ -34,9 +33,16 @@ public class ProtoAminoAcidFile extends OutputFileFormat implements Serializable
         if ( headerString.indexOf("Amino Acid Metadata") == -1 )
             throw new IllegalArgumentException("this does not appear to be an amino acid metadata file");
 
-        // create temporary variables
-        // required, otherwise, we'd have to try and set the final variables inside the loop
-        // ...which isn't allowed
+        // parse file
+        for (List<String> line : fileContents)
+            {
+                // check for blank or comment lines
+                if ( line.size() < 2 || line.get(0).startsWith("!") )
+                    continue;
+                
+                String firstField = line.get(0).toLowerCase();
+            } 
+
         AminoAcid tempAminoAcid = null;
         ResidueType tempResidueType = null;
         ProtoTorsion tempOmega = null;
