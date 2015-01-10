@@ -59,9 +59,13 @@ public class Residue implements Immutable, Serializable
     /** the atoms in this residue */
     public final List<Atom> atoms;
 
+    /** whether this is a hairpin residue or not */
+    public final boolean isHairpin;
+
     /** Constructs a Residue.  Many things are checked, but the checks are not exhaustive. */
     public Residue(AminoAcid aminoAcid, ProtoTorsion omega, ProtoTorsion phi, ProtoTorsion psi, List<ProtoTorsion> chis,
-                   Atom HN, Atom N, Atom O, Atom C, Atom CA, Atom HA, String description, Pair<Atom,Atom> prochiralConnection, List<Atom> atoms) 
+                   Atom HN, Atom N, Atom O, Atom C, Atom CA, Atom HA, String description,
+                   Pair<Atom,Atom> prochiralConnection, List<Atom> atoms, boolean isHairpin) 
     {
         if ( aminoAcid == null )
             throw new NullPointerException("null amino acid");
@@ -153,6 +157,8 @@ public class Residue implements Immutable, Serializable
             throw new IllegalArgumentException("CA does not line up");
         
         this.atoms = atoms;
+
+        this.isHairpin = isHairpin;
     }
 
     /** Returns a new residue given a map of old atoms to new atoms. */
@@ -193,7 +199,7 @@ public class Residue implements Immutable, Serializable
             newAtoms.add(a.moveAtom(atomMap));
 
         // return result
-        return new Residue(aminoAcid, newOmega, newPhi, newPsi, newChis, newHN, newN, newO, newC, newCA, newHA, description, newProchiralConnection, newAtoms);
+        return new Residue(aminoAcid, newOmega, newPhi, newPsi, newChis, newHN, newN, newO, newC, newCA, newHA, description, newProchiralConnection, newAtoms, isHairpin);
     }
 
     @Override

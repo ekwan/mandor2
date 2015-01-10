@@ -6,12 +6,12 @@ import java.io.*;
  */
 public class Settings implements Immutable, Singleton
 {
-    // ProtoAminoAcidLibrary Settings
+    // ProtoAminoAcidDatabase Settings
     
         /** the directory containing the templates for all the amino acids */
-        public static final String PROTO_AMINO_ACID_LIBRARY_DIRECTORY = "input_files/";
+        public static final String PROTOAMINOACID_DIRECTORY = "amino_acids/";
 
-    // Rotamer Library Settings
+    // Rotamer Library Database Settings
 
         /** the directory containing the Dunbrack backbone-dependent rotamer data */
         public static final String ROTAMER_LIBRARY_DIRECTORY = "rotamer_library/";
@@ -19,10 +19,7 @@ public class Settings implements Immutable, Singleton
         /** the probability below which rotamers will be ignored */
         public static final double ROTAMER_LIBRARY_THRESHOLD = 0.01;
 
-    // Ramachandran Library Settings
-
-        ///** the file containing the backbone-dependent Ramachandran data */
-        //public static final String RAMACHANDRAN_DATA_FILENAME = "databases/NDRD_Tonly.txt.gz";
+    // Ramachandran Database Settings
 
         // the directory where the backbone-dependent Ramachandran data are stoed
         public static final String RAMACHANDRAN_DIRECTORY = "databases/";
@@ -30,7 +27,7 @@ public class Settings implements Immutable, Singleton
         // the prefix of all the backbone-dependent Ramachandran data
         public static final String RAMACHANDRAN_DATA_PREFIX = "NDRD_split";
 
-    // Omega Library Settings
+    // Omega Database Settings
 
         /** the file containing the omega data */
         public static final String OMEGA_DATA_FILENAME = "databases/omegaCDL_OmegaBetweenAsPhi1Psi0_KernRegr_v1.3.1_Aug12-2011.txt";

@@ -10,11 +10,7 @@ description standard_alanine
 
 xyz_file Ala.xyz              ! the geometry will be read from this file
 
-residue_type normal_L         ! this is an L-amino acid (could also be
-                              ! normal_D for a D-amino acid or
-                              ! transition_state)
-
-reference_energy -23.69          ! in kcal/mol
+chirality L                   ! whether this is L, D, or ACHIRAL
 
 ! == Torsion Data ==
 ! Use tinker atom types.  Errors will be thrown if specifying
@@ -23,8 +19,6 @@ reference_energy -23.69          ! in kcal/mol
 ! numbers instead of atom types by placing an A after the fourth
 ! atom number. e.g. Chi2 1 2 3 4 A
 
-! To freeze a torsion add an F after the fourth atom number.
-! e.g. 223 7 8 9 F
 
 ! To use atom numbers and freeze, use AF.
 
