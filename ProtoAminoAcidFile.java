@@ -377,8 +377,10 @@ public class ProtoAminoAcidFile extends OutputFileFormat implements Serializable
     {
         if ( line.get(1).toLowerCase().equals("null") )
             return null;
-        if ( line.get(1).toLowerCase().equals("auto") )
+        else if ( line.get(1).toLowerCase().equals("auto") )
             return getSingleAtom(molecule, targetTypes);
+        else if ( line.get(2).toLowerCase().equals("a") )
+            return molecule.contents.get( Integer.parseInt(line.get(1))-1 );
         return getSingleAtom(molecule, ImmutableList.of( Integer.parseInt(line.get(1)) ) );
     }
 
@@ -437,10 +439,10 @@ public class ProtoAminoAcidFile extends OutputFileFormat implements Serializable
     /** for testing */
     public static void main(String[] args)
     {
-        ProtoAminoAcidFile m = new ProtoAminoAcidFile("amino_acids/Asp.txt");
+        ProtoAminoAcidFile m = new ProtoAminoAcidFile("amino_acids/Ser.txt");
         ProtoAminoAcid protoAlanine = new ProtoAminoAcid(m);
         for (Atom a : m.molecule.contents)
-            System.out.println(a.toFullString());
+            System.out.printf("%3d %s\n", m.molecule.contents.indexOf(a)+1, a.toFullString());
         System.out.println(protoAlanine);
 
     }

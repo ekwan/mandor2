@@ -70,8 +70,8 @@ public class Atom implements Immutable, Serializable, Comparable<Atom>
 
     /**
      * Returns a copy of this atom with a new atom type.
-     * @param type1 the AMOEBA atom type for the new atom
-     * @param type2 the OPLS atom type for the new atom
+     * @param newType1 the AMOEBA atom type for the new atom
+     * @param newType2 the OPLS atom type for the new atom
      * @return a new atom with updated atom types
      */
     public Atom setAtomType(int newType1, int newType2)

@@ -36,12 +36,21 @@ public class ProtoAminoAcid implements Immutable, Serializable
     /** Constructs a ProtoAminoAcid from a file. */
     private ProtoAminoAcid(Pair<Atom,Atom> NStickyConnection, Pair<Atom,Atom> CStickyConnection, Molecule molecule, Residue residue)
     {
+        if ( NStickyConnection == null || CStickyConnection == null || molecule == null || residue == null )
+            throw new NullPointerException("null fields are not allowed");
+        
         this.molecule = molecule;
         this.NStickyConnection = NStickyConnection;
         this.CStickyConnection = CStickyConnection;
+        if ( NStickyConnection.getFirst().element  != Element.NITROGEN ||
+             NStickyConnection.getSecond().element != Element.CARBON   ||
+             CStickyConnection.getFirst().element  != Element.CARBON   ||
+             CStickyConnection.getSecond().element != Element.NITROGEN    )
+            throw new IllegalArgumentException("unexpected sticky connection element");
         this.residue = residue;
-        if ( NStickyConnection == null || CStickyConnection == null || molecule == null || residue == null )
-            throw new NullPointerException("null fields are not allowed");
+        
+        if ( ! molecule.contents.equals(residue.atoms) )
+            throw new IllegalArgumentException("atom list mismatch");
     }
 
     /**

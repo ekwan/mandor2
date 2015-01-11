@@ -4,14 +4,14 @@
 ! field headings are case insensitive
 
 ! == General Metadata ==
-amino_acid ala                ! three-letter abbreviation that will be
+amino_acid his                ! three-letter abbreviation that will be
                               ! looked up in the AminoAcid enum
 
 ! the description of this amino acid (all fields on one line will be recorded)
 ! isHairpin is read from this field
-description standard_alanine
+description standard_histidine_HE
 
-xyz_file Ala.xyz              ! the geometry will be read from this file
+xyz_file Hie.xyz              ! the geometry will be read from this file
 
 ! == Torsion Data ==
 ! Use tinker atom types.  Errors will be thrown if specifying
@@ -26,10 +26,8 @@ xyz_file Ala.xyz              ! the geometry will be read from this file
 Phi    223    7    8    9         ! phi backbone torsion
 Psi      7    8    9  225	      ! psi backbone torsion
 Omega  221  223    7    8         ! omega backbone torsion
-!Chi1    1    2    3    4         ! first sidechain rotamer
-!Chi2    1    2    3    4         ! second sidechain rotamer
-!Chi3    1    2    3    4         ! third sidechain rotamer
-!Chi4    1    2    3    4         ! fourth sidechain rotamer
+Chi1 7 8 127 129            ! first sidechain rotamer
+Chi2 8 127 129 130          ! second sidechain rotamer
 
 ! == Atom Metadata ==
 ! Use tinker atom types.  Do not make duplicate entries.
@@ -70,36 +68,48 @@ OPLStype     9    82
 OPLStype    10    83
 OPLStype    11    88
 OPLStype    12     6
-OPLStype    13     1
-OPLStype    14     6
-OPLStype    15     6
-OPLStype    16     6
-OPLStype    17    84
-OPLStype    18    87
-OPLStype    19    87
+OPLStype    13   150
+OPLStype    14   152
+OPLStype    15   156
+OPLStype    16   153
+OPLStype    17   151
+OPLStype    18   148
+OPLStype    19     6
+OPLStype    20     6
+OPLStype    21    12
+OPLStype    22    12
+OPLStype    23   149
+OPLStype    24    84
+OPLStype    25    87
+OPLStype    26    87
 
 ! Surface Tensions
 ! e.g., surface tension for atom 1 is 1.0 kcal/A^2
 !       surfaceTension 1 1.0
 ! entries must be in ascending order of atom number 1,2,3,...
-surfaceTension  1      0.02455701
-surfaceTension  2     -0.13493142
-surfaceTension  3      0.06249181
-surfaceTension  4      0.06249177
-surfaceTension  5      0.06249177
-surfaceTension  6     -0.16244844
-surfaceTension  7     -0.08337614
-surfaceTension  8     -0.03285089
-surfaceTension  9     -0.13493125
-surfaceTension  10    -0.03495865
-surfaceTension  11    -0.02707248
-surfaceTension  12     0.01312667
-surfaceTension  13    -0.02707238
-surfaceTension  14    -0.02707238
-surfaceTension  15    -0.02707238
-surfaceTension  16    -0.10594812
-surfaceTension  17    -0.03495902
-surfaceTension  18    -0.03495825
-surfaceTension  19    -0.03461659
-
-
+surfaceTension  1      0.01177548
+surfaceTension  2     -0.03285091
+surfaceTension  3     -0.13493136
+surfaceTension  4     -0.02707202
+surfaceTension  5     -0.02707298
+surfaceTension  6     -0.02707298
+surfaceTension  7     -0.20272759
+surfaceTension  8     -0.08337531
+surfaceTension  9     -0.03285117
+surfaceTension  10    -0.13493125
+surfaceTension  11    -0.03495857
+surfaceTension  12    -0.02707248
+surfaceTension  13    -0.04470933
+surfaceTension  14    -0.09607790
+surfaceTension  15    -0.15218375
+surfaceTension  16    -0.03824126
+surfaceTension  17    -0.10763538
+surfaceTension  18    -0.15564719
+surfaceTension  19    -0.02707238
+surfaceTension  20    -0.02707238
+surfaceTension  21    -0.02755779
+surfaceTension  22    -0.02755779
+surfaceTension  23    -0.03495824
+surfaceTension  24    -0.10594733
+surfaceTension  25    -0.03495902
+surfaceTension  26    -0.03495825

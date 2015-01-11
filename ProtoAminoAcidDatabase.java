@@ -37,6 +37,7 @@ public final class ProtoAminoAcidDatabase implements Singleton
 
             // read all data from the library directory
             String directory = Settings.PROTOAMINOACID_DIRECTORY;
+            int counter = 0;
             for (File f : new File(directory).listFiles())
                 {
                     // parse all txt files
@@ -45,12 +46,11 @@ public final class ProtoAminoAcidDatabase implements Singleton
                         {
                             try
                                 {
+                                    // read file
                                     ProtoAminoAcidFile m = new ProtoAminoAcidFile(directory + filename);
                                     ProtoAminoAcid p = new ProtoAminoAcid(m);
-                                    AminoAcid aminoAcid = p.residue.aminoAcid;
-                                    int index = tempKeys.indexOf(aminoAcid);
-                                    List<ProtoAminoAcid> thisList = tempValues.get(index);
-                                    thisList.add(p);
+                                    counter++;
+                                    p = p.shift(counter);
 
                                     // check for duplicate atoms
                                     for (Atom a : p.molecule.contents)
@@ -60,6 +60,12 @@ public final class ProtoAminoAcidDatabase implements Singleton
                                             else
                                                 throw new IllegalArgumentException("Duplicate atom: " + a.toString());
                                         }
+                                    
+                                    // add to database
+                                    AminoAcid aminoAcid = p.residue.aminoAcid;
+                                    int index = tempKeys.indexOf(aminoAcid);
+                                    List<ProtoAminoAcid> thisList = tempValues.get(index);
+                                    thisList.add(p);
                                 }
                             catch (Exception e)
                                 {

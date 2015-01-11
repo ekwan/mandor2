@@ -76,7 +76,7 @@ public class Peptide extends Molecule implements Immutable, Serializable, Compar
 
     /**
      * Changes the geometry of this Peptide.
-     * @param molecule the new molecule geometry to use
+     * @param newMolecule the new molecule geometry to use
      * @return the new Peptide
      */
     public Peptide setMolecule(Molecule newMolecule)
