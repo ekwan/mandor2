@@ -1,32 +1,28 @@
 === Instructions for Making Peptide Templates ===
 
-1. Use Tinker PROTEIN to create the structure.  (Alternatively, use another drawing program
-   and convert to Tinker XYZ manually.)  Structure should be AcHN-Xxx-CONH2.
+1. For standard amino acids, run the protein.sh script:
 
-   I've assumed the pH is approximately 7 for these templates.  This means
-   that Arg is protonated and Asp/Glu are deprotonated.
+   ./protein.sh Ala
 
-   Sample input to PROTEIN:
+   This creates an Ala.xyz file, which contains the geometry and AMOEBA atom types.
+   It also prints out the OPLS atom types to the screen.
 
-   Asp.xyz
-   standard_asparate
-   amoebapro13.prm
-   ACE
-   ASP
-   NH2
+2. Copy the OPLS atom types into the Ala.txt file.
 
-   N
+3. Send the Ala.xyz file to the surface_area/getSurfaceTension.sh script:
 
-   Asp.int and Asp.seq files will be produced in addition to Asp.xyz.  The
-   former can be deleted.  You can check the result with the xyzpdb utility:
+   ./getSurfaceTension.sh Ala.xyz
 
-   xyzpdb Asp.xyz amoebapro13.prm
+   This prints out the surface tensions.  Copy them into Ala.txt.  This script
+   assumes a modified version of OMNISOL is present that prints out the surface
+   area and energy to more decimal places than usual.  I made the modification
+   by going into the satbat.f file in the OMNISOL src directory.  A copy of it is
+   in the git in the surface_area folder.  I had trouble compiling OMNISOL for
+   Mac, but on linux it compiled fine.  Run omnisol.compile in manual mode, with
+   this interactive input: linux, omnisol, option fn.  
 
-2. Update the metadata.  Use an existing text file as a template.
+4. Update any other necessary fields in Ala.xyz.
 
-3. Shift the coordinates using translate_one.sh:
-
-   ./translate_one.sh Asp.xyz
-
-   This deals with a flaw in the program design.  The script shifts the
-   positions by a random xyz amount.
+5. If a custom amino acid is required, this will all have to be done manually.
+   An AMOEBA xyz file, OPLS atom types, and OMNISOL surface tensions will be
+   required.  Note that the AminoAcid.java enum will probably also need altering.

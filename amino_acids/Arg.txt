@@ -1,0 +1,131 @@
+! == Amino Acid Metadata ==
+! blank lines or data after exclamation marks will be ignored
+! consecutive spaces are ignored
+! field headings are case insensitive
+
+! == General Metadata ==
+amino_acid arg                ! three-letter abbreviation that will be
+                              ! looked up in the AminoAcid enum
+
+! the description of this amino acid (all fields on one line will be recorded)
+! isHairpin is read from this field
+description standard_arginine
+
+xyz_file Arg.xyz              ! the geometry will be read from this file
+
+! == Torsion Data ==
+! Use tinker atom types.  Errors will be thrown if specifying
+! atom types would be ambiguous; i.e., if multiple atoms correspond
+! to the same atom type.  In this case, you should specify atom
+! numbers instead of atom types by placing an A after the fourth
+! atom number. e.g. Chi2 1 2 3 4 A
+!
+! Chis should be in order: chi1, chi2, chi3, chi4
+! If there are no chis, simply don't include any chi lines.
+
+Phi    223    7    8    9         ! phi backbone torsion
+Psi      7    8    9  225	      ! psi backbone torsion
+Omega  221  223    7    8         ! omega backbone torsion
+Chi1 7 8 202 204            ! first sidechain rotamer
+Chi2 8 202 204 206          ! second sidechain rotamer
+Chi3 202 204 206 208            ! third sidechain rotamer
+Chi4 204 206 208 210            ! fourth sidechain rotamer
+
+! == Atom Metadata ==
+! Use tinker atom types.  Do not make duplicate entries.
+! Use "null" if it's allowed.  All fields in this seciton are mandatory unless otherwise specified.
+! Use "A" to indicate the atom number.  Otherwise, it's interpreted as the AMOEBA atom type.
+! Use "auto" to try and autodetect the atom.  Autodetect doesn't understand nulls, so if it's
+! null, you have to specify it explicitly.
+atomHN  auto      ! backbone amide HN (can be null)
+atomN   auto      ! backbone amide nitrogen
+atomO   auto      ! backbone amide carbonyl oxygen
+atomC   auto      ! backbone amide carbonyl carbon
+atomCA  auto      ! alpha carbon
+atomHA  auto      ! alpha hydrogen (can be null)
+
+! how these ProtoAminoAcids will be connected to form Peptides
+! always put the atom to be deleted second
+NStickyConnection 7 223       ! amino N followed by acetyl cap carbon
+CStickyConnection 9 225       ! amide C followed by amino cap nitrogen
+
+! should be specified even if the amino acid is not chiral
+! place an A after the second atom number to specify atom numbers
+! e.g. prochiral_connection 1 2 A
+prochiral_connection 8 13 A	  ! bond between Calpha and first substitutent atom
+
+! OPLS atom types
+! e.g. the OPLS atom type for atom 1 is 2:
+!      OPLStype 1 2
+! entries must be in ascending order of atom number 1,2,3,...
+OPLStype     1     1
+OPLStype     2    82
+OPLStype     3    83
+OPLStype     4     6
+OPLStype     5     6
+OPLStype     6     6
+OPLStype     7    85
+OPLStype     8    74
+OPLStype     9    82
+OPLStype    10    83
+OPLStype    11    88
+OPLStype    12     6
+OPLStype    13   202
+OPLStype    14   144
+OPLStype    15   143
+OPLStype    16   137
+OPLStype    17   140
+OPLStype    18   136
+OPLStype    19   136
+OPLStype    20     6
+OPLStype    21     6
+OPLStype    22     6
+OPLStype    23     6
+OPLStype    24     6
+OPLStype    25     6
+OPLStype    26   139
+OPLStype    27   138
+OPLStype    28   138
+OPLStype    29   138
+OPLStype    30   138
+OPLStype    31    84
+OPLStype    32    87
+OPLStype    33    87
+
+! Surface Tensions
+! e.g., surface tension for atom 1 is 1.0 kcal/A^2
+!       surfaceTension 1 1.0
+! entries must be in ascending order of atom number 1,2,3,...
+surfaceTension  1      0.01177548
+surfaceTension  2     -0.03285091
+surfaceTension  3     -0.13493136
+surfaceTension  4     -0.02707202
+surfaceTension  5     -0.02707298
+surfaceTension  6     -0.02707298
+surfaceTension  7     -0.20272759
+surfaceTension  8     -0.08337577
+surfaceTension  9     -0.03285075
+surfaceTension  10    -0.13493125
+surfaceTension  11    -0.03495857
+surfaceTension  12    -0.02707248
+surfaceTension  13    -0.04293010
+surfaceTension  14    -0.04293053
+surfaceTension  15    -0.02647177
+surfaceTension  16    -0.21081321
+surfaceTension  17    -0.32865910
+surfaceTension  18    -0.10737171
+surfaceTension  19    -0.10737201
+surfaceTension  20    -0.02707238
+surfaceTension  21    -0.02707238
+surfaceTension  22    -0.02707238
+surfaceTension  23    -0.02707315
+surfaceTension  24    -0.02707283
+surfaceTension  25    -0.02707283
+surfaceTension  26    -0.03495849
+surfaceTension  27    -0.03495894
+surfaceTension  28    -0.03495894
+surfaceTension  29    -0.03495894
+surfaceTension  30    -0.03495886
+surfaceTension  31    -0.10594778
+surfaceTension  32    -0.03495902
+surfaceTension  33    -0.03495825

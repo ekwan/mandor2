@@ -1,0 +1,5 @@
+SM5.0R
+& IOFR=1.4459 ALPHA=0.15 BETA=0.02 GAMMA=38.39
+& FACARB=0.00 FEHALO=0.75 SOLVNT=GENORG
+peptide (solvent : chloroform)
+

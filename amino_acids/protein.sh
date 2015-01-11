@@ -2,13 +2,12 @@
 #
 # this script gives us:
 #
-# a tinker xyz file containing the amobea atom types, this will go in $1_amoeba.xyz
-# a tinker xyz file containing the oplsaal atom types, this will go ing $1_opls.xyz
+# a tinker xyz file containing the amobea atom types, this will go in $1.xyz
 # a printout of the oplsaal atom types
 #
 # it will ensure that the amoeba and oplssal geometries line up
 #
-# the $1_opls.xyz file can be sent to omnisol to get the surface tensions
+# the $1.xyz file can be sent to omnisol to get the surface tensions
 # 
 # oplsaal is just opls with better parameters for proteins
 #
@@ -48,4 +47,8 @@ rm geometry_diff.txt
 
 # get opls atom types
 echo "OPLS atom types: atom number, OPLS type"
-awk '{if (NR>1) { printf "OPLStype  %4d  %4d\n", $1, $6 }}' ALA_opls.xyz
+awk '{if (NR>1) { printf "OPLStype  %4d  %4d\n", $1, $6 }}' $1_opls.xyz
+
+# clean up
+mv $1_amoeba.xyz $1.xyz
+rm $1_opls.xyz

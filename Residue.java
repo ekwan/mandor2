@@ -158,6 +158,64 @@ public class Residue implements Immutable, Serializable
         if ( ImmutableSet.of(C, phi.atom4, psi.atom3).size() != 1 )
             throw new IllegalArgumentException("C does not line up");
         
+        if (chis.size() == 1)
+            {
+                ProtoTorsion chi1 = chis.get(0);
+                if ( ImmutableSet.of(N,  chi1.atom1).size() != 1 ||
+                     ImmutableSet.of(CA, chi1.atom2).size() != 1    )
+                    throw new IllegalArgumentException("problem with chi1");
+            }
+        else if ( chis.size() == 2 )
+            {
+                ProtoTorsion chi1 = chis.get(0);
+                ProtoTorsion chi2 = chis.get(1);
+                if ( ImmutableSet.of(N,  chi1.atom1).size() != 1 ||
+                     ImmutableSet.of(CA, chi1.atom2).size() != 1 )
+                    throw new IllegalArgumentException("problem with chi1");
+                if ( ImmutableSet.of(CA, chi2.atom1).size() != 1 )
+                    throw new IllegalArgumentException("problem with chi2");
+                if ( ImmutableSet.of(chi1.atom2, chi2.atom1).size() != 1 ||
+                     ImmutableSet.of(chi1.atom3, chi2.atom2).size() != 1 ||
+                     ImmutableSet.of(chi1.atom4, chi2.atom3).size() != 1    )
+                    throw new IllegalArgumentException("chis do not line up");
+            }
+        else if ( chis.size() == 3 )
+            {
+                ProtoTorsion chi1 = chis.get(0);
+                ProtoTorsion chi2 = chis.get(1);
+                ProtoTorsion chi3 = chis.get(2);
+                if ( ImmutableSet.of(N,  chi1.atom1).size() != 1 ||
+                     ImmutableSet.of(CA, chi1.atom2).size() != 1 )
+                    throw new IllegalArgumentException("problem with chi1");
+                if ( ImmutableSet.of(CA, chi2.atom1).size() != 1 )
+                    throw new IllegalArgumentException("problem with chi2");
+                if ( ImmutableSet.of(chi1.atom2, chi2.atom1).size() != 1 ||
+                     ImmutableSet.of(chi1.atom3, chi2.atom2, chi3.atom1).size() != 1 ||
+                     ImmutableSet.of(chi1.atom4, chi2.atom3, chi3.atom2).size() != 1 ||
+                     ImmutableSet.of(chi2.atom4, chi3.atom3).size() != 1                )
+                    throw new IllegalArgumentException("chis do not line up");
+            }
+        else if ( chis.size() == 4 )
+             {
+                ProtoTorsion chi1 = chis.get(0);
+                ProtoTorsion chi2 = chis.get(1);
+                ProtoTorsion chi3 = chis.get(2);
+                ProtoTorsion chi4 = chis.get(3);
+                if ( ImmutableSet.of(N,  chi1.atom1).size() != 1 ||
+                     ImmutableSet.of(CA, chi1.atom2).size() != 1 )
+                    throw new IllegalArgumentException("problem with chi1");
+                if ( ImmutableSet.of(CA, chi2.atom1).size() != 1 )
+                    throw new IllegalArgumentException("problem with chi2");
+                if ( ImmutableSet.of(chi1.atom2, chi2.atom1).size() != 1 ||
+                     ImmutableSet.of(chi1.atom3, chi2.atom2, chi3.atom1).size() != 1 ||
+                     ImmutableSet.of(chi1.atom4, chi2.atom3, chi3.atom2, chi4.atom1).size() != 1 ||
+                     ImmutableSet.of(chi2.atom4, chi3.atom3, chi4.atom2).size() != 1 ||
+                     ImmutableSet.of(chi3.atom4, chi4.atom3).size() != 1 )
+                    throw new IllegalArgumentException("chis do not line up");
+            }
+        else if ( chis.size() > 4 )
+            throw new IllegalArgumentException("don't know how to deal with more than four chis");
+
         this.atoms = atoms;
         this.isHairpin = isHairpin;
     }

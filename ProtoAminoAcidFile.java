@@ -437,7 +437,7 @@ public class ProtoAminoAcidFile extends OutputFileFormat implements Serializable
     /** for testing */
     public static void main(String[] args)
     {
-        ProtoAminoAcidFile m = new ProtoAminoAcidFile("amino_acids/Ala.txt");
+        ProtoAminoAcidFile m = new ProtoAminoAcidFile("amino_acids/Asp.txt");
         ProtoAminoAcid protoAlanine = new ProtoAminoAcid(m);
         for (Atom a : m.molecule.contents)
             System.out.println(a.toFullString());
