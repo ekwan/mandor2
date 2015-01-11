@@ -76,19 +76,19 @@ public class ProtoAminoAcid implements Immutable, Serializable
             if ( ! molecule.contents.contains(a) )
                 throw new IllegalArgumentException("atom map contains an atom that is not in this ProtoAminoAcid");
 
-        Atom tempAtom1 = p.NStickyConnection.getFirst();
-        Atom tempAtom2 = p.NStickyConnection.getSecond();
-        if ( atomMap.containsKey(p.NStickyConnection.getFirst()) )
+        Atom tempAtom1 = NStickyConnection.getFirst();
+        Atom tempAtom2 = NStickyConnection.getSecond();
+        if ( atomMap.containsKey(NStickyConnection.getFirst()) )
             tempAtom1 = atomMap.get(tempAtom1);
-        if ( atomMap.containsKey(p.NStickyConnection.getSecond()) )
+        if ( atomMap.containsKey(NStickyConnection.getSecond()) )
             tempAtom2 = atomMap.get(tempAtom2);
         Pair<Atom,Atom> newNStickyConnection = new Pair<>(tempAtom1,tempAtom2);
 
-        tempAtom1 = p.CStickyConnection.getFirst();
-        tempAtom2 = p.CStickyConnection.getSecond();
-        if ( atomMap.containsKey(p.CStickyConnection.getFirst()) )
+        tempAtom1 = CStickyConnection.getFirst();
+        tempAtom2 = CStickyConnection.getSecond();
+        if ( atomMap.containsKey(CStickyConnection.getFirst()) )
             tempAtom1 = atomMap.get(tempAtom1);
-        if ( atomMap.containsKey(p.CStickyConnection.getSecond()) )
+        if ( atomMap.containsKey(CStickyConnection.getSecond()) )
             tempAtom2 = atomMap.get(tempAtom2);
         Pair<Atom,Atom> newCStickyConnection = new Pair<>(tempAtom1,tempAtom2);
 
@@ -104,35 +104,37 @@ public class ProtoAminoAcid implements Immutable, Serializable
         // print header, omega, phi, psi
         String returnString   = String.format("ProtoAminoAcid for %s\n\n", residue.aminoAcid.toString());
         returnString         += String.format("Description: %s\n", residue.description);
-        returnString         += String.format("Omega:  %s\n", residue.omega.toString(molecule));
-        returnString         += String.format("Phi:    %s\n" + residue.phi.toString(molecule));
-        returnString         += String.format("Psi:    %s\n" + residue.psi.toString(molecule));
+        returnString         += String.format("      Omega: %s\n", residue.omega.toString(molecule));
+        returnString         += String.format("        Phi: %s\n", residue.phi.toString(molecule));
+        returnString         += String.format("        Psi: %s\n", residue.psi.toString(molecule));
 
         // print chis
         for (int i=0; i < residue.chis.size(); i++)
             {
                 ProtoTorsion t = residue.chis.get(i);
-                returnString += String.format("Chi %d: %s\n", i+1, t.toString(molecule));
+                returnString += String.format("     Chi %d: %s\n", i+1, t.toString(molecule));
             }
+        if ( residue.chis.size() == 0 )
+            returnString +=                   "       Chis: --none--\n";
 
         // print special atoms
         if ( residue.HN != null )
-            returnString += String.format("HN: %s\n", molecule.getAtomString(residue.HN));
+            returnString +=     String.format("         HN: %s\n", molecule.getAtomString(residue.HN));
         else
-            returnString += String.format("HN: none\n");
-        returnString     += String.format(" N: %s\n", molecule.getAtomString(residue.N));
-        returnString     += String.format(" O: %s\n", molecule.getAtomString(residue.O));
-        returnString     += String.format(" C: %s\n", molecule.getAtomString(residue.C));
-        returnString     += String.format("CA: %s\n", molecule.getAtomString(residue.CA));
+            returnString +=     String.format("         HN: none\n");
+        returnString     +=     String.format("          N: %s\n", molecule.getAtomString(residue.N));
+        returnString     +=     String.format("          O: %s\n", molecule.getAtomString(residue.O));
+        returnString     +=     String.format("          C: %s\n", molecule.getAtomString(residue.C));
+        returnString     +=     String.format("         CA: %s\n", molecule.getAtomString(residue.CA));
         if ( residue.HA != null )
-            returnString += String.format("HA: %s\n", molecule.getAtomString(residue.HA));
+            returnString +=     String.format("         HA: %s\n", molecule.getAtomString(residue.HA));
         else
-            returnString += String.format("HA: none\n");
+            returnString +=     String.format("         HA: none\n");
  
         // print sticky connections
-        returnString     += String.format("NStickyConnection:   %s-%s\n", molecule.getAtomString(NStickyConnection.getFirst()),
+        returnString     += String.format("  NStickyConnection: %s-%s\n", molecule.getAtomString(NStickyConnection.getFirst()),
                                                                           molecule.getAtomString(NStickyConnection.getSecond()) );
-        returnString     += String.format("CStickyConnection:   %s-%s\n", molecule.getAtomString(CStickyConnection.getFirst()),
+        returnString     += String.format("  CStickyConnection: %s-%s\n", molecule.getAtomString(CStickyConnection.getFirst()),
                                                                           molecule.getAtomString(CStickyConnection.getSecond()) );
         returnString     += String.format("prochiralConnection: %s-%s",   molecule.getAtomString(residue.prochiralConnection.getFirst()),
                                                                           molecule.getAtomString(residue.prochiralConnection.getSecond()) );

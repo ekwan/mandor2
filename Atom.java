@@ -48,8 +48,6 @@ public class Atom implements Immutable, Serializable, Comparable<Atom>
             throw new IllegalArgumentException("negative atom type");
         this.type1    = type1;
         this.type2    = type2;
-        if ( surfaceTension < 0.0 )
-            throw new IllegalArgumentException("negative surface tension");
         this.surfaceTension = surfaceTension;
     }   
 
@@ -120,6 +118,12 @@ public class Atom implements Immutable, Serializable, Comparable<Atom>
     {
         return String.format("%-2s %10.6f %10.6f %10.6f", element.symbol, position.getX(), position.getY(), position.getZ());
     }
+
+    public String toFullString()
+    {
+        return String.format("%-2s %10.6f %10.6f %10.6f %3d %3d %7.4f", element.symbol, position.getX(), position.getY(), position.getZ(), type1, type2, surfaceTension);
+    }
+
 
     @Override
     public int hashCode()

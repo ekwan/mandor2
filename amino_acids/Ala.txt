@@ -1,16 +1,17 @@
 ! == Amino Acid Metadata ==
 ! blank lines or data after exclamation marks will be ignored
+! consecutive spaces are ignored
+! field headings are case insensitive
 
 ! == General Metadata ==
 amino_acid ala                ! three-letter abbreviation that will be
                               ! looked up in the AminoAcid enum
 
 ! the description of this amino acid (all fields on one line will be recorded)
+! isHairpin is read from this field
 description standard_alanine
 
 xyz_file Ala.xyz              ! the geometry will be read from this file
-
-chirality L                   ! whether this is L, D, or ACHIRAL
 
 ! == Torsion Data ==
 ! Use tinker atom types.  Errors will be thrown if specifying
@@ -19,25 +20,29 @@ chirality L                   ! whether this is L, D, or ACHIRAL
 ! numbers instead of atom types by placing an A after the fourth
 ! atom number. e.g. Chi2 1 2 3 4 A
 !
-! To use atom numbers and freeze, use AF.
-!
 ! Chis should be in order: chi1, chi2, chi3, chi4
-! If there are no chis, add this line:
-! chi1 null
+! If there are no chis, simply don't include any chi lines.
 
-Phi   223   7   8   9         ! phi backbone torsion
-Psi     7   8   9 225	      ! psi backbone torsion
-Omega 221 223   7   8         ! omega backbone torsion
-Chi1    null			       ! first sidechain rotamer
-!Chi2    1   2   3   4       ! second sidechain rotamer
-!Chi3    1   2   3   4         ! third sidechain rotamer
-!Chi4    1   2   3   4         ! fourth sidechain rotamer
+Phi    223    7    8    9         ! phi backbone torsion
+Psi      7    8    9  225	      ! psi backbone torsion
+Omega  221  223    7    8         ! omega backbone torsion
+!Chi1    1    2    3    4         ! first sidechain rotamer
+!Chi2    1    2    3    4         ! second sidechain rotamer
+!Chi3    1    2    3    4         ! third sidechain rotamer
+!Chi4    1    2    3    4         ! fourth sidechain rotamer
 
 ! == Atom Metadata ==
 ! Use tinker atom types.  Do not make duplicate entries.
-
-backbone_HN    10             ! the backbone HN atom type
-other_HN     null             ! other amide HNs
+! Use "null" if it's allowed.  All fields in this seciton are mandatory unless otherwise specified.
+! Use "A" to indicate the atom number.  Otherwise, it's interpreted as the AMOEBA atom type.
+! Use "auto" to try and autodetect the atom.  Autodetect doesn't understand nulls, so if it's
+! null, you have to specify it explicitly.
+atomHN  auto      ! backbone amide HN (can be null)
+atomN   auto      ! backbone amide nitrogen
+atomO   auto      ! backbone amide carbonyl oxygen
+atomC   auto      ! backbone amide carbonyl carbon
+atomCA  auto      ! alpha carbon
+atomHA  auto      ! alpha hydrogen (can be null)
 
 ! how these ProtoAminoAcids will be connected to form Peptides
 ! always put the atom to be deleted second
@@ -52,6 +57,7 @@ prochiral_connection 8 13 A	  ! bond between Calpha and first substitutent atom
 ! OPLS atom types
 ! e.g. the OPLS atom type for atom 1 is 2:
 !      OPLStype 1 2
+! entries must be in ascending order of atom number 1,2,3,...
 OPLStype     1     1
 OPLStype     2    82
 OPLStype     3    83
@@ -75,4 +81,23 @@ OPLStype    19    87
 ! Surface Tensions
 ! e.g., surface tension for atom 1 is 1.0 kcal/A^2
 !       surfaceTension 1 1.0
-
+! entries must be in ascending order of atom number 1,2,3,...
+surfaceTension  1      0.02455701
+surfaceTension  2     -0.13493142
+surfaceTension  3      0.06249181
+surfaceTension  4      0.06249177
+surfaceTension  5      0.06249177
+surfaceTension  6     -0.16244844
+surfaceTension  7     -0.08337614
+surfaceTension  8     -0.03285089
+surfaceTension  9     -0.13493125
+surfaceTension  10    -0.03495865
+surfaceTension  11    -0.02707248
+surfaceTension  12     0.01312667
+surfaceTension  13    -0.02707238
+surfaceTension  14    -0.02707238
+surfaceTension  15    -0.02707238
+surfaceTension  16    -0.10594812
+surfaceTension  17    -0.03495902
+surfaceTension  18    -0.03495825
+surfaceTension  19    -0.03461659

@@ -149,15 +149,16 @@ public class Residue implements Immutable, Serializable
             throw new IllegalArgumentException("atom list does not contain all atoms in fields");
         
         // check that the torsions line up with the fields
-        if ( ImmutableSet.of(N, omega.atom2, phi.atom1).size() != 1 )
+        if ( ImmutableSet.of(omega.atom2, phi.atom1).size() != 1 )
+            throw new IllegalArgumentException("carbon prior to N doesn't line up");
+        if ( ImmutableSet.of(N, omega.atom3, phi.atom2, psi.atom1).size() != 1 )
             throw new IllegalArgumentException("N does not line up");
-        if ( ImmutableSet.of(C, omega.atom3, phi.atom2, psi.atom1).size() != 1 )
-            throw new IllegalArgumentException("C does not line up");
         if ( ImmutableSet.of(CA, omega.atom4, phi.atom3, psi.atom2).size() != 1 )
             throw new IllegalArgumentException("CA does not line up");
+        if ( ImmutableSet.of(C, phi.atom4, psi.atom3).size() != 1 )
+            throw new IllegalArgumentException("C does not line up");
         
         this.atoms = atoms;
-
         this.isHairpin = isHairpin;
     }
 
@@ -216,12 +217,12 @@ public class Residue implements Immutable, Serializable
     public String toString(Molecule peptide)
     {
         String returnString = String.format("%s (%s, %d atoms)\n", aminoAcid.toString(), description, atoms.size());
-        returnString += String.format(" omega: %-20s %7.1f\n", omega.toString(peptide), omega.getDihedralAngle());
-        returnString += String.format("   phi: %-20s %7.1f\n", phi.toString(peptide), phi.getDihedralAngle());
-        returnString += String.format("   psi: %-20s %7.1f\n", psi.toString(peptide), psi.getDihedralAngle());
+        returnString += String.format("      omega: %-20s %7.1f\n", omega.toString(peptide), omega.getDihedralAngle());
+        returnString += String.format("        phi: %-20s %7.1f\n", phi.toString(peptide), phi.getDihedralAngle());
+        returnString += String.format("        psi: %-20s %7.1f\n", psi.toString(peptide), psi.getDihedralAngle());
 
         for (ProtoTorsion p : chis)
-            returnString += String.format("   chi: %-20s %7.1f\n", p.toString(peptide), p.getDihedralAngle());
+            returnString += String.format("        chi: %-20s %7.1f\n", p.toString(peptide), p.getDihedralAngle());
         
         List<Atom> tempList = new ArrayList<>();
         tempList.add(HN);
