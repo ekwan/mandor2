@@ -73,7 +73,7 @@ public class ProtoAminoAcidFile extends OutputFileFormat implements Serializable
         Atom                 HA                  = null;
         Pair<Atom,Atom>      prochiralConnection = null;
         List<Atom>           atoms               = new ArrayList<>(tempMolecule.contents);
-        Boolean              isHairpin           = null;
+        Boolean              isHairpin           = false;
         List<Integer>        OPLSatomTypes       = new ArrayList<>(tempMolecule.contents.size());
         List<Double>         surfaceTensions     = new ArrayList<>(tempMolecule.contents.size());
 
@@ -98,10 +98,6 @@ public class ProtoAminoAcidFile extends OutputFileFormat implements Serializable
                                     description += " ";
                             }
                         description = description.trim();
-                        if ( description.toLowerCase().indexOf("hairpin") > -1 )
-                            isHairpin = true;
-                        else
-                            isHairpin = false;
                     }
                 else if ( firstField.equals("phi") )
                     {

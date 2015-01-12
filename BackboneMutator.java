@@ -40,6 +40,19 @@ public class BackboneMutator implements Mutator
     }
 
     /**
+     * Takes a peptide and sets the omega angle.  We don't check that residue belongs to peptide.
+     * @param peptide the peptide to set the omega of
+     * @param i the index of the residue to adjust
+     * @param omegaAngle the angle to set the omega to in degrees
+     * @return the rotated peptide
+     */
+    public static Peptide setOmega(Peptide peptide, int i, double omegaAngle)
+    {
+        ProtoTorsion omega = peptide.sequence.get(i).omega;
+        return peptide.setMolecule( peptide.setDihedral(omega, omegaAngle) );
+    }
+
+    /**
      * Convenience method that mutates the omega torsion angle of the i-th
      * residue (i=0,1,...,n-1).  The omega angle is randomly selected.
      * @param the peptide
@@ -163,12 +176,27 @@ public class BackboneMutator implements Mutator
      */
     public static Peptide setPhiPsi(Peptide peptide, Residue residue, double newPhiValue, double newPsiValue)
     {
-        if ( newPhiValue < -180.0 || newPhiValue > 180.0 || newPsiValue < -180.0 || newPsiValue > 180.0 )
-            throw new IllegalArgumentException("angle out of range");
-        
         int residueIndex = peptide.sequence.indexOf(residue);
         if ( residueIndex == -1 )
             throw new IllegalArgumentException("this residue does not belong to the specified peptide");
+        
+        return setPhiPsi(peptide, residueIndex, newPhiValue, newPsiValue);
+    }
+
+    /**
+     * Sets the backbone (phi,psi) angles of a residue to specific values.
+     * @param peptide the starting structure
+     * @param residueIndex the index of the residue whose (phi,psi) angles are to be mutated
+     * @param newPhiValue the phi value we will be setting residue's phi to in degrees
+     * @param newPsiValue the psi value we will be setting residue's psi to in degeres
+     * @return the result of the mutation
+     */
+    public static Peptide setPhiPsi(Peptide peptide, int residueIndex, double newPhiValue, double newPsiValue)
+    {
+        if ( newPhiValue < -180.0 || newPhiValue > 180.0 || newPsiValue < -180.0 || newPsiValue > 180.0 )
+            throw new IllegalArgumentException("angle out of range");
+        
+        Residue residue = peptide.sequence.get(residueIndex);
         ProtoTorsion phi = residue.phi;
         ProtoTorsion psi = residue.psi;
 

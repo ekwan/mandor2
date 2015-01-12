@@ -30,10 +30,6 @@ public class RotamerMutator implements Mutator
      */
     public static Peptide setChis(Peptide peptide, Residue residue, List<Double> chis)
     {
-        // nulls are not allowed
-        if ( peptide == null || residue == null || chis == null )
-            throw new NullPointerException("arguments cannot be null");
-        
         // check the residue belongs in this peptide
         AminoAcid currentAminoAcid = residue.aminoAcid;
         Residue currentResidue = residue;
@@ -41,7 +37,26 @@ public class RotamerMutator implements Mutator
         int residueIndex = sequence.indexOf(currentResidue);
         if ( residueIndex == -1 )
             throw new IllegalArgumentException("residue does not belong to this peptide");
+        return setChis(peptide, residueIndex, chis); 
+    }
 
+    /**
+     * Sets the chi angles of a peptide residue to the specified values.
+     * @param peptide the starting structure
+     * @param residueIndex the index of the residue to adjust
+     * @param chis the chis (chi1, chi2, ..., chiN)
+     * @return the rotated peptide
+     */
+    public static Peptide setChis(Peptide peptide, int residueIndex, List<Double> chis)
+    {
+        // nulls are not allowed
+        if ( peptide == null || chis == null )
+            throw new NullPointerException("arguments cannot be null");
+ 
+        // get necessary fields
+        Residue residue = peptide.sequence.get(residueIndex);
+        AminoAcid currentAminoAcid = residue.aminoAcid;
+       
         // check the number of residues
         if ( chis.size() != residue.chis.size() )
             throw new IllegalArgumentException(String.format("chi list size mismatch (expected %d but found %d, %s)",
@@ -51,7 +66,6 @@ public class RotamerMutator implements Mutator
         if ( chis.size() == 0 )
             return peptide;
 
-        // get necessary fields
         Peptide newPeptide = peptide;
         LinkedList<ProtoTorsion> oldProtoTorsions = new LinkedList<>(residue.chis);
         LinkedList<IndexTorsion> indexTorsions = new LinkedList<>();

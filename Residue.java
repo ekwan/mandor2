@@ -261,6 +261,18 @@ public class Residue implements Immutable, Serializable
         return new Residue(aminoAcid, newOmega, newPhi, newPsi, newChis, newHN, newN, newO, newC, newCA, newHA, description, newProchiralConnection, newAtoms, isHairpin);
     }
 
+    /** 
+     * Returns the same residue with a different hairpin flag.
+     * @param newIsHairpin whether this is a hairpin residue
+     * @return the new residue
+     */
+    public Residue setHairpin(boolean newIsHairpin)
+    {
+        if ( newIsHairpin == isHairpin)
+            return this;
+        return new Residue(aminoAcid, omega, phi, psi, chis, HN, N, O, C, CA, HA, description, prochiralConnection, atoms, newIsHairpin);
+    }
+
     @Override
     public String toString()
     {

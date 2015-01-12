@@ -195,77 +195,17 @@ public final class ProtoAminoAcidDatabase implements Singleton
                         throw new IllegalArgumentException("invalid number of matches (" + matches.size() + " for " + s + ") -- cannot continue");
                     }
                 ProtoAminoAcid hit = masterMap.get(matches.get(0));
-                returnList.add(hit.shift(returnList.size()));
+                returnList.add(hit);
             }
         return ImmutableList.copyOf(returnList);
     }
 
-    /** convenience method, hairpin set to true */
-    public static List<ProtoAminoAcid> getSequence(String... args)
+    public static List<ProtoAminoAcid> getSpecificSequence(String... sequence)
     {
-        return getSequence(args, true);
-    }
-
-    /**
-     * Creates a sequence from string input.  If there are multiple ProtoAminoAcids that
-     * correspond to one amino acids, then one will be randomly selected.
-     * If hairpin is turned off, glycine will explicitly not be set to a hairpin version.
-     * @param args sequence of Strings representing the amino acid names (e.g., "pro", "gly")
-     * @param hairpin true if you want auto-selection of the hairpin DPRO and GLY
-     * @return the desired list of ProtoAminoAcids
-     */
-    public static List<ProtoAminoAcid> getSequence(String[] args, boolean hairpin)
-    {
-        List<ProtoAminoAcid> returnList = new LinkedList<>();
-        for (int i=0; i < args.length; i++)
-            {
-                String s = args[i];
-                AminoAcid aminoAcid = AminoAcid.getAminoAcid(s);
-                List<ProtoAminoAcid> protoAminoAcidList = getProtoAminoAcids(aminoAcid);
-                ProtoAminoAcid protoAminoAcid = null;
-                if ( protoAminoAcidList.size() == 0 )
-                    throw new IllegalArgumentException("no ProtoAminoAcids found for " + s);
-                else if ( protoAminoAcidList.size() == 1 )
-                    protoAminoAcid = protoAminoAcidList.get(0);
-                else if ( protoAminoAcidList.size() > 1 )
-                    {
-                        // auto-select hairpin version following DPRO
-                        if ( hairpin && i>0 && AminoAcid.getAminoAcid(args[i-1]) == AminoAcid.DPRO )
-                            {
-                                for (ProtoAminoAcid p : protoAminoAcidList)
-                                    {
-                                        if ( p.residue.isHairpin )
-                                            {
-                                                protoAminoAcid = p;
-                                                //System.out.println("Auto-selected the hairpin version for " + s + ".");
-                                            }
-                                    }
-                                if ( protoAminoAcid == null )
-                                    {
-                                        protoAminoAcid = protoAminoAcidList.get(0);
-                                        System.out.println("Warning: No hairpin version found for " + s + "!!!");
-                                    }
-                            }
-                        else
-                            {
-                                // tries to avoid hairpin versions, but 
-                                // will select a hairpin version if nothing else is available
-                                List<ProtoAminoAcid> pool = new LinkedList<>();
-                                for (ProtoAminoAcid p : protoAminoAcidList)
-                                    if ( !p.residue.isHairpin && p.residue.aminoAcid != AminoAcid.TS )
-                                        pool.add(p);
-
-                                ThreadLocalRandom random = ThreadLocalRandom.current();
-                                if ( pool.size() == 0 )
-                                    protoAminoAcid = protoAminoAcidList.get( random.nextInt(protoAminoAcidList.size()) );
-                                else
-                                    protoAminoAcid = pool.get( random.nextInt(pool.size()) );
-                            }
-                    }
-                //System.out.println("Selected " + protoAminoAcid.residue.description);
-                returnList.add(protoAminoAcid.shift(i));
-            }
-        return returnList;
+        List<String> list = new ArrayList<>();
+        for (String s : sequence)
+            list.add(s);
+        return getSpecificSequence(list);
     }
 
     /** for testing */
@@ -279,5 +219,8 @@ public final class ProtoAminoAcidDatabase implements Singleton
             System.out.println(getProtoAminoAcids(a));
             System.out.println("\n\n");
         }
+        List<ProtoAminoAcid> testSequence = getSpecificSequence("arg","standard_ala","gly","d_proline", "gly", "l_proline", "val", "hd");
+        for (ProtoAminoAcid p : testSequence)
+            System.out.println(p.residue.description);
     }
 }
