@@ -523,6 +523,8 @@ public class Molecule implements Immutable, Serializable
         // determine how much rotation is needed
         double currentDihedralAngle = protoTorsion.getDihedralAngle();
         double requiredRotation = currentDihedralAngle - theta;
+        if ( Math.abs(requiredRotation) < 0.001 )
+            return this;
 
         Map<Atom,Atom> atomMap = new HashMap<>();
         
@@ -582,6 +584,8 @@ public class Molecule implements Immutable, Serializable
         // determine how much rotation is needed
         double currentDihedralAngle = protoTorsion.getDihedralAngle();
         double requiredRotation = currentDihedralAngle - theta;
+        if ( Math.abs(requiredRotation) < 0.001 )
+            return this;
 
         Map<Atom,Atom> atomMap = new HashMap<>();
         

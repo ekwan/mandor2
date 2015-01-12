@@ -209,13 +209,16 @@ public class BackboneMutator implements Mutator
 
                 // choose new proline chis
                 // there's no easy way to adjust the third chi value, so we don't set it
-                List<Double> newChis = RotamerDatabase.getRandomRotamer(AminoAcid.LPRO, omegaValue, newPhiValue, newPsiValue);;
+                List<Double> newChis = null;
                 if ( residue.aminoAcid == AminoAcid.LPRO )
                     {
+                        newChis = RotamerDatabase.getRandomRotamer(AminoAcid.LPRO, omegaValue, newPhiValue, newPsiValue);;
                         newChis = ImmutableList.of(newChis.get(0), newChis.get(1));
                     }
                 else if ( residue.aminoAcid == AminoAcid.DPRO )
                     {
+                        // these numbers have already been inverted so un-invert them
+                        RotamerDatabase.getRandomRotamer(AminoAcid.LPRO, omegaValue, -1.0*newPhiValue, -1.0*newPsiValue);;
                         // invert the answer we get
                         newChis = ImmutableList.of(newChis.get(0)*-1.0, newChis.get(1)*-1.0);
                     }
