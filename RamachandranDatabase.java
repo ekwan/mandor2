@@ -410,7 +410,7 @@ public class RamachandranDatabase implements Singleton
      * @return the DiscreteProbabilityDistribution of (psi,phi) values of the central amino acid
      */
     public static DiscreteProbabilityDistribution<RotamerLibrary.Angles> getLeftDistribution(AminoAcid leftAminoAcid, double leftOmega,
-                                                                                                              AminoAcid centralAminoAcid, double centralOmega)
+                                                                                             AminoAcid centralAminoAcid, double centralOmega)
     {
         PreDistribution preDistribution = locate(centralAminoAcid, centralOmega, Direction.LEFT, leftAminoAcid, leftOmega);
         return preDistribution.getDPD();

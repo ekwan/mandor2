@@ -24,10 +24,10 @@ import com.google.common.collect.*;
  * a confusing convention that omega precedes an amino acid in the N to C direction, but
  * we follow it anyways.
  */
-public class OmegaLibrary implements Singleton
+public class OmegaDatabase implements Singleton
 {
     /** Not instantiable. */
-    public OmegaLibrary()
+    public OmegaDatabase()
     {
         throw new IllegalArgumentException("not instantiable");
     }
@@ -148,6 +148,10 @@ public class OmegaLibrary implements Singleton
     {
         if ( aa1 == null || aa2 == null )
             throw new IllegalArgumentException("nulls are not allowed");
+        if ( psi0 < -180.0 || psi0 > 180.0 )
+            throw new IllegalArgumentException("psi0 out of range");
+        if ( phi1 < -180.0 || phi1 > 180.0 )
+            throw new IllegalArgumentException("phi1 out of range");
         NormalDistribution dist = getNormalDistribution(aa1, psi0, aa2, phi1);
         return dist.sample();
     }

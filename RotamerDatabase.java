@@ -215,9 +215,9 @@ public class RotamerDatabase implements Singleton
 
     public static void load()
     {
-        System.out.println(CIS_PROLINE_LIBRARY);
-        System.out.println(TRANS_PROLINE_LIBRARY);
-        System.out.println(DATABASE.keySet());
+        //System.out.println(CIS_PROLINE_LIBRARY);
+        //System.out.println(TRANS_PROLINE_LIBRARY);
+        //System.out.println(DATABASE.keySet());
     }
 
     public static void main(String[] args)

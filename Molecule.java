@@ -567,7 +567,55 @@ public class Molecule implements Immutable, Serializable
      */
     public Molecule setDihedral(IndexTorsion indexTorsion, double theta)
     {
-        return setDihedral(indexTorsion.getProtoTorsion(this), theta);
+        // figure out which atoms to move
+        Set<Atom> atomsToRotate = new HashSet<>();
+        for (Integer i : indexTorsion.atomIndicesToRotate)
+            atomsToRotate.add(contents.get(i));
+
+        // get prototorsion
+        ProtoTorsion protoTorsion = indexTorsion.getProtoTorsion(this);
+        Atom atom1 = protoTorsion.atom1;
+        Atom atom2 = protoTorsion.atom2;
+        Atom atom3 = protoTorsion.atom3;
+        Atom atom4 = protoTorsion.atom4;
+        
+        // determine how much rotation is needed
+        double currentDihedralAngle = protoTorsion.getDihedralAngle();
+        double requiredRotation = currentDihedralAngle - theta;
+
+        Map<Atom,Atom> atomMap = new HashMap<>();
+        
+        // move atom 3 to the origin
+        // define the rotation axis as the vector from atom3 (now at origin) to atom2
+        Vector3D rotationAxis = null;
+        for (Atom a : contents)
+            {
+                Vector3D oldPosition = a.position;
+                Vector3D newPosition = oldPosition.subtract(atom3.position);
+                if ( atomsToRotate.contains(a) )
+                    atomMap.put(a,a.moveAtom(newPosition));
+                if ( a == atom2 )
+                    rotationAxis = newPosition;
+            }
+
+        // rotate the atoms and make a new atom map
+        Map<Atom,Atom> atomMap2 = new HashMap<>();
+        Rotation rotation = new Rotation(rotationAxis, Math.toRadians(requiredRotation));
+        for (Atom a : atomMap.keySet())
+            {
+                // update rotation
+                Vector3D oldPosition = atomMap.get(a).position;
+                Vector3D newPosition = rotation.applyTo(oldPosition);
+                
+                // undo translation
+                newPosition = newPosition.add(atom3.position);
+
+                // update map
+                atomMap2.put(a, a.moveAtom(newPosition));
+            }
+
+        // return new Molecule
+        return moveAtoms(atomMap2);
     }
 
     /**

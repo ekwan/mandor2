@@ -77,7 +77,6 @@ public class ProtoTorsion extends AbstractTorsion
         return getDihedralAngle(atom1.position, atom2.position, atom3.position, atom4.position);
     }
 
-
     /**
      * Returns a string of the form C1-N2-H3-O4 given a molecule.
      * @param molecule the Molecule this ProtoTorsion corresponds to
