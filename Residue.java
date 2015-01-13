@@ -135,10 +135,11 @@ public class Residue implements Immutable, Serializable
             throw new IllegalArgumentException("zero size atoms");
         
         // check that all the atoms in the fields are contained in the atom list
+        // note that the residue atoms might not contain all of the atoms in the prototorsions because they might extend out of the residue
         Set<Atom> tempSet = ImmutableSet.of(N, O, C, CA, prochiralConnection.getFirst(), prochiralConnection.getSecond(),
-                                            omega.atom2, omega.atom3, omega.atom4, phi.atom1, phi.atom2, phi.atom3, phi.atom4,
+                                            omega.atom3, omega.atom4, phi.atom2, phi.atom3, phi.atom4,
                                             psi.atom1, psi.atom2, psi.atom3);
-        tempSet = new HashSet<>(tempSet);
+        tempSet = new TreeSet<>(tempSet);
         for (ProtoTorsion t : chis)
             tempSet.addAll(ImmutableSet.of(t.atom1, t.atom2, t.atom3, t.atom4));
         if ( HN != null )
@@ -146,8 +147,16 @@ public class Residue implements Immutable, Serializable
         if ( HA != null )
             tempSet.add(HA);
         if ( ! atoms.containsAll(tempSet) )
-            throw new IllegalArgumentException("atom list does not contain all atoms in fields");
-        
+            {
+                System.out.println("missing:");
+                for (Atom a : tempSet)
+                    {
+                        if ( !atoms.contains(a) )
+                            System.out.println(a.toFullString());
+                    }
+                throw new IllegalArgumentException("atom list does not contain all atoms in fields");
+            }
+
         // check that the torsions line up with the fields
         if ( ImmutableSet.of(omega.atom2, phi.atom1).size() != 1 )
             throw new IllegalArgumentException("carbon prior to N doesn't line up");

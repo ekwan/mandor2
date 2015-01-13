@@ -82,9 +82,6 @@ public class PeptideFactory
         if ( inputSequence.size() < 2 )
             throw new IllegalArgumentException("A peptide must have at least two residues in it.");
         
-        // make some fields
-        String name = "";
-
         // create temporary lists for creating a new Residue
         List<AminoAcid>                                 aminoAcids              = new LinkedList<>();
         List<ProtoTorsion>                              omegas                  = new LinkedList<>();
@@ -118,7 +115,7 @@ public class PeptideFactory
         for (int i=0; i < inputSequence.size(); i++)
             {
                 // get data for this amino acid
-                ProtoAminoAcid p = inputSequence.get(i);
+                ProtoAminoAcid p = inputSequence.get(i).shift(i+1);
 
                 AminoAcid                               tempAminoAcid           = p.residue.aminoAcid;
                 ProtoTorsion                            tempOmega               = p.residue.omega;
@@ -142,9 +139,9 @@ public class PeptideFactory
 
                 // append to name
                 if ( i == 0 )
-                    newName = newName + String.format("%5s", tempAminoAcid.shortName);
+                    newName += String.format("%5s", tempAminoAcid.shortName);
                 else
-                    newName = newName + String.format(" - %5s", tempAminoAcid.shortName);
+                    newName += String.format(" - %5s", tempAminoAcid.shortName);
                 
                 aminoAcids.add(tempAminoAcid);
 
@@ -167,8 +164,8 @@ public class PeptideFactory
                         Set<Atom> toBeDeleted = tempMolecule.getHalfGraph(keepAtom, deleteAtom);
                         tempAtoms.removeAll(toBeDeleted);
                     }
-                newContents.addAll(tempAtoms);
-                atoms.add(tempAtoms);
+                newContents.addAll(tempAtoms);  // the atoms in the whole peptide
+                atoms.add(tempAtoms);           // list of the atoms in each residue
 
                 // add relevant connectivity from each ProtoAminoAcid
                 for (DefaultWeightedEdge e : tempMolecule.connectivity.edgeSet())
@@ -237,13 +234,15 @@ public class PeptideFactory
                 // add sidechain torsion angles
                 chis.add(tempChis);
 
-                // add other fields
+                // update special atom fields
                 HNs.add(tempHN); 
                 Ns.add(tempN);
                 Os.add(tempO);
                 Cs.add(tempC);
                 CAs.add(tempCA);
                 HAs.add(tempHA);
+
+                // add other fields
                 descriptions.add(tempDescription);
                 prochiralConnections.add(tempProchiralConnection);
                 isHairpins.add(tempIsHairpin);
@@ -286,7 +285,7 @@ public class PeptideFactory
             }
         
         // set peptide bonds to sp2
-        for (int i=1; i < inputSequence.size(); i++)
+        for (int i=0; i < inputSequence.size(); i++)
             {
                 // set amide carbonyl carbon to sp2
                 Residue r = peptide.sequence.get(i);
@@ -319,5 +318,24 @@ public class PeptideFactory
     /** For testing. */
     public static void main(String[] args)
     {
+        DatabaseLoader.go();
+        List<ProtoAminoAcid> sequence = ProtoAminoAcidDatabase.getSpecificSequence("arg","met","standard_ala","gly","d_proline", "gly", "phe", "val", "hd", "l_pro");
+        Peptide peptide = createPeptide(sequence);
+        
+        for (int i=0; i < peptide.sequence.size(); i++)
+            {
+                peptide = BackboneMutator.mutateOmega(peptide, i);
+                peptide = BackboneMutator.mutatePhiPsi(peptide, i);
+                peptide = RotamerMutator.mutateChis(peptide, i);
+            }
+        peptide = setHairpinAngles(peptide);
+
+        GaussianInputFile f = new GaussianInputFile(peptide);
+        f.write("test_peptides/test.gjf");
+
+        //peptide = BackboneMutator.mutateOmega(peptide, 1);
+        //peptide = BackboneMutator.mutatePhiPsi(peptide, peptide.sequence.get(1));
+        //f = new GaussianInputFile(peptide);
+        //f.write("test_peptides/test2.gjf");
     }
 }  

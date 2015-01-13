@@ -69,20 +69,11 @@ public class RotamerMutator implements Mutator
         Peptide newPeptide = peptide;
         LinkedList<ProtoTorsion> oldProtoTorsions = new LinkedList<>(residue.chis);
         LinkedList<IndexTorsion> indexTorsions = new LinkedList<>();
-        for (ProtoTorsion t : oldProtoTorsions)
-            indexTorsions.add(IndexTorsion.createIndexTorsion(t, peptide));
         LinkedList<Double> newChis = new LinkedList<>(chis);
 
         // make the mutation
         if ( currentAminoAcid.isProline() )
             {
-                // because proline contains a ring, special procedure
-                // we don't set chi3 because it's hard and barely matters--would involve changing
-                // bond lengths/angles as well and it just changes the pyrrolidine ring pucker
-                oldProtoTorsions.removeLast();
-                indexTorsions.removeLast();
-                newChis.removeLast();
-
                 // disconnect bond in temporary molecule
                 Molecule tempMolecule = peptide.moveAtoms(new HashMap<Atom,Atom>());
                 ProtoTorsion chi3 = residue.chis.get(2);
@@ -91,6 +82,16 @@ public class RotamerMutator implements Mutator
                 DefaultWeightedEdge e = tempMolecule.connectivity.removeEdge(atom3,atom4);
                 if ( e == null )
                     throw new NullPointerException("unexpected null for proline connection");
+
+                // get IndexTorsions
+                indexTorsions.add(IndexTorsion.createIndexTorsion(oldProtoTorsions.get(0), tempMolecule));
+                indexTorsions.add(IndexTorsion.createIndexTorsion(oldProtoTorsions.get(1), tempMolecule));
+
+                // because proline contains a ring, special procedure
+                // we don't set chi3 because it's hard and barely matters--would involve changing
+                // bond lengths/angles as well and it just changes the pyrrolidine ring pucker
+                oldProtoTorsions.removeLast();
+                newChis.removeLast();
 
                 // adjust the chis
                 for (int j=0; j < indexTorsions.size(); j++)
@@ -106,6 +107,10 @@ public class RotamerMutator implements Mutator
             }
         else
             {
+                // get IndexTorsions
+                for (ProtoTorsion t : oldProtoTorsions)
+                    indexTorsions.add(IndexTorsion.createIndexTorsion(t, peptide));
+
                 // can proceed directly to dihedral angle setting
                 Molecule tempMolecule = (Molecule)peptide;
                 for (int j=0; j < newChis.size(); j++)
@@ -132,7 +137,20 @@ public class RotamerMutator implements Mutator
      * Takes a residue and randomly alters its sidechain chi angles using the
      * Dunbrack rotamer library.
      * @param peptide the peptide to be mutated
+     * @param i the index of the residue to be mutated
+     * @return the mutated peptide
+     */
+    public static Peptide mutateChis(Peptide peptide, int i)
+    {
+        return mutateChis(peptide, peptide.sequence.get(i));
+    }
+
+    /**
+     * Takes a residue and randomly alters its sidechain chi angles using the
+     * Dunbrack rotamer library.
+     * @param peptide the peptide to be mutated
      * @param residue the residue in peptide to be changed
+     * @return the mutated peptide
      */
     public static Peptide mutateChis(Peptide peptide, Residue residue)
     {
@@ -142,7 +160,12 @@ public class RotamerMutator implements Mutator
         double phiValue = residue.phi.getDihedralAngle();
         double psiValue = residue.psi.getDihedralAngle();
 
-        if ( residue.aminoAcid == AminoAcid.TS )
+        if ( residue.aminoAcid.rotamerType == AminoAcid.RotamerType.HAS_NO_ROTAMERS )
+            {
+                // no rotamers, so don't do anything
+                return peptide;
+            }
+        else if ( residue.aminoAcid == AminoAcid.TS )
             {
                 // for transition states
                 newChis = RotamerDatabase.getRandomRotamer(AminoAcid.TS, omegaValue, phiValue, psiValue);
@@ -153,12 +176,12 @@ public class RotamerMutator implements Mutator
                 // these numbers have already been inverted so un-invert them
                 newChis = RotamerDatabase.getRandomRotamer(AminoAcid.LPRO, omegaValue, -1.0*phiValue, -1.0*psiValue);
                 // invert the answer we get
-                newChis = ImmutableList.of(newChis.get(0)*-1.0, newChis.get(1)*-1.0);
+                newChis = ImmutableList.of(newChis.get(0)*-1.0, newChis.get(1)*-1.0, newChis.get(2)*-1.0);
             }
         else
             {
                 // for normal amino acids
-                newChis = RotamerDatabase.getRandomRotamer(AminoAcid.LPRO, omegaValue, phiValue, psiValue);
+                newChis = RotamerDatabase.getRandomRotamer(residue.aminoAcid, omegaValue, phiValue, psiValue);
             }
 
         if ( newChis.size() != residue.chis.size() )

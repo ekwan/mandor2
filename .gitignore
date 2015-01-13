@@ -67,3 +67,4 @@ g09_scans/rigidScan/*.txt
 g09_scans/rigidScan/waiting/*
 reference_energies/*.txt
 amino_acids/*.pdb
+error.gjf

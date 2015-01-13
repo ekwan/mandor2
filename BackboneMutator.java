@@ -55,7 +55,9 @@ public class BackboneMutator implements Mutator
     /**
      * Convenience method that mutates the omega torsion angle of the i-th
      * residue (i=0,1,...,n-1).  The omega angle is randomly selected.
-     * @param the peptide
+     * @param peptide the peptide to mutate
+     * @param i the index of the residue to mutate
+     * @return the mutated peptide
      */
     public static Peptide mutateOmega(Peptide peptide, int i)
     {
@@ -74,7 +76,7 @@ public class BackboneMutator implements Mutator
                         if ( draw < CIS_PROLINE_PROBABILITY )
                             omegaValue = new NormalDistribution(0.0, DEFAULT_OMEGA_WIDTH).sample();
                     }
-                else
+                if ( omegaValue == null )
                     {
                         // this is a normal amino acid, so use information from OmegaDatabase
                         AminoAcid aa1 = peptide.sequence.get(i-1).aminoAcid;
@@ -96,6 +98,17 @@ public class BackboneMutator implements Mutator
     /**
      * Takes a peptide and sets the (phi,psi) value to a likely value using Dunbrack Ramachandran data.
      * @param peptide the starting structure
+     * @param i the index of the residue to be mutated
+     * @return the result of the mutation
+     */
+    public static Peptide mutatePhiPsi(Peptide peptide, int i)
+    {
+        return mutatePhiPsi(peptide, peptide.sequence.get(i));
+    }
+
+    /**
+     * Takes a peptide and sets the (phi,psi) value to a likely value using Dunbrack Ramachandran data.
+     * @param peptide the starting structure
      * @param residue the residue whose (phi,psi) angles are to be mutated
      * @return the result of the mutation
      */
@@ -107,54 +120,54 @@ public class BackboneMutator implements Mutator
 
         // get adjacent amino acids
         AminoAcid centralAminoAcid = residue.aminoAcid;
+        if ( centralAminoAcid == AminoAcid.DPRO )
+            centralAminoAcid = AminoAcid.LPRO;
         double centralOmega = residue.omega.getDihedralAngle();
 
         Double newPhiValue = null;
         Double newPsiValue = null;
-        if ( centralAminoAcid != AminoAcid.DPRO )
+        
+        AminoAcid leftAminoAcid = null;
+        Double leftOmega = null;
+        if ( residueIndex > 0 )
             {
-                // for normal amino acids
-                AminoAcid leftAminoAcid = null;
-                Double leftOmega = null;
-                if ( residueIndex > 0 )
-                    {
-                        Residue leftResidue = sequence.get(residueIndex-1);
-                        leftAminoAcid = leftResidue.aminoAcid;
-                        leftOmega = leftResidue.omega.getDihedralAngle();
-                    }
-
-                AminoAcid rightAminoAcid = null;
-                Double rightOmega = null;
-                if ( residueIndex < sequence.size() - 1 )
-                    {
-                        Residue rightResidue = sequence.get(residueIndex+1);
-                        rightAminoAcid = rightResidue.aminoAcid;
-                        rightOmega = rightResidue.omega.getDihedralAngle();
-                    }
-
-                // if D-proline is adjacent, set to null because we don't have data for that
-                if ( leftAminoAcid == AminoAcid.DPRO )
-                    leftAminoAcid = null;
-                if ( rightAminoAcid == AminoAcid.DPRO )
-                    rightAminoAcid = null;
-
-                // obtain appropriate probability distribution of phi,psi
-                DiscreteProbabilityDistribution<RotamerLibrary.Angles> DPD = null;
-                if ( leftAminoAcid != null && rightAminoAcid != null )
-                    DPD = RamachandranDatabase.getTripletDistribution(leftAminoAcid, leftOmega, centralAminoAcid, centralOmega, rightAminoAcid, rightOmega);
-                else if ( leftAminoAcid == null && rightAminoAcid != null )
-                    DPD = RamachandranDatabase.getRightDistribution(centralAminoAcid, centralOmega, rightAminoAcid, rightOmega);
-                else if ( leftAminoAcid != null && rightAminoAcid == null )
-                    DPD = RamachandranDatabase.getLeftDistribution(leftAminoAcid, leftOmega, centralAminoAcid, centralOmega);
-                else
-                    throw new IllegalArgumentException("should not be possible");
-            
-                // draw random phi,psi from the distribution
-                RotamerLibrary.Angles draw = DPD.getRandom();
-                newPhiValue = draw.phi;
-                newPsiValue = draw.psi;
+                Residue leftResidue = sequence.get(residueIndex-1);
+                leftAminoAcid = leftResidue.aminoAcid;
+                leftOmega = leftResidue.omega.getDihedralAngle();
             }
-        if ( centralAminoAcid == AminoAcid.DPRO )
+
+        AminoAcid rightAminoAcid = null;
+        Double rightOmega = null;
+        if ( residueIndex < sequence.size() - 1 )
+            {
+                Residue rightResidue = sequence.get(residueIndex+1);
+                rightAminoAcid = rightResidue.aminoAcid;
+                rightOmega = rightResidue.omega.getDihedralAngle();
+            }
+
+        // if D-proline is adjacent, set to null because we don't have data for that
+        if ( leftAminoAcid == AminoAcid.DPRO )
+            leftAminoAcid = null;
+        if ( rightAminoAcid == AminoAcid.DPRO )
+            rightAminoAcid = null;
+
+        // obtain appropriate probability distribution of phi,psi
+        DiscreteProbabilityDistribution<RotamerLibrary.Angles> DPD = null;
+        if ( leftAminoAcid != null && rightAminoAcid != null )
+            DPD = RamachandranDatabase.getTripletDistribution(leftAminoAcid, leftOmega, centralAminoAcid, centralOmega, rightAminoAcid, rightOmega);
+        else if ( leftAminoAcid == null && rightAminoAcid != null )
+            DPD = RamachandranDatabase.getRightDistribution(centralAminoAcid, centralOmega, rightAminoAcid, rightOmega);
+        else if ( leftAminoAcid != null && rightAminoAcid == null )
+            DPD = RamachandranDatabase.getLeftDistribution(leftAminoAcid, leftOmega, centralAminoAcid, centralOmega);
+        else
+            throw new IllegalArgumentException("should not be possible");
+    
+        // draw random phi,psi from the distribution
+        RotamerLibrary.Angles draw = DPD.getRandom();
+        newPhiValue = draw.phi;
+        newPsiValue = draw.psi;
+        
+        if ( residue.aminoAcid == AminoAcid.DPRO )
             {
                 // no rotamer data for non-hairpin D-proline so get data for L-proline in this position and invert numbers
                 newPhiValue = newPhiValue * -1.0;
@@ -246,7 +259,7 @@ public class BackboneMutator implements Mutator
                 else if ( residue.aminoAcid == AminoAcid.DPRO )
                     {
                         // these numbers have already been inverted so un-invert them
-                        RotamerDatabase.getRandomRotamer(AminoAcid.LPRO, omegaValue, -1.0*newPhiValue, -1.0*newPsiValue);;
+                        newChis = RotamerDatabase.getRandomRotamer(AminoAcid.LPRO, omegaValue, -1.0*newPhiValue, -1.0*newPsiValue);;
                         // invert the answer we get
                         newChis = ImmutableList.of(newChis.get(0)*-1.0, newChis.get(1)*-1.0);
                     }

@@ -714,15 +714,15 @@ public class Molecule implements Immutable, Serializable
         Matrix thirdVertex = Tinverse.times(matrix_c);
         Vector3D thirdVertexPosition = new Vector3D( thirdVertex.get(0, 0), thirdVertex.get(1, 0), thirdVertex.get(2, 0) );
 
-        //double angle1 = getAngle(newPositions.get(atom1alphaIndex-1), newPositions.get(atom1index-1), newPositions.get(atom1betaIndex-1));
-        //double angle2 = getAngle(newPositions.get(atom1betaIndex-1), newPositions.get(atom1index-1), newPositions.get(atom2index-1));
-        //double angle3 = getAngle(newPositions.get(atom2index-1), newPositions.get(atom1index-1), newPositions.get(atom1alphaIndex-1));
+        //double angle1 = getAngle(newPositions.get(atom1alphaNumber-1), newPositions.get(atom1number-1), newPositions.get(atom1betaNumber-1));
+        //double angle2 = getAngle(newPositions.get(atom1betaNumber-1), newPositions.get(atom1number-1), newPositions.get(atom2number-1));
+        //double angle3 = getAngle(newPositions.get(atom2number-1), newPositions.get(atom1number-1), newPositions.get(atom1alphaNumber-1));
         //System.out.println(angle1);
         //System.out.println(angle2);
         //System.out.println(angle3);
 
         // calculate the necessary rotation
-        Vector3D atom2position = newPositions.get(atom2index-1);
+        Vector3D atom2position = newPositions.get(atom2index);
         Vector3D rotationAxis = Vector3D.crossProduct( thirdVertexPosition, atom2position );
         double requiredTheta = Vector3D.angle( thirdVertexPosition, atom2position );
         Rotation fixRotation = new Rotation( rotationAxis, -1.0 * requiredTheta );
@@ -731,7 +731,7 @@ public class Molecule implements Immutable, Serializable
         Set<Integer> atomIndicesToMove = getHalfGraphIndices(atom1, atom2);
         List<Vector3D> newPositions2 = new LinkedList<>();
 
-        for (Integer i : atomIndicesToMove)
+        for (int i=0; i < newPositions.size(); i++)
             {
                 if ( atomIndicesToMove.contains(i) )
                     {
@@ -752,22 +752,20 @@ public class Molecule implements Immutable, Serializable
         for (Vector3D v : newPositions2)
             newPositions3.add(v.add(atom1.position));
 
-        //angle1 = getAngle(newPositions3.get(atom1alphaIndex-1), newPositions3.get(atom1index-1), newPositions3.get(atom1betaIndex-1));
-        //angle2 = getAngle(newPositions3.get(atom1betaIndex-1), newPositions3.get(atom1index-1), newPositions3.get(atom2index-1));
-        //angle3 = getAngle(newPositions3.get(atom2index-1), newPositions3.get(atom1index-1), newPositions3.get(atom1alphaIndex-1));
-        //System.out.println(angle1);
-        //System.out.println(angle2);
-        //System.out.println(angle3);
-        //System.out.println(atom1alphaIndex + " " + atom1index + " " + atom1betaIndex);
-        //System.out.println(atom1betaIndex + " " + atom1index + " " + atom2index);
-        //System.out.println(atom2index + " " + atom1index + " " + atom1alphaIndex);
+        /*double angle1 = getAngle(newPositions3.get(atom1alphaIndex), newPositions3.get(atom1index), newPositions3.get(atom1betaIndex));
+        double angle2 = getAngle(newPositions3.get(atom1betaIndex), newPositions3.get(atom1index), newPositions3.get(atom2index));
+        double angle3 = getAngle(newPositions3.get(atom2index), newPositions3.get(atom1index), newPositions3.get(atom1alphaIndex));
+        System.out.println(angle1);
+        System.out.println(angle2);
+        System.out.println(angle3);*/
+        //System.out.println(atom1alphaNumber + " " + atom1number + " " + atom1betaNumber);
+        //System.out.println(atom1betaNumber + " " + atom1number + " " + atom2number);
+        //System.out.println(atom2number + " " + atom1number + " " + atom1alphaNumber);
 
         // create new atom map
         Map<Atom,Atom> newAtomMap = new HashMap<>();
         for (int i=0; i < contents.size(); i++)
             {
-                if ( !atomIndicesToMove.contains(i) )
-                    continue;
                 Atom oldAtom = contents.get(i);
                 Atom newAtom = oldAtom.moveAtom( newPositions3.get(i) );
                 if ( !oldAtom.equals(newAtom) )
@@ -782,9 +780,9 @@ public class Molecule implements Immutable, Serializable
         
         // set bond length
         Molecule returnMolecule = rotatedMolecule.setDistance(atom1index, atom2index, currentLength);
-        //System.out.println(returnMolecule.getAngle(atom1alphaNumber,atom1index,atom1betaNumber));
-        //System.out.println(returnMolecule.getAngle(atom1betaNumber,atom1index,atom2index));
-        //System.out.println(returnMolecule.getAngle(atom2index,atom1index,atom1alphaNumber));
+        //System.out.println(returnMolecule.getAngle(atom1alphaNumber,atom1number,atom1betaNumber));
+        //System.out.println(returnMolecule.getAngle(atom1betaNumber,atom1number,atom2number));
+        //System.out.println(returnMolecule.getAngle(atom2number,atom1number,atom1alphaNumber));
         
         return returnMolecule;
     }

@@ -72,7 +72,7 @@ public class RotamerDatabase implements Singleton
         TRANS_PROLINE_LIBRARY = transTemp.get();
         DATABASE = ImmutableMap.copyOf(tempMap);
 
-        System.out.printf("%d libraries have been loaded.\n", DATABASE.size() + 2);
+        //System.out.printf("%d libraries have been loaded.\n", DATABASE.size() + 2);
     }
 
     /** Not instantiable. */

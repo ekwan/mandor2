@@ -42,7 +42,7 @@ public class RamachandranDatabase implements Singleton
                         futures.add(f);
                     }
             }
-        GeneralThreadService.waitForFutures(futures);
+        GeneralThreadService.silentWaitForFutures(futures);
 
         // make immutable copy
         DATABASE = ImmutableMap.copyOf(tempDatabase);

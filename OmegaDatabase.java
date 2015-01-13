@@ -216,7 +216,7 @@ public class OmegaDatabase implements Singleton
     }
 
     /** Forces the static initializer to run. */
-    public void load()
+    public static void load()
     {
         // counts how many lines of data were read
         int entries = 0;

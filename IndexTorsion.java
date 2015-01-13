@@ -57,10 +57,17 @@ public class IndexTorsion extends AbstractTorsion
      */
     public static IndexTorsion createIndexTorsion(int index1, int index2, int index3, int index4, Molecule molecule)
     {
-        Set<Atom> atomsToRotate = molecule.getHalfGraph(index2, index3);
-        List<Integer> atomIndicesToRotate = new LinkedList<>();
-        for (Atom a : atomsToRotate)
-            atomIndicesToRotate.add(molecule.contents.indexOf(a));
+        Atom atom1 = molecule.contents.get(index1);
+        Atom atom2 = molecule.contents.get(index2);
+        Atom atom3 = molecule.contents.get(index3);
+        Atom atom4 = molecule.contents.get(index4);
+        if ( !molecule.directlyConnected(atom1,atom2) )
+            throw new IllegalArgumentException("atom1-atom2 not connected");
+        if ( !molecule.directlyConnected(atom2,atom3) )
+            throw new IllegalArgumentException("atom1-atom2 not connected");
+        if ( !molecule.directlyConnected(atom3,atom4) )
+            throw new IllegalArgumentException("atom1-atom2 not connected");
+        Set<Integer> atomIndicesToRotate = molecule.getHalfGraphIndices(index2, index3);
         return new IndexTorsion(index1,index2,index3,index4,ImmutableList.copyOf(atomIndicesToRotate));
     }
 
