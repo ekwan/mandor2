@@ -79,6 +79,11 @@ public class Atom implements Immutable, Serializable, Comparable<Atom>
         return new Atom(element, position, newType1, newType2, surfaceTension);
     }
 
+    public Atom changeTypes(Atom anotherAtom)
+    {
+        return new Atom(element, position, anotherAtom.type1, anotherAtom.type2, anotherAtom.surfaceTension);
+    }
+
     /**
      * Returns a copy of this atom with a new position.
      * @param newPosition the new position

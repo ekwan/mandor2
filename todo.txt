@@ -1,6 +1,2 @@
-Changes to make:
-
--Add new fields to Residue (those used in Sidechain Mutator including backbone atoms and Sidechain)
--Finish PeptideFactory to draw peptides 
-	-Requires implementation of map between Elements and VDW parameters for OPLS calculations
+update types and surface tensions in sidechainmutator
  
