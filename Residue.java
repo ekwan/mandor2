@@ -225,7 +225,7 @@ public class Residue implements Immutable, Serializable
         else if ( chis.size() > 4 )
             throw new IllegalArgumentException("don't know how to deal with more than four chis");
 
-        this.atoms = atoms;
+        this.atoms = ImmutableList.copyOf(atoms);
         this.isHairpin = isHairpin;
     }
 
@@ -310,9 +310,14 @@ public class Residue implements Immutable, Serializable
         tempList.add(C);
         tempList.add(CA);
         tempList.add(HA);
-        returnString += "HN, N, O, C, CA, HA\n";
+        returnString += "   HN,    N,    O,    C,   CA,   HA\n";
         for (Atom a : tempList)
-            returnString += peptide.getAtomString(a) + ",";
+            {
+                if ( a != null )
+                    returnString += String.format("%5s,", peptide.getAtomString(a));
+                else
+                    returnString += "  ---,";
+            } 
         returnString = returnString.substring(0, returnString.length()-1);
         returnString += "\n";
 

@@ -208,6 +208,13 @@ public final class ProtoAminoAcidDatabase implements Singleton
         return getSpecificSequence(list);
     }
 
+    public static ProtoAminoAcid getTemplate(String string)
+    {
+        List<String> list = ImmutableList.of(string);
+        List<ProtoAminoAcid> results = getSpecificSequence(list);
+        return results.get(0);
+    }
+
     /** for testing */
     public static void main(String[] args)
     {

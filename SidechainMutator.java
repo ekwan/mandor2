@@ -10,6 +10,13 @@ import org.jgrapht.alg.*;
 /**
  * This collects together methods for taking a peptide and mutating one of
  * its residues from one amino acid to another.
+ *
+ * Note that this class cannot currently convert between D and L amino acids.
+ * The chirality of the amino acid is preserved at present because the old
+ * sidechain is simply replaced with the new sidechain.  I don't expect this
+ * kind of change, so I'm just going to throw an exception if this happens.
+ * A future implementation will have to deal with glycine and other achiral
+ * versions as well.
  */
 public class SidechainMutator implements Mutator
 {
@@ -23,7 +30,7 @@ public class SidechainMutator implements Mutator
      * Mutates the a residue in a given peptide to a specified amino acid.  No backbone atoms will be moved as a result of
      * a call to mutateSidechain, except in the case of moving from a non-proline to a proline or vice versa.  When that
      * happens, the HN will be altered, since non-prolines have one and prolines don't.  However, none of the other backbone
-     * atoms will ever be moved.
+     * atoms will ever be moved.  After the mutation process, a rotamer is randomly chosen given the backbone context.
      * @param inputPeptide the peptide to mutate
      * @param inputResidue a residue inside inputPeptide that should be changed
      * @param targetPAA the template for the amino acid we want to mutate inputResidue into
@@ -38,6 +45,11 @@ public class SidechainMutator implements Mutator
         // if the residue is already the correct template, then just return the input peptide
         if ( inputResidue.description.equals(targetPAA.residue.description) )
             return inputPeptide;
+
+        // don't allow changing between chiralities
+        if ( ( inputResidue.aminoAcid.chirality == Chirality.L && targetPAA.residue.aminoAcid.chirality == Chirality.D ) ||
+             ( inputResidue.aminoAcid.chirality == Chirality.D && targetPAA.residue.aminoAcid.chirality == Chirality.L )    )
+            throw new IllegalArgumentException("chirality interchange forbidden -- see javadoc for class");
 
         // this is the index of the residue we will be mutating
         int residueIndex = inputPeptide.sequence.indexOf(inputResidue);
@@ -73,6 +85,9 @@ public class SidechainMutator implements Mutator
 
         // create new peptide name
         String newName = generateName(newPeptide);
+
+        // choose an appropriate rotamer for the new residue
+        newPeptide = RotamerMutator.mutateChis(newPeptide, residueIndex);
 
         // create and return new peptide
         return new Peptide(newName, newPeptide.contents, newPeptide.connectivity, newPeptide.sequence, EnergyBreakdown.BLANK);
@@ -246,9 +261,10 @@ public class SidechainMutator implements Mutator
                     throw new IllegalArgumentException("failed to remove atom from residue when deleting sidechain");
             }
         List<ProtoTorsion> newChis = new ArrayList<>();
+        Pair<Atom,Atom> dummyProchiralConnection = new Pair<>(residue.CA, residue.CA);
         Residue newResidue = new Residue(residue.aminoAcid, residue.omega, residue.phi, residue.psi, newChis,
                                          residue.HN, residue.N, residue.O, residue.C, residue.CA, residue.HA, residue.description,
-                                         residue.prochiralConnection, updatedAtoms, residue.isHairpin);
+                                         dummyProchiralConnection, updatedAtoms, residue.isHairpin);
  
         // update the sequence
         List<Residue> newSequence = new ArrayList<>(peptide.sequence);
@@ -705,5 +721,31 @@ public class SidechainMutator implements Mutator
     /** for testing */
     public static void main(String[] args)
     {
+        DatabaseLoader.go();
+        List<ProtoAminoAcid> sequence = ProtoAminoAcidDatabase.getSpecificSequence("l_pro","met","standard_ala","gly","d_proline", "gly", "phe", "val", "hd",         "l_pro");
+        Peptide peptide = PeptideFactory.createPeptide(sequence);
+
+        for (int i=0; i < peptide.sequence.size(); i++)
+            {
+                peptide = BackboneMutator.mutateOmega(peptide, i);
+                peptide = BackboneMutator.mutatePhiPsi(peptide, i);
+                peptide = RotamerMutator.mutateChis(peptide, i);
+            }
+        peptide = PeptideFactory.setHairpinAngles(peptide);
+        System.out.println(peptide.sequence.get(0).toString(peptide));
+        for (Atom a : peptide.sequence.get(0).atoms)
+            System.out.println(a.toFullString());
+
+        GaussianInputFile f = new GaussianInputFile(peptide);
+        f.write("test_peptides/test.gjf");
+
+        ProtoAminoAcid templatePAA = ProtoAminoAcidDatabase.getTemplate("standard_leucine");
+        peptide = SidechainMutator.mutateSidechain(peptide, peptide.sequence.get(0), templatePAA);
+        System.out.println(peptide.sequence.get(0).toString(peptide));
+        for (Atom a : peptide.sequence.get(0).atoms)
+            System.out.println(a.toFullString());
+
+        f = new GaussianInputFile(peptide);
+        f.write("test_peptides/test2.gjf");
     }
 }
