@@ -59,7 +59,7 @@ public class Residue implements Immutable, Serializable
     /** the atoms in this residue */
     public final List<Atom> atoms;
 
-    /** whether this is a hairpin residue or not */
+    /** whether this is a hairpin residue or not -- note this is initially set to false, use PeptideFactory.setHairpinAngles */
     public final boolean isHairpin;
 
     /** Constructs a Residue.  Many things are checked, but the checks are not exhaustive. */

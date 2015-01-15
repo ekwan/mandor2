@@ -32,6 +32,11 @@ public class Settings implements Immutable, Singleton
         /** the file containing the omega data */
         public static final String OMEGA_DATA_FILENAME = "databases/omegaCDL_OmegaBetweenAsPhi1Psi0_KernRegr_v1.3.1_Aug12-2011.txt";
 
+    // OPLScalculator Settings
+
+        /** the file containing the OPLS forcefield file */
+        public static final String OPLS_FORCEFIELD_FILENAME = "amino_acids/oplsaal.prm";
+
     // General Settings
 
         /** hostname (e.g., enj02.rc.fas.harvard.edu) */

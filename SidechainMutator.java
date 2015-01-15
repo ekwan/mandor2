@@ -50,6 +50,8 @@ public class SidechainMutator implements Mutator
         if ( ( inputResidue.aminoAcid.chirality == Chirality.L && targetPAA.residue.aminoAcid.chirality == Chirality.D ) ||
              ( inputResidue.aminoAcid.chirality == Chirality.D && targetPAA.residue.aminoAcid.chirality == Chirality.L )    )
             throw new IllegalArgumentException("chirality interchange forbidden -- see javadoc for class");
+        if ( inputResidue.aminoAcid.chirality == Chirality.ACHIRAL && targetPAAresidue.aminoAcid.chirality == Chirality.D )
+            throw new IllegalArgumentException("can't handle mutations to D yet");
 
         // this is the index of the residue we will be mutating
         int residueIndex = inputPeptide.sequence.indexOf(inputResidue);
