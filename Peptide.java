@@ -90,6 +90,26 @@ public class Peptide extends Molecule implements Immutable, Serializable, Compar
 
     /**
      * Changes the geometry of this Peptide.
+     * @param newMolecule the new molecule geometry to use
+     * @return the new Peptide
+     */
+    public Peptide setPositions(Molecule newMolecule)
+    {
+        if ( contents.size() != newMolecule.contents.size() )
+            throw new IllegalArgumentException("contents size mismatch");
+        Map<Atom,Atom> atomMap = new HashMap<>();
+        for (int i=0; i < contents.size(); i++)
+            {
+                Atom oldAtom = contents.get(i);
+                Vector3D newPosition = newMolecule.contents.get(i).position;
+                Atom newAtom = oldAtom.moveAtom(newPosition);
+                atomMap.put(oldAtom, newAtom);
+            }
+        return moveAtoms2(atomMap);
+    }
+
+    /**
+     * Changes the geometry of this Peptide.
      * @param positions the new geometry to use
      * @return the new Peptide
      */

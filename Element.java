@@ -1,3 +1,6 @@
+import java.util.*;
+import com.google.common.collect.*;
+
 /**
  * This enum represents an element.
  */
@@ -8,6 +11,12 @@ public enum Element
     NITROGEN("N"),
     OXYGEN  ("O"),
     SULFUR  ("S");
+
+    public static final Set<String> CARBON_STRINGS   = ImmutableSet.of("C", "CA", "CT", "CM", "CO", "C*", "CP", "CV", "CW");
+    public static final Set<String> HYDROGEN_STRINGS = ImmutableSet.of("H", "HA", "HN", "HS", "HO", "HC", "H2", "H3");
+    public static final Set<String> NITROGEN_STRINGS = ImmutableSet.of("N", "N2", "N3", "NB", "NA");
+    public static final Set<String> OXYGEN_STRINGS   = ImmutableSet.of("O", "O-", "OH", "OS", "O2");
+    public static final Set<String> SULFUR_STRINGS   = ImmutableSet.of("S", "SH", "SS");
 
     /** The atomic symbol. */
     public final String symbol;
@@ -28,15 +37,15 @@ public enum Element
      */
     public static Element getElement(String symbol)
     {
-        if ( symbol.equals("C") || symbol.equals("CA") )
+        if ( CARBON_STRINGS.contains(symbol) )
             return CARBON;
-        else if ( symbol.equals("H") || symbol.equals("HN") || symbol.equals("HS") || symbol.equals("HO") )
+        else if ( HYDROGEN_STRINGS.contains(symbol) )
             return HYDROGEN;
-        else if ( symbol.equals("N") )
+        else if ( NITROGEN_STRINGS.contains(symbol) )
             return NITROGEN;
-        else if ( symbol.equals("O") || symbol.equals("O-") || symbol.equals("OH") )
+        else if ( OXYGEN_STRINGS.contains(symbol) )
             return OXYGEN;
-        else if ( symbol.equals("S") || symbol.equals("SH") || symbol.equals("SS") )
+        else if ( SULFUR_STRINGS.contains(symbol) )
             return SULFUR;
         else
             throw new IllegalArgumentException("Unrecognized atom symbol (" + symbol + ")!");

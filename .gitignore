@@ -8,6 +8,8 @@ gnuplot/*.csv
 dpd.csv
 gnuplot/*.dat
 gnuplot/*.png
+tinker_jobs/tinker_minimization_jobs/*
+tinker_jobs/tinker_analysis_jobs/*
 tinker_minimization_jobs/*tinker*.*
 tinker_analysis_jobs/*tinker*.*
 checkpoints/*.chk

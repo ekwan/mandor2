@@ -1124,9 +1124,10 @@ public class Molecule implements Immutable, Serializable
 
     /**
      * Returns the string representation of a Molecule in XYZ files (to be passed to Tinker).
-     * Uses AMOEBA atom types.
+     * @param forcefield tells us which forcefield type to use
+     * @return the xyz string
      */
-    public String toXYZString() 
+    public String toXYZString(Forcefield forcefield) 
     {
 	    //creates String to write
         String outputString = "";
@@ -1139,10 +1140,17 @@ public class Molecule implements Immutable, Serializable
         for (Atom currentAtom : contents)
             {
                 Set<DefaultWeightedEdge> bonds = connectivity.edgesOf(currentAtom);
+                Integer atomType = null;
+                if ( forcefield == Forcefield.AMOEBA )
+                    atomType = currentAtom.type1;
+                else if ( forcefield == Forcefield.OPLS )
+                    atomType = currentAtom.type2;
+                else
+                    throw new IllegalArgumentException("unknown forcefield type");
                 outputString = outputString + String.format("%3d %2s %12.8f %12.8f %12.8f %6d", currentAtomNumber,
                                                             currentAtom.element.symbol,  currentAtom.position.getX(),
                                                             currentAtom.position.getY(), currentAtom.position.getZ(),
-                                                            currentAtom.type1);
+                                                            atomType);
 
                 for (DefaultWeightedEdge e : bonds)
                     {

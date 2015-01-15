@@ -9,7 +9,7 @@ public class Settings implements Immutable, Singleton
     // ProtoAminoAcidDatabase Settings
     
         /** the directory containing the templates for all the amino acids */
-        public static final String PROTOAMINOACID_DIRECTORY = "amino_acids/";
+        public static final String PROTOAMINOACID_DIRECTORY;
 
     // Rotamer Library Database Settings
 
@@ -62,60 +62,29 @@ public class Settings implements Immutable, Singleton
             DOS, LINUX;
         }
 
-    // Omnisol Job Parameters
+    // Tinker General Parameters
 
-        /** location of Omnisol program */
-        public static final String OMNISOL_LOCATION;
+        /** The directory where the tinker job setup script is. */
+        public static final String TINKER_SETUP_DIRECTORY;
 
-        /** input header for Omnisol chloroform calculation */
-        public static final String OMNISOL_HEADER_CHLOROFORM;
-
-        /** input header for Omnisol water calculation */
-        public static final String OMNISOL_HEADER_WATER;
-
-        /** how many temporary filenames are available for running Omnisol jobs */
-        public static final int OMNISOL_MAX_FILENAMES = 10000;
+        /** The directory where the tinker job setup script should make some directories. */
+        public static final String TINKER_TARGET_DIRECTORY;
 
     // Tinker Minimization Job Parameters
 
         /** where tinker minimization jobs will be run */
         public static final String TINKER_MINIMIZATION_JOB_DIRECTORY;
     
-        /** standard keywords to use for every tinker minimization job */
-        public static final String TINKER_MINIMIZATION_STANDARD_KEYWORDS = "parameters amoebapro13.prm\nwriteout 200\n\n";
-
         /** how many temporary filenames are available for running Tinker minimization jobs */
         public static final int TINKER_MINIMIZATION_MAX_FILENAMES = 20000;
-
-        /** object to synchronize on for copying files into /dev/shm */
-        public static final Object SHM_LOCK = new Object();
 
     // Tinker Analysis Job Parameters
     
         /** where tinker analysis jobs will be run */
         public static final String TINKER_ANALYSIS_JOB_DIRECTORY;
         
-        /** where gaussian analysis jobs will be run */
-        public static final String GAUSSIAN_ANALYSIS_JOB_DIRECTORY;
-
-        /** standard keywords to use for every tinker analysis job */
-        public static final String TINKER_ANALYSIS_STANDARD_KEYWORDS = "parameters amoebapro13.prm\n\n";
-
         /** how many temporary filenames are available for running Tinker minimization jobs */
         public static final int TINKER_ANALYSIS_MAX_FILENAMES = 20000;
-
-    // Forcefield Job Parameters
-
-        /** where forcefield jobs will be run */
-        public static final String FORCEFIELD_JOB_DIRECTORY;
-
-        /** how many temporary filenames are available for running forcefield jobs */
-        public static final int FORCEFIELD_JOB_MAX_FILENAMES = 10000;
-
-    // ProtoAminoAcid settings
-
-        /** location of amino acid template files */
-        public static final String AMINO_ACID_DIRECTORY = "amino_acids/";
 
     // Steric Energy Settings
 
@@ -135,6 +104,8 @@ public class Settings implements Immutable, Singleton
 
         // set hostname
         try { temp = java.net.InetAddress.getLocalHost().getHostName(); } catch (Exception e) {}
+        if ( temp.length() == 0 )
+            temp = "localhost";
         FULL_HOSTNAME = temp;
 
         if ( FULL_HOSTNAME.length() > 0 )
@@ -170,47 +141,36 @@ public class Settings implements Immutable, Singleton
             temp = temp.replace("/","\\");
         WORKING_DIRECTORY = temp;
 
-        // set OMNISOL_HEADER_CHLOROFORM
-        temp =        "SM5.0R\n";
-        temp = temp + "& IOFR=1.4459 ALPHA=0.15 BETA=0.02 GAMMA=38.39\n";
-        temp = temp + "& FACARB=0.00 FEHALO=0.75 SOLVNT=GENORG\n";
-        temp = temp + "peptide (solvent : chloroform)\n\n";
-        OMNISOL_HEADER_CHLOROFORM = temp;
+        // set up ProtoAminoAcid directory
+        PROTOAMINOACID_DIRECTORY = WORKING_DIRECTORY + "amino_acids/";
 
-        //set OMNISOL_HEADER_WATER
-        temp = "SM5.0R SOLVNT=WATER\n";
-        temp = temp + "peptide (aqueous)\n\n";
-        OMNISOL_HEADER_WATER = temp; 
-
-        // set OMNISOL_LOCATION
-        temp = WORKING_DIRECTORY + "omnisol/";
-        if ( PLATFORM == Platform.DOS )
-            temp = temp.replace("/","\\");
-        OMNISOL_LOCATION = temp;
+        // set up tinker directories
+        TINKER_SETUP_DIRECTORY = WORKING_DIRECTORY + "tinker_jobs/";
+        TINKER_TARGET_DIRECTORY = WORKING_DIRECTORY + "tinker_jobs/";
+        String runString = Settings.TINKER_SETUP_DIRECTORY + "tinker_setup.sh " + TINKER_TARGET_DIRECTORY + " "
+                           + PROTOAMINOACID_DIRECTORY + " " + TINKER_SETUP_DIRECTORY;
+        try
+            {
+                Process process = Runtime.getRuntime().exec(runString);
+                process.waitFor();
+                if ( process.exitValue() != 0 )
+                    throw new IllegalArgumentException("tinker setup terminated abormally, exit code: " + process.exitValue());
+            }
+        catch (Exception e)
+            {
+                e.printStackTrace();
+                System.exit(1);
+            }
 
         // for TinkerMinimizationJobs
-        //temp = WORKING_DIRECTORY + "tinker_minimization_jobs/";
-        temp = "/dev/shm/tinker_minimization_jobs/";
-        if ( PLATFORM == Platform.DOS )
-            temp = temp.replace("/","\\");
-        TINKER_MINIMIZATION_JOB_DIRECTORY = temp;
+        TINKER_MINIMIZATION_JOB_DIRECTORY = TINKER_TARGET_DIRECTORY + "tinker_minimization_jobs/";
 
 	    // for TinkerAnalysisJobs
 	    //temp = WORKING_DIRECTORY + "tinker_analysis_jobs/";
-        temp = "/dev/shm/tinker_analysis_jobs/";
-	    if ( PLATFORM == Platform.DOS )
-            temp = temp.replace("/","\\");
-        TINKER_ANALYSIS_JOB_DIRECTORY = temp;
-
-        // for GaussianAnalysisJobs
-        temp = WORKING_DIRECTORY + "gaussian_analysis_jobs/";
-        GAUSSIAN_ANALYSIS_JOB_DIRECTORY = temp;
-
-        // for ForcefieldJobs
-        temp = WORKING_DIRECTORY + "forcefield_jobs/";
-        if ( PLATFORM == Platform.DOS )
-            temp = temp.replace("/","\\");
-        FORCEFIELD_JOB_DIRECTORY = temp;
+        //temp = "/dev/shm/tinker_analysis_jobs/";
+	    //if ( PLATFORM == Platform.DOS )
+        //    temp = temp.replace("/","\\");
+        TINKER_ANALYSIS_JOB_DIRECTORY = TINKER_TARGET_DIRECTORY + "tinker_analysis_jobs/";
 
         // print out some information
         //System.out.println(String.format("Mandor hostname is %s (%d cores available).", HOSTNAME, NUMBER_OF_THREADS));
@@ -224,10 +184,12 @@ public class Settings implements Immutable, Singleton
     /** not instantiable */
     private Settings()
     {
+        throw new IllegalArgumentException("not instantiable!");
     }
 
+    /** For testing. */
     public static void main(String[] args)
     {
-        System.out.println("test");
+        System.out.println("hello from Settings");
     }
 }
