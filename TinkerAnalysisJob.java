@@ -16,10 +16,10 @@ public class TinkerAnalysisJob implements WorkUnit, Serializable, Immutable
     public static final AtomicInteger index = new AtomicInteger();
 
     /** default keywords for AMOEBA */
-    public static final String DEFAULT_AMOEBA_KEYWORDS = "parameters amoebapro13.prm\nwriteout 200\n\n";
+    public static final String DEFAULT_AMOEBA_KEYWORDS = "parameters amoebapro13.prm\n\n";
 
     /** default keywords for OPLS */
-    public static final String DEFAULT_OPLS_KEYWORDS = "parameters oplsaal.prm\nwriteout 200\n\n";
+    public static final String DEFAULT_OPLS_KEYWORDS = "parameters oplsaal.prm\n\n";
 
     /** the xyz file that tinker will read from */
     public final TinkerXYZInputFile tinkerXYZInputFile;
