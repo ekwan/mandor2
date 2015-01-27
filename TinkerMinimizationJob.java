@@ -350,7 +350,12 @@ public class TinkerMinimizationJob implements WorkUnit, Serializable, Immutable
                 }
 
             if ( readEnergy == null )
-                throw new IllegalArgumentException("Energy not found!");
+                {
+                    int start = Math.max(0, fileContents.size()-5);
+                    for (int i=start; i < fileContents.size(); i++)
+                        System.out.println(fileContents.get(i));
+                    throw new IllegalArgumentException("Energy not found!");
+                }
             if ( readGradient == null )
                 throw new IllegalArgumentException("Gradient not found!");
             if ( readIterations == null )

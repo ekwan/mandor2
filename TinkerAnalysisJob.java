@@ -188,7 +188,7 @@ public class TinkerAnalysisJob implements WorkUnit, Serializable, Immutable
                         String filename = f.getName();
                         if ( f.getName().startsWith(baseFilename) )
                             {
-                                f.delete();
+                                //f.delete();
                                 //System.out.println(f.getName() + " deleted.");
                             }
                     }
@@ -287,6 +287,7 @@ public class TinkerAnalysisJob implements WorkUnit, Serializable, Immutable
     public static void main(String[] args)
     {
         DatabaseLoader.go();
+        System.out.println("building");
         List<ProtoAminoAcid> sequence = ProtoAminoAcidDatabase.getSpecificSequence("arg","met","standard_ala","gly","d_proline", "gly", "phe", "val", "hd", "l_pro");
         Peptide peptide = PeptideFactory.createPeptide(sequence);
         
@@ -298,10 +299,19 @@ public class TinkerAnalysisJob implements WorkUnit, Serializable, Immutable
             }
         peptide = PeptideFactory.setHairpinAngles(peptide);
 
-        //TinkerAnalysisJob job = new TinkerAnalysisJob(peptide, Forcefield.AMOEBA, "solvate gk\n\n");
-        TinkerAnalysisJob job = new TinkerAnalysisJob(peptide, Forcefield.OPLS, "solvate gb\n\n");
-        TinkerAnalysisJob.TinkerAnalysisResult result = job.call();
-        TinkerAnalyzeOutputFile outputFile = result.tinkerAnalysisFile;
+        System.out.println("minimizing");
+        TinkerMinimizationJob job = new TinkerMinimizationJob(peptide, Forcefield.OPLS, "maxiter 2000\n\n");
+        //TinkerMinimizationJob job = new TinkerMinimizationJob(peptide, Forcefield.AMOEBA, "maxiter 2000\n\n");
+        TinkerMinimizationJob.TinkerMinimizationResult result = job.call();
+        Molecule minimizedMolecule = result.tinkerXYZOutputFile.molecule;
+        Peptide newPeptide = peptide.setPositions(minimizedMolecule);
+        System.out.println("grad is " + result.tinkerMinimizationLogFile.gradient);
+
+        //TinkerAnalysisJob job2 = new TinkerAnalysisJob(peptide, Forcefield.AMOEBA, "\n\n");
+        TinkerAnalysisJob job2 = new TinkerAnalysisJob(peptide, Forcefield.AMOEBA, "solvate gk\n\n");
+        //TinkerAnalysisJob job2 = new TinkerAnalysisJob(newPeptide, Forcefield.OPLS, "solvate gb\n\n");
+        TinkerAnalysisJob.TinkerAnalysisResult result2 = job2.call();
+        TinkerAnalyzeOutputFile outputFile = result2.tinkerAnalysisFile;
         System.out.println(outputFile.energyByResidue);
         System.out.println(outputFile.totalEnergy);
     }

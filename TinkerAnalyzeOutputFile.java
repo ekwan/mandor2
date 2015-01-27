@@ -54,7 +54,17 @@ public class TinkerAnalyzeOutputFile extends OutputFileFormat
         // parse all interactions
         for (List<String> line : fileContents) 
             {
-		        if ( line.get(0).equals("Bond") || line.get(0).equals("PiTors") || line.get(0).equals("VDW-Hal"))
+                String heading = null;
+                if ( line.size() > 0 )
+                    heading = line.get(0);
+		        String heading2 = null;
+                if ( line.size() > 1 ) 
+                    heading2 = line.get(1);
+                if ( ( heading.equals("Bond") && heading2.equals("Stretching")  ) ||
+                     ( heading.equals("Angle") && heading2.equals("Bending")    ) ||
+                     ( heading.equals("Improper") && heading2.equals("Torsion") )    )
+                     continue;
+                else if ( heading.equals("Bond") || heading.equals("PiTors") || heading.equals("VDW-Hal") || heading.equals("VDW-LJ") || heading.equals("Charge") )
                     {
 			            int atomNumber1 = getInt(line.get(1));
                         int atomNumber2 = getInt(line.get(2));
@@ -63,12 +73,14 @@ public class TinkerAnalyzeOutputFile extends OutputFileFormat
                         
                         int residue1 = interactionClassification.getFirst();
                         int residue2 = interactionClassification.getSecond();
-                        if ( line.get(0).equals("PiTors") )
+                        if ( heading.equals("PiTors") )
                             energyByResidue[residue1][residue2] += Double.parseDouble(line.get(4));
+                        else if ( heading.equals("Charge") )
+                            energyByResidue[residue1][residue2] += Double.parseDouble(line.get(6));
                         else
                             energyByResidue[residue1][residue2] += Double.parseDouble(line.get(5));
                     }
-                else if (line.get(0).equals("Angle") || line.get(0).equals("Angle-IP") || line.get(0).equals("StrBend"))
+                else if (heading.equals("Angle") || heading.equals("Angle-IP") || heading.equals("StrBend"))
                     {
                         int atomNumber1 = getInt(line.get(1));
                         int atomNumber2 = getInt(line.get(2));
@@ -80,7 +92,7 @@ public class TinkerAnalyzeOutputFile extends OutputFileFormat
 
                         energyByResidue[residue1][residue2] = energyByResidue[residue1][residue2] + Double.parseDouble(line.get(6));
                     }
-                else if (line.get(0).equals("Torsion") || line.get(0).equals("O-P-Bend"))
+                else if (heading.equals("Torsion") || heading.equals("O-P-Bend") || heading.equals("Improper") )
 		            {
                         int atomNumber1 = getInt(line.get(1));
                         int atomNumber2 = getInt(line.get(2));
@@ -92,7 +104,7 @@ public class TinkerAnalyzeOutputFile extends OutputFileFormat
                         int residue2 = interactionClassification.getSecond();
                         energyByResidue[residue1][residue2] = energyByResidue[residue1][residue2] + Double.parseDouble(line.get(line.size()-1));
 		            }
-                else if (line.get(0).equals("TorTor"))
+                else if (heading.equals("TorTor"))
                     {
                         int atomNumber1 = getInt(line.get(1));
                         int atomNumber2 = getInt(line.get(2));
@@ -105,7 +117,7 @@ public class TinkerAnalyzeOutputFile extends OutputFileFormat
                         int residue2 = interactionClassification.getSecond();
                         energyByResidue[residue1][residue2] = energyByResidue[residue1][residue2] + Double.parseDouble(line.get(line.size()-1));
                     }
-	    	    else if (line.get(0).equals("M-Pole"))
+	    	    else if (heading.equals("M-Pole"))
                     {
                         int atomNumber1 = getInt(line.get(1));
                         int atomNumber2 = getInt(line.get(2));
@@ -115,12 +127,20 @@ public class TinkerAnalyzeOutputFile extends OutputFileFormat
                         energyByResidue[residue1][residue2] = energyByResidue[residue1][residue2] + Double.parseDouble(line.get(4));
 			            energyByResidue[residue1][residue2] = energyByResidue[residue1][residue2] + Double.parseDouble(line.get(5));
                     }
-		
-                else if (line.get(0).equals("Total") && line.get(1).equals("Potential") && line.get(2).equals("Energy"))
+		        else if ( heading.equals("Solvate"))
+                    {
+                        int atomNumber = getInt(line.get(1));
+                        Pair<Integer, Integer> interactionClassification = classifyInteraction(sequence,residueMap, atomNumber);
+                        int residue1 = interactionClassification.getFirst();
+                        int residue2 = interactionClassification.getSecond();
+                        if ( residue1 != residue2 )
+                            throw new IllegalArgumentException("mismatch");
+                        energyByResidue[residue1][residue2] = energyByResidue[residue1][residue2] + Double.parseDouble(line.get(4));
+                    }
+                else if (heading.equals("Total") && line.get(1).equals("Potential") && line.get(2).equals("Energy"))
                     {
                         totalEnergy = Double.parseDouble(line.get(4));
                         //System.out.println("tinker energy: " + totalEnergy);
-                        break;
                     }
             }
 
@@ -159,7 +179,7 @@ public class TinkerAnalyzeOutputFile extends OutputFileFormat
 	        totalEnergyFromResidues = totalEnergyFromResidues + e;
         
         if (Math.abs(totalEnergyFromResidues-totalEnergy)>0.15)
-            throw new IllegalArgumentException("total energy does not equal individual energies. \nEnergy of residues is " + totalEnergyFromResidues + "\nEnergy from file is " + totalEnergy + "\ndiffernece: " + (totalEnergyFromResidues - totalEnergy));
+            throw new IllegalArgumentException("total energy does not equal individual energies. \nEnergy of residues is " + totalEnergyFromResidues + "\nEnergy from file is " + totalEnergy + "\ndifference: " + (totalEnergyFromResidues - totalEnergy));
 
         //System.out.println("check energy:               " + checkEnergy);
 	    //System.out.println("total energy from residues: " + totalEnergyFromResidues);
@@ -200,7 +220,9 @@ public class TinkerAnalyzeOutputFile extends OutputFileFormat
      */
     private int getInt(String s)
     {
-        String newString = s.replaceAll("[^\\d]","");
+        String newString = null;
+        try { newString = s.replaceAll("[^\\d]",""); }
+        catch (Exception e) { System.out.println(s); throw e; }
         return Integer.parseInt(newString);
     }
  
