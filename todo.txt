@@ -1,2 +1,12 @@
+-----
+todo:
+-----
+create minimizationunit in peptideutilities that takes the forcefield and whether to do solvation or not
+betasheetgenerator should extend montecarlojob, or maybe just a nested class inside betasheetgenerator?
+
+
+----
+done:
+----
 update types and surface tensions in sidechainmutator
  

@@ -23,12 +23,12 @@ public class EnergyBreakdown implements Immutable, Serializable, Result
     public final List<Double> sasa;
 
     /** The kind of energies represented here (OPLS or AMOEBA). */
-    public final Type type;
+    public final Forcefield type;
 
     /** Represents a blank energy breakdown. */
     public static final EnergyBreakdown BLANK = new EnergyBreakdown(null, 0.0, 0.0, 0.0, null, null); 
 
-    public EnergyBreakdown(List<Double> energyByResidue, double totalEnergy, double solvationEnergy, double potentialEnergy, List<Double> sasa, Type type)
+    public EnergyBreakdown(List<Double> energyByResidue, double totalEnergy, double solvationEnergy, double potentialEnergy, List<Double> sasa, Forcefield type)
     {
 	    this.energyByResidue = energyByResidue;
         this.totalEnergy = totalEnergy;
@@ -38,16 +38,6 @@ public class EnergyBreakdown implements Immutable, Serializable, Result
             throw new IllegalArgumentException("energies don't add up");
         this.sasa = sasa;
         this.type = type;
-    }
-
-    /** Tells us what forcefield the energies are calculated on. */
-    public enum Type
-    {
-        /** These are AMOEBA energies. */
-        AMOEBA,
-        
-        /** These are OPLS energies. */
-        OPLS;
     }
 
     /**
