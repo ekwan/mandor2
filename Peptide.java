@@ -69,8 +69,8 @@ public class Peptide extends Molecule implements Immutable, Serializable, Compar
      */
     public Peptide setEnergyBreakdown(EnergyBreakdown newEnergyBreakdown)
     {
-        if ( energyBreakdown != null && energyBreakdown != EnergyBreakdown.BLANK )
-            System.out.println("warning: set energy breakdown when not null");
+        //if ( energyBreakdown != null && energyBreakdown != EnergyBreakdown.BLANK )
+        //    System.out.println("warning: set energy breakdown when not null");
         return new Peptide(name, contents, connectivity, sequence, newEnergyBreakdown);
     }
 

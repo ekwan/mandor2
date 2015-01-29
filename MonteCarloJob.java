@@ -61,102 +61,6 @@ public abstract class MonteCarloJob implements WorkUnit
     }
 
     /**
-     * Minimizes a peptide on the OPLS forcefield.  An analysis with solvation is performed.
-     * If the job fails, a null will be returned.
-     * @param peptide the peptide to minimize
-     * @param maxIterations the maximum number of iterations to perform during the minimization
-     * @return the minimized peptide
-     */
-    public static Peptide minimizeSingleWithOPLS(Peptide peptide, int maxIterations)
-    {
-        // check for sensible input
-        if ( peptide == null )
-            throw new NullPointerException("null input peptide is not allowed");
-        if ( maxIterations < 1 )
-            throw new IllegalArgumentException("positive number expected for maximum number of iterations");
-        
-        // perform minimization
-        TinkerMinimizationJob job = new TinkerMinimizationJob(peptide, Forcefield.OPLS, "maxiter " + maxIterations + "\n\n");
-        TinkerMinimizationJob.TinkerMinimizationResult result = job.call();
-        Molecule minimizedMolecule = result.tinkerXYZOutputFile.molecule;
-        Peptide newPeptide = peptide.setPositions(minimizedMolecule);
-
-        System.out.println("grad is " + result.tinkerMinimizationLogFile.gradient);
-        System.out.println(result.tinkerMinimizationLogFile.iterations + " iterations performed");
-        
-        // perform analysis
-        TinkerAnalysisJob job2 = new TinkerAnalysisJob(newPeptide, Forcefield.AMOEBA, "\n\n");
-        TinkerAnalysisJob.TinkerAnalysisResult result2 = job2.call();
-        TinkerAnalyzeOutputFile outputFile2 = result2.tinkerAnalysisFile;
-        
-        System.out.println(outputFile2.energyByResidue);
-        System.out.println(outputFile2.totalEnergy);
-
-        // compute solvation
-        List<Double> SASAlist = DCLMAreaCalculator.INSTANCE.calculateSASA(newPeptide);
-        List<Double> energies = new ArrayList<>(SASAlist.size());
-        for (int i=0; i < SASAlist.size(); i++)
-            {
-                double surfaceArea = SASAlist.get(i);
-                double surfaceTension = newPeptide.contents.get(i).surfaceTension;
-                double energy = surfaceArea * surfaceTension;
-                energies.add(energy);
-            }
-
-        // update energy breakdown
-
-
-        return newPeptide;
-    }
-
-    /**
-     * Minimizes a peptide on the AMOEBA forcefield.  An analysis with solvation is performed.
-     * If the job fails, a null will be returned.
-     * @param peptide the peptide to minimize
-     * @return the minimized peptide
-     */
-    public static Peptide minimizeSingleWithAMOEBA(Peptide peptide)
-    {
-        return null;
-    }
-
-    /**
-     * Minimizes multiple peptides on the OPLS forcefield.  Analyses are performed.
-     * If a job fails, it will not appear in the final list.
-     * @param peptides the peptides to minimize
-     * @return the minimized peptides
-     */
-    public static List<Peptide> minimizeMultipleWithOPLS(List<Peptide> peptides)
-    {
-        return null;
-    }
-
-    /**
-     * Minimizes multiple peptides on the OPLS forcefield.  Analyses are performed.
-     * If a job fails, it will not appear in the final list.
-     * @param peptides the peptides to minimize
-     * @return the minimized peptides
-     */
-    public static List<Peptide> minimizeMultipleWithAMOEBA(List<Peptide> peptides)
-    {
-        return null;
-    }
-
-    /**
-     * Minimizes a single peptide using some forcefield.
-     * @param peptide the peptide to minimize
-     * @return the minimized peptide
-     */
-    public abstract Peptide minimizeSingle(Peptide peptide);
-
-    /**
-     * Minimizes multiple peptides using some forcefield.
-     * @param peptide the peptide to minimize
-     * @return the minimized peptide
-     */
-    public abstract Peptide minimizeMultiple(List<Peptide> peptides);
-
-    /**
      * Runs a generic Monte Carlo simulation.
      * @param maxSize the number of best results to keep
      * @return the list of the best structures
@@ -305,20 +209,5 @@ public abstract class MonteCarloJob implements WorkUnit
     /** For testing. */
     public static void main(String[] args)
     {
-        DatabaseLoader.go();
-        System.out.println("building");
-        List<ProtoAminoAcid> sequence = ProtoAminoAcidDatabase.getSpecificSequence("arg","met","standard_ala","gly","d_proline", "gly", "phe", "val", "hd", "l_pro");
-        Peptide peptide = PeptideFactory.createPeptide(sequence);
-
-        for (int i=0; i < peptide.sequence.size(); i++)
-            {
-                peptide = BackboneMutator.mutateOmega(peptide, i);
-                peptide = BackboneMutator.mutatePhiPsi(peptide, i);
-                peptide = RotamerMutator.mutateChis(peptide, i);
-            }
-        peptide = PeptideFactory.setHairpinAngles(peptide);
-        System.out.println("done");
-
-        Peptide newPeptide = minimizeSingleWithOPLS(peptide, 1000);
     }
 }
