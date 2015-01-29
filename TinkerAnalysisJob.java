@@ -6,6 +6,9 @@ import org.apache.commons.math3.geometry.euclidean.threed.*;
 /**
  * This class represents a TINKER analysis job.
  * It is assumed that TINKER is in the path.
+ * Note that this will not work with "solvate gk" because of a bug in Tinker.
+ * It will work for "solvate gb," but because the tinker solvation terms are arbitrarily
+ * partitioned, using this might have weird consequences.
  */
 public class TinkerAnalysisJob implements WorkUnit, Serializable, Immutable
 {
@@ -115,7 +118,7 @@ public class TinkerAnalysisJob implements WorkUnit, Serializable, Immutable
                         long startTime = System.currentTimeMillis();
                         String runString = Settings.TINKER_ANALYSIS_JOB_DIRECTORY + "run_tinker_analysis.sh " +
                                            Settings.TINKER_ANALYSIS_JOB_DIRECTORY + " " + baseFilename;
-                        System.out.println(runString);
+                        //System.out.println(runString);
                         Process process = Runtime.getRuntime().exec(runString);
                         process.waitFor();
                         long endTime = System.currentTimeMillis();
@@ -188,7 +191,7 @@ public class TinkerAnalysisJob implements WorkUnit, Serializable, Immutable
                         String filename = f.getName();
                         if ( f.getName().startsWith(baseFilename) )
                             {
-                                //f.delete();
+                                f.delete();
                                 //System.out.println(f.getName() + " deleted.");
                             }
                     }
@@ -306,13 +309,27 @@ public class TinkerAnalysisJob implements WorkUnit, Serializable, Immutable
         Molecule minimizedMolecule = result.tinkerXYZOutputFile.molecule;
         Peptide newPeptide = peptide.setPositions(minimizedMolecule);
         System.out.println("grad is " + result.tinkerMinimizationLogFile.gradient);
+        System.out.println(result.tinkerMinimizationLogFile.iterations + " iterations performed");
 
-        //TinkerAnalysisJob job2 = new TinkerAnalysisJob(peptide, Forcefield.AMOEBA, "\n\n");
-        TinkerAnalysisJob job2 = new TinkerAnalysisJob(peptide, Forcefield.AMOEBA, "solvate gk\n\n");
-        //TinkerAnalysisJob job2 = new TinkerAnalysisJob(newPeptide, Forcefield.OPLS, "solvate gb\n\n");
+        System.out.println("amoeba gas phase");
+        TinkerAnalysisJob job2 = new TinkerAnalysisJob(newPeptide, Forcefield.AMOEBA, "\n\n");
         TinkerAnalysisJob.TinkerAnalysisResult result2 = job2.call();
-        TinkerAnalyzeOutputFile outputFile = result2.tinkerAnalysisFile;
-        System.out.println(outputFile.energyByResidue);
-        System.out.println(outputFile.totalEnergy);
+        TinkerAnalyzeOutputFile outputFile2 = result2.tinkerAnalysisFile;
+        System.out.println(outputFile2.energyByResidue);
+        System.out.println(outputFile2.totalEnergy);
+        
+        System.out.println("opls with gb");
+        TinkerAnalysisJob job3 = new TinkerAnalysisJob(newPeptide, Forcefield.OPLS, "solvate gb\n\n");
+        TinkerAnalysisJob.TinkerAnalysisResult result3 = job3.call();
+        TinkerAnalyzeOutputFile outputFile3 = result3.tinkerAnalysisFile;
+        System.out.println(outputFile3.energyByResidue);
+        System.out.println(outputFile3.totalEnergy);
+
+        System.out.println("amoeba with gk");
+        TinkerAnalysisJob job4 = new TinkerAnalysisJob(newPeptide, Forcefield.AMOEBA, "solvate gk\n\n");
+        TinkerAnalysisJob.TinkerAnalysisResult result4 = job4.call();
+        TinkerAnalyzeOutputFile outputFile4 = result4.tinkerAnalysisFile;
+        System.out.println(outputFile4.energyByResidue);
+        System.out.println(outputFile4.totalEnergy);
     }
 }
