@@ -231,7 +231,7 @@ public class BetaSheetGenerator
     public static void main(String[] args)
     {
         DatabaseLoader.go();
-        List<Peptide> sheets = generateSheets(5, 10, 10, 0.01);
+        List<Peptide> sheets = generateSheets(5, 100, 10000, 0.01);
         Collections.sort(sheets);
         for ( int i=0; i < Math.min(10, sheets.size()); i++ )
             {

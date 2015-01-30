@@ -9,6 +9,7 @@ gnuplot/*.csv
 dpd.csv
 gnuplot/*.dat
 gnuplot/*.png
+benchmark/*
 tinker_jobs/tinker_minimization_jobs/*
 tinker_jobs/tinker_analysis_jobs/*
 tinker_minimization_jobs/*tinker*.*

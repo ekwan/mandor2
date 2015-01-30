@@ -19,9 +19,9 @@ start=`date +%s`
 
 for i in $(seq 1 $1); do
     cp original.xyz ${hostname}_$i.xyz
-    #./minimize ${hostname}_$i.xyz amoebapro13.prm 0.2 > ${hostname}_$i.out &
+    minimize ${hostname}_$i.xyz amoebapro13.prm 0.5 > ${hostname}_$i.out &
     #echo ./analyze ${hostname}_$i.xyz amoebapro13.prm d ${hostname}_$i.out 
-    analyze ${hostname}_$i.xyz amoebapro13.prm d > ${hostname}_$i.out &
+    #analyze ${hostname}_$i.xyz amoebapro13.prm d > ${hostname}_$i.out &
 done
 
 # wait for jobs to complete
