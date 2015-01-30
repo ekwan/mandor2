@@ -91,7 +91,7 @@ public abstract class MonteCarloJob implements WorkUnit
                 Peptide candidate = mutate(currentPeptide);
 
                 // minimize the candidate
-                candidate = minimizeSingle(candidate);
+                //candidate = minimizeSingle(candidate);
 
                 // apply modified Metropolis criterion
                 boolean isAccepted = acceptChange(currentPeptide, candidate, currentAlpha);

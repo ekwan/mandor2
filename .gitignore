@@ -3,6 +3,7 @@
 *.*#
 *.*~
 *.swp
+test.gjf
 temp.txt
 gnuplot/*.csv
 dpd.csv

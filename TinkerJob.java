@@ -99,10 +99,10 @@ public class TinkerJob implements WorkUnit
         int iterations = tinkerMinimizationLogFile.iterations;
 
         // debugging
-        System.out.printf("Forcefield:       %s\n", forcefield.toString());
-        System.out.printf("Iterations:       %d\n", iterations);
-        System.out.printf("RMS Gradient:     %.2f\n", gradient);
-        System.out.printf("Potential Energy: %.2f\n", potentialEnergy);
+        //System.out.printf("Forcefield:       %s\n", forcefield.toString());
+        //System.out.printf("Iterations:       %d\n", iterations);
+        //System.out.printf("RMS Gradient:     %.2f\n", gradient);
+        //System.out.printf("Potential Energy: %.2f\n", potentialEnergy);
 
         // add approximate solvation single point if requested
         if ( approximateSolvationSinglePoint )
@@ -118,6 +118,8 @@ public class TinkerJob implements WorkUnit
                         solvationEnergy += energy;
                     }
                 double totalEnergy = potentialEnergy + solvationEnergy;
+                //System.out.printf("Solvation Energy: %.2f\n", solvationEnergy);
+                //System.out.printf("Total Energy:     %.2f\n", totalEnergy);
                 EnergyBreakdown energyBreakdown = new EnergyBreakdown(null, totalEnergy, solvationEnergy, potentialEnergy, SASAlist, forcefield);
                 return new TinkerResult(newPeptide.setEnergyBreakdown(energyBreakdown));
             }
@@ -154,7 +156,7 @@ public class TinkerJob implements WorkUnit
                         //System.out.printf("%3d  %8.2f  %8.2f\n", i+1, surfaceArea, energy);
                         solvationEnergy += energy;
                     }
-                //System.out.printf("solvation energy: %8.2f\n", solvationEnergy);
+                //System.out.printf("Solvation energy: %.2f\n", solvationEnergy);
 
                 // write out debug file for OMNISOL
                 //String omnisolString = "SM5.0R\n& IOFR=1.4459 ALPHA=0.15 BETA=0.02 GAMMA=38.39\n& FACARB=0.00 FEHALO=0.75 SOLVNT=GENORG\npeptide (solvent : chloroform)\n\n";
@@ -183,8 +185,8 @@ public class TinkerJob implements WorkUnit
                 EnergyBreakdown oldEnergyBreakdown = newPeptide.energyBreakdown;
 
                 List<Double> energyByResidue = new ArrayList<>(oldEnergyBreakdown.energyByResidue);
-                System.out.println("old: " + energyByResidue.toString());
-                System.out.println("+:   " + Arrays.toString(solvationEnergiesByResidue));
+                //System.out.println("old: " + energyByResidue.toString());
+                //System.out.println("+:   " + Arrays.toString(solvationEnergiesByResidue));
                 for (int i=0; i < energyByResidue.size(); i++)
                     {
                         double oldEnergy = energyByResidue.get(i);
@@ -192,10 +194,11 @@ public class TinkerJob implements WorkUnit
                         energyByResidue.set(i, newEnergy);
                     }
                 energyByResidue = ImmutableList.copyOf(energyByResidue);
-                System.out.println("new: " + energyByResidue.toString());
+                //System.out.println("new: " + energyByResidue.toString());
 
                 double totalEnergy = potentialEnergy + solvationEnergy;
-                
+                //System.out.printf("Solvation Energy: %.2f\n", solvationEnergy);
+                //System.out.printf("Total Energy:     %.2f\n", totalEnergy);
                 EnergyBreakdown newEnergyBreakdown = new EnergyBreakdown(energyByResidue, totalEnergy, solvationEnergy,
                                                                          potentialEnergy, SASAlist, forcefield);
 
@@ -278,7 +281,7 @@ public class TinkerJob implements WorkUnit
         peptide = minimize(peptide, Forcefield.OPLS, 1000, // max iterations
                            false,  // do tinker solvation during the minimization
                            false,   // correct minimization energy with an approximate solvation energy
-                           true,  // perform analysis
+                           false,  // perform analysis
                            false,  // use tinker solvation during the analysis
                            true); // use approximate solvation during the analysis
     }
