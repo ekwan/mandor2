@@ -74,6 +74,8 @@ public class ShrakeRupleyCalculator extends SurfaceAreaCalculator implements Imm
     /** Probe radius to use. */
     public final double probeRadius;
 
+    public static final ShrakeRupleyCalculator INSTANCE = new ShrakeRupleyCalculator(1000, 0.0);
+
     /**
      * Creates a surface area calculator.
      */

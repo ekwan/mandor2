@@ -74,8 +74,8 @@ public class BetaSheetGenerator
         // queue the calculations
         Map<BackboneFingerprint,Peptide> resultMap = new ConcurrentHashMap<>();
         List<Future<Result>> futures = new ArrayList<>();
-        //for (int i=0; i < Settings.NUMBER_OF_THREADS; i++)
-        for (int i=0; i < 1; i++)
+        for (int i=0; i < Settings.NUMBER_OF_THREADS; i++)
+        //for (int i=0; i < 1; i++)
             {
                 SheetUnit job = new SheetUnit(seedPeptide, resultMap, armLength, maxIterations, desiredNumberOfResults, deltaAlpha);
                 Future<Result> f = GeneralThreadService.submit(job);
@@ -86,7 +86,7 @@ public class BetaSheetGenerator
         GeneralThreadService.silentWaitForFutures(futures);
 
         // return the results
-        return ImmutableList.copyOf(resultMap.values());
+        return new ArrayList<Peptide>(resultMap.values());
     }
 
     /**
@@ -172,7 +172,7 @@ public class BetaSheetGenerator
                     }
                     
                 // OPLS minimization
-                candidatePeptide = TinkerJob.minimize(candidatePeptide, Forcefield.OPLS, 250, false, true, false, false, false);
+                candidatePeptide = TinkerJob.minimize(candidatePeptide, Forcefield.OPLS, 100, false, true, false, false, false);
 
                 // check for hydrogen bonds
                 int numberOfHydrogenBonds = 0;
@@ -188,7 +188,7 @@ public class BetaSheetGenerator
                     }
                 if ( numberOfHydrogenBonds < (numberOfResidues / 2) - 1 )
                     {
-                        System.out.printf("[%2d] %d of %d: rejected (%d H-bonds)\n", ID, iteration, maxIterations, numberOfHydrogenBonds);
+                        System.out.printf("[%2d] %d of %d: rejected ( %d of %d H-bonds )\n", ID, iteration, maxIterations, numberOfHydrogenBonds, (numberOfResidues/2) - 1);
                         continue;
                     }
 
@@ -232,8 +232,14 @@ public class BetaSheetGenerator
     {
         DatabaseLoader.go();
         List<Peptide> sheets = generateSheets(5, 10, 10, 0.01);
-        Peptide p = sheets.get(3);
-        GaussianInputFile f = new GaussianInputFile(p);
-        f.write("test.gjf");
+        Collections.sort(sheets);
+        for ( int i=0; i < Math.min(10, sheets.size()); i++ )
+            {
+                Peptide p = sheets.get(i);
+                GaussianInputFile f = new GaussianInputFile(p);
+                String filename = String.format("test_peptides/sheet_%02d.gjf", i);
+                f.write(filename);
+                System.out.printf("Sheet %02d: E = %7.2f\n", i, p.energyBreakdown.totalEnergy);
+            }
     }
 }

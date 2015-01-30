@@ -108,7 +108,9 @@ public class TinkerJob implements WorkUnit
         if ( approximateSolvationSinglePoint )
             {
                 double solvationEnergy = 0.0;
-                List<Double> SASAlist = DCLMAreaCalculator.INSTANCE.calculateSASA(newPeptide);
+                List<Double> SASAlist = null;
+                try { SASAlist = DCLMAreaCalculator.INSTANCE.calculateSASA(newPeptide); }
+                catch (Exception e) { SASAlist = ShrakeRupleyCalculator.INSTANCE.calculateSASA(newPeptide); }
                 for (int i=0; i < SASAlist.size(); i++)
                     {
                         double surfaceArea = SASAlist.get(i);
@@ -144,7 +146,9 @@ public class TinkerJob implements WorkUnit
         else
             {
                 // otherwise, compute approximate solvation
-                List<Double> SASAlist = DCLMAreaCalculator.INSTANCE.calculateSASA(newPeptide);
+                List<Double> SASAlist = null;
+                try { SASAlist = DCLMAreaCalculator.INSTANCE.calculateSASA(newPeptide); }
+                catch (Exception e) { SASAlist = ShrakeRupleyCalculator.INSTANCE.calculateSASA(newPeptide); }
                 List<Double> energies = new ArrayList<>(SASAlist.size());
                 double solvationEnergy = 0.0;
                 for (int i=0; i < SASAlist.size(); i++)

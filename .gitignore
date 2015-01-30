@@ -23,6 +23,7 @@ omnisol/fort.21
 peptide*.gjf
 peptide*.xyz
 test_peptides/peptide*
+test_peptides/*.gjf
 best/*.log
 best/*.gjf
 best/*.txt

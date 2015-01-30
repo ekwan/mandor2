@@ -70,6 +70,9 @@ public class Settings implements Immutable, Singleton
         /** The directory where the tinker job setup script should make some directories. */
         public static final String TINKER_TARGET_DIRECTORY;
 
+        /** The directory where the tinker executables are. */
+        public static final String TINKER_PROGRAM_DIRECTORY;
+
     // Tinker Minimization Job Parameters
 
         /** where tinker minimization jobs will be run */
@@ -117,11 +120,11 @@ public class Settings implements Immutable, Singleton
         // set number of threads
         int tempThreads = Runtime.getRuntime().availableProcessors();
         if (HOSTNAME.startsWith("enj"))
-            tempThreads = 13;
+            tempThreads = 12;
         else if ( HOSTNAME.startsWith("dae"))
-            tempThreads = 9;
+            tempThreads = 8;
         else if ( HOSTNAME.startsWith("holy"))
-            tempThreads = 65;
+            tempThreads = 64;
         
         //NUMBER_OF_THREADS=12;
         NUMBER_OF_THREADS = tempThreads;
@@ -146,9 +149,20 @@ public class Settings implements Immutable, Singleton
 
         // set up tinker directories
         TINKER_SETUP_DIRECTORY = WORKING_DIRECTORY + "tinker_jobs/";
-        TINKER_TARGET_DIRECTORY = WORKING_DIRECTORY + "tinker_jobs/";
+        if ( HOSTNAME.startsWith("dae") || HOSTNAME.startsWith("enj") || HOSTNAME.startsWith("holy") )
+            {
+                TINKER_TARGET_DIRECTORY = "/dev/shm/";
+                TINKER_PROGRAM_DIRECTORY = "/n/home11/ekwan/tinker/bin/";
+            }
+        else if ( HOSTNAME.equals("localhost") )
+            {
+                TINKER_TARGET_DIRECTORY = WORKING_DIRECTORY + "tinker_jobs/";
+                TINKER_PROGRAM_DIRECTORY = "/Users/ekwan/tinker/bin/";
+            }
+        else
+            throw new IllegalArgumentException("recognized computer");
         String runString = Settings.TINKER_SETUP_DIRECTORY + "tinker_setup.sh " + TINKER_TARGET_DIRECTORY + " "
-                           + PROTOAMINOACID_DIRECTORY + " " + TINKER_SETUP_DIRECTORY;
+                           + PROTOAMINOACID_DIRECTORY + " " + TINKER_SETUP_DIRECTORY + " " + TINKER_PROGRAM_DIRECTORY;
         try
             {
                 Process process = Runtime.getRuntime().exec(runString);
