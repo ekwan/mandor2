@@ -320,7 +320,7 @@ public class PeptideFactory
     {
         DatabaseLoader.go();
         List<ProtoAminoAcid> sequence = ProtoAminoAcidDatabase.getSpecificSequence("arg","met","standard_ala","gly","d_proline", "gly", "phe", "val", "hd", "l_pro");
-        Peptide peptide = createPeptide(sequence);
+        Peptide peptide = PeptideFactory.createPeptide(sequence);
         
         for (int i=0; i < peptide.sequence.size(); i++)
             {
@@ -328,7 +328,7 @@ public class PeptideFactory
                 peptide = BackboneMutator.mutatePhiPsi(peptide, i);
                 peptide = RotamerMutator.mutateChis(peptide, i);
             }
-        peptide = setHairpinAngles(peptide);
+        peptide = PeptideFactory.setHairpinAngles(peptide);
 
         GaussianInputFile f = new GaussianInputFile(peptide);
         f.write("test_peptides/test.gjf");
