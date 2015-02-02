@@ -30,7 +30,7 @@ public class OPLScalculator implements Singleton
 
     /**
      * Gets the OPLS partial charge.
-     * @param the OPLS atom type
+     * @param type the OPLS atom type
      * @return the partial charge in fractions of an electron charge
      */
     public static Double getCharge(int type)

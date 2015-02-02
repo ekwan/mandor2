@@ -38,6 +38,7 @@ public final class ProtoAminoAcidDatabase implements Singleton
             // read all data from the library directory
             String directory = Settings.PROTOAMINOACID_DIRECTORY;
             int counter = 0;
+            Set<String> allDescriptions = new HashSet<>();
             for (File f : new File(directory).listFiles())
                 {
                     // parse all txt files
@@ -61,6 +62,12 @@ public final class ProtoAminoAcidDatabase implements Singleton
                                                 throw new IllegalArgumentException("Duplicate atom: " + a.toString());
                                         }
                                     
+                                    // check for duplicate descriptions
+                                    String description = p.residue.description.toLowerCase();
+                                    if ( allDescriptions.contains(description) )
+                                        throw new IllegalArgumentException("duplicate description: " + description);
+                                    allDescriptions.add(description);
+
                                     // add to database
                                     AminoAcid aminoAcid = p.residue.aminoAcid;
                                     int index = tempKeys.indexOf(aminoAcid);

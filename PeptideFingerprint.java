@@ -52,7 +52,7 @@ public class PeptideFingerprint implements Serializable
     /**
      * Rounds the given angle to the specified tolerance.
      * @param torsion the torsion to get the dihedral angle for
-     * @return the torsion angle rounded to the nearest {@link #ANGLE_TOLRANCE}
+     * @return the torsion angle rounded to the nearest {@link #ANGLE_TOLERANCE}
      */
     public static short getRoundedAngle(ProtoTorsion torsion)
     {
@@ -64,7 +64,7 @@ public class PeptideFingerprint implements Serializable
     /**
      * Rounds the given angle to the specified tolerance.
      * @param torsion the torsion to get the dihedral angle for
-     * @return the torsion angle rounded to the nearest {@link #ANGLE_TOLRANCE}
+     * @return the torsion angle rounded to the nearest {@link #ANGLE_TOLERANCE}
      */
     public static short getRoundedAngle(Peptide peptide, ProtoTorsion torsion, List<Vector3D> structure)
     {

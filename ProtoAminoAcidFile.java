@@ -20,7 +20,7 @@ public class ProtoAminoAcidFile extends OutputFileFormat implements Serializable
     /** The template molecule. */
     public final Molecule molecule;
 
-    /** The residue metadata. */
+    /** The residue metadata.  Description is trimmed for whitespace and taken only in lowercase. */
     public final Residue residue;
 
     /** public constructor */
@@ -97,7 +97,7 @@ public class ProtoAminoAcidFile extends OutputFileFormat implements Serializable
                                 if ( i < line.size() )
                                     description += " ";
                             }
-                        description = description.trim();
+                        description = description.toLowerCase().trim();
                     }
                 else if ( firstField.equals("phi") )
                     {
