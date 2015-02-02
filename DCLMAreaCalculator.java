@@ -17,6 +17,8 @@ import java.util.concurrent.*;
  * of spatial proximity.  Now, we first subdivide the volume occupied by i and j into cubic
  * boxes.  We look for overlaps in the boxes, and then only consider points i that are inside
  * the boxes.
+ *
+ * One instance per conformation should be used; this class is not thread safe.
  */
 public class DCLMAreaCalculator extends SurfaceAreaCalculator implements Immutable
 {
@@ -46,9 +48,6 @@ public class DCLMAreaCalculator extends SurfaceAreaCalculator implements Immutab
 
     /** The same points as in MESH, but organized into boxes indexed by their bottom corners.  */
     private static final Map<Vector3D,List<Vector3D>> GRID;
-
-    /** Convenient instance to calculate surface areas with. */
-    public static final DCLMAreaCalculator INSTANCE = new DCLMAreaCalculator(0.0);
 
     /** Static initializer. */
     static
@@ -491,7 +490,7 @@ public class DCLMAreaCalculator extends SurfaceAreaCalculator implements Immutab
         long startTime = System.currentTimeMillis();
         for (int i=0; i < 100; i++)
             {
-                SASAlist2 = calculator2.calculateSASA(testFile.molecule);
+                SASAlist2 = new DCLMAreaCalculator(0.0).calculateSASA(testFile.molecule);
                 //System.out.printf("%d \r", i);
             }
         long endTime = System.currentTimeMillis();

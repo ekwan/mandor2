@@ -231,7 +231,7 @@ public class BetaSheetGenerator
     public static void main(String[] args)
     {
         DatabaseLoader.go();
-        List<Peptide> sheets = generateSheets(5, 100, 10000, 0.01);
+        List<Peptide> sheets = generateSheets(6, 50, 10000, 0.01);
         Collections.sort(sheets);
         for ( int i=0; i < Math.min(10, sheets.size()); i++ )
             {
@@ -240,6 +240,21 @@ public class BetaSheetGenerator
                 String filename = String.format("test_peptides/sheet_%02d.gjf", i);
                 f.write(filename);
                 System.out.printf("Sheet %02d: E = %7.2f\n", i, p.energyBreakdown.totalEnergy);
+                
+                filename = String.format("test_peptides/sheet_%02d.chk", i);
+                try
+                    {
+                        FileOutputStream fileOut = new FileOutputStream(filename);
+                        ObjectOutputStream out = new ObjectOutputStream(fileOut);
+                        out.writeObject(p);
+                        out.close();
+                        fileOut.close();
+                    }
+                catch (Exception e)
+                    {
+                        e.printStackTrace();
+                        System.exit(1);
+                    }
             }
     }
 }
