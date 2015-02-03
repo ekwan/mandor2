@@ -799,9 +799,12 @@ public class RotamerFactory
         Collections.sort(sheets);
         Peptide peptide = sheets.get(0);
         
-        int TSindex = 4; // put the TS at this sequence index
+        int TSindex = 1; // put the TS at this sequence index
+        int hisIndex = 10;
         ProtoAminoAcid tsTemplate = ProtoAminoAcidDatabase.getTemplate("ts1");
+        ProtoAminoAcid hisTemplate = ProtoAminoAcidDatabase.getTemplate("hd");
         peptide = SidechainMutator.mutateSidechain(peptide, peptide.sequence.get(TSindex), tsTemplate);
+        peptide = SidechainMutator.mutateSidechain(peptide, peptide.sequence.get(hisIndex), hisTemplate);
         new GaussianInputFile(peptide).write("test_peptides/peptide.gjf");
 
         List<Rotamer> rotamers = generateRotamers(peptide, peptide.sequence.get(TSindex), true);
@@ -812,6 +815,9 @@ public class RotamerFactory
                 GaussianInputFile f = new GaussianInputFile(newPeptide);
                 String filename = String.format("test_peptides/rotamer_%02d.gjf", i);
                 f.write(filename);
+                filename = String.format("test_peptides/rotamer_%02d.xyz", i);
+                TinkerXYZInputFile f2 = new TinkerXYZInputFile(newPeptide, Forcefield.OPLS);
+                f2.write(filename);
                 System.out.printf("%02d %s\n", i, rotamer.toString());
             }
     }

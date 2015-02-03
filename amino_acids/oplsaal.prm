@@ -2202,3 +2202,650 @@ biotype    2004    K       "Potassium Ion"                   174
 biotype    2005    MG      "Magnesium Ion"                   177
 biotype    2006    CA      "Calcium Ion"                     178
 biotype    2007    CL      "Chloride Ion"                    182
+
+# custom parameters for transition state
+atom        411    2    H     "TS methyl ester hydrogen            "         1     1.008    1    #atom class from HR (6) Alkane
+atom        410    65    C     "TS methyl ester carbon              "         6    12.011    4
+
+atom        409   81    O     "TS methyl ester single bond oxygen  "         8    15.999    2
+
+atom        406    1    C     "TS acetate carbon for methyl ester  "         6    12.011    4    #atom class RCH3 (1)
+atom        405    2    H     "TS acetate hydrogen for methyl ester"         1     1.008    1    #atom class HR (6)
+
+atom        407   82    C     "TS methyl ester carbonyl carbon     "         6    12.011    4
+atom        408   83    O     "TS methyl ester carbonyl oxygen     "         8    15.999    1
+
+atom        403    1    C     "TS methanol carbon                  "         6    12.011    4    #atom class 19
+atom        404    2    H     "TS methanol hydrogen                "         1     1.008    1    #atom class 18
+
+atom        402   84    O     "TS methanol hydroxyl oxygen         "         8    15.999    3
+atom        401   85    H     "TS methanol hydroxyl hydrogen       "         1     1.008    1
+
+# stretching parameters
+bond          65   81            482.0   1.3810  # HOLD -- fitted, looks great
+                        						# CSY fitted TS1 -- looks OK aug.12.2014
+                                                # ester O-C, taken from OPLSAA classes 13 20
+                                                # types: 409-408 original FC 320.0
+                        						# (7_3)
+                        						# csyTS1 : 1.41567
+                        						# csyTS2 : 1.41405
+                        						# csyTS3 : 1.41493
+                        						# CSY confirm fit TS1/TS2/TS3 -- aug.18.2014
+
+bond         81   82            411.0   1.3715  # HOLD fitted -- looks great
+                        						# CSY fitted TS1 -- looks OK aug.12.2014
+                                                # ester carbonyl carbon - ester ether oxygen
+                                                # taken from OPLSAA classes 3 20
+                                                # types: 406-408 original FC 214
+                        						# (19_7)
+                        						# csyTS1 : 1.40184
+                        						# csyTS2 : 1.40608
+                        						# csyTS3 : 1.39880
+                        						# CSY confirm fit TS1/TS2/TS3 -- aug.18.2014
+                        						# TS3 pretty good, slightly shifted to the right
+
+bond          1   82            317.0   1.5050  # HOLD fitted -- looks OK, a bit too steep
+						                        # CSY refitted TS1 -- looks OK aug.12.2014
+                                                # acetate C-C stretch
+                                                # taken from OPLSAA classes 13 3
+                                                # types: 406-80
+                        						# (19_15)
+                        						# csyTS1 : 1.51863
+                        						# csyTS2 : 1.51923
+                        						# csyTS3 : 1.52361
+                        						# CSY confirm fit TS1/TS2/TS3 -- aug.18.2014
+
+bond         82   83            770.0   1.2550  # HOLD fitted
+                        						# CSY fitted TS1 -- looks OK aug.12.2014
+                                                # ester carbonyl stretch
+                                                # taken from OPLSAA classes 3 4
+                                                # types: 406-407
+                        						# (19_20)
+                        						# csyTS1 : 1.26893
+                        						# csyTS2 : 1.26944
+                        						# csyTS3 : 1.28059
+                        						# CSY confirm fit TS1/TS2/TS3 -- aug.18.2014
+                        						# TS3 pretty good, slightly shifted to the left
+
+bond         82   84            119.83   1.5700  # HOLD fitted
+                        						 # CSY fitted TS1 -- looks OK aug.12.2014
+                                                 # new: forming O-C bond
+                                                 # fitted -- tinker potential is centered ok, but too steep
+                        						 # (19_45)
+                        						 # csyTS1 : 1.67294 <-- could be problematic
+                        						 # csyTS2 : 1.66068
+                        						 # csyTS3 : 1.62159
+                        						 # TS3 okay, somewhat shifted to the right
+                        						 # CSY confirm fit TS1/TS2/TS3 -- aug.18.2014
+                        						 # CSY refit aug.27.2014
+                        						 # 1.5900 --> 1.5700
+                        						 # Compromise to fit TS1/TS2/TS3
+
+bond          1   84            450.1   1.4010  # HOLD fitted
+                        						# CSY fitted TS1 -- looks OK aug.12.2014
+                                                # methanol C-O stretch
+                                                # taken from AMOEBA09 classes 38 36
+                                                # types: 40-38
+                        						# (45_41)
+                        						# csyTS1 : 1.41326
+                        						# csyTS2 : 1.41279
+                        						# csyTS3 : 1.41711
+                        						# CSY confirm fit TS1/TS2/TS3 -- aug.18.2014
+
+bond         84   85            120.0   1.2700  # HOLD -- fitted looks great
+                        						# CSY fitted TS1 -- looks OK aug.12.2014, somewhat shallow curve
+                                                # methanol O-H stretch
+                                                # taken from AMOEBA09 classes 36 37
+                                                # types: 38-39 original FC 385
+                        						# (45_54)
+                        						# csyTS1 : 1.23197
+                        						# csyTS2 : 1.26164
+                        						# csyTS3 : 1.28446
+                        						# CSY TS1/TS2/TS3 -- aug.18.2014
+                        						# TS2 and TS3 are quite far off, energy of H bond varies substantially based on length
+                        						# TS1 has large vdw component, try reoptimizing TS2
+                        						# Make force constant larger to accomodate
+                        						# 98.0 1.27: TS1 now not captured well
+                        						# TS2/TS3 seems optimized
+                        						# CSY fit TS1/TS2/TS3 -- aug.27.2014
+
+# original: 385.0 1.1120
+
+# bending parameters
+# cannot set the parameters to 0.0 or TINKER
+# won't recognize the entries!
+angle        1    65   81       90.00      111.00       # HOLD ANGLE_SEARCH_1
+                                                        # taken from amoebapro13: serine CA-CB-O bend
+                                                        # angle         7    8   10      59.70     107.50
+						                                # (7_3_1)
+                        						        # csyTS1 : 111.242
+                        						        # CSY fitted TS1 -- aug.15.2014
+                        						        # csyTS2 : 113.722
+                        						        # csyTS3 : 111.771
+                        						        # CSY confirm fit TS1/TS2/TS3 -- aug.18.2014
+                        						        # TS2 tinker slightly too sharp, TS3 pretty good
+                        						        # sept.2.2014 -- coupled fit CSY (7_3_6 and 7_3_5)
+                        						        # the initial parameters look good, 7_3_6 is slightly shifted to the right
+                        						        # original 31.95 115.37
+                        						        # looks WAY better
+                        						        # 28.71 115.95 68.50 106.82
+                                                        # did complicated grid search, 3 entries for each of the four parameters concerned here
+                                                        # identified new set of optima that seem reasonable: 90.0 111.0 35.0 110.0
+
+angle         2    65   81       35.00      110.00     # HOLD ANGLE_SEARCH_2
+                                                      # taken from OPLSAA: ester methoxy H-C-O bend
+                                                      # angle        20   13   46      35.00     109.50
+                        						      # (7_3_6)
+                        						      # (7_3_5)
+                        						      # csyTS1 : 109.887 [only used 7_3_5]
+                        						      # csyTS1 (7_3_5) : 107.401
+                        						      # CSY fitted TS1 -- aug.15.2014
+                        						      # csyTS2 (7_3_5) : 105.295
+                        						      # csyTS3 (7_3_5) : 106.842
+                        						      # csyTS2 (7_3_6) : 110.027
+                        						      # csyTS3 (7_3_6) : 110.014
+                        						      # CSY confirm fit TS1/TS2/TS3 -- aug.18.2014
+                        						      # sept.2.2014 -- coupled fit CSY
+                        						      # original 58.26 107.67
+
+angle         65   81   82       150.0      110.0      # VARY
+                        						      # CSY TS1 -- energy dominated by vdw, no fit done
+                                                      # taken from OPLSAA: ester C-O-C(=O) bend
+                                                      # angle         3   20   13      83.00     116.90
+                        						      # csyTS1 : 115.708
+                        						      # (19_7_3)
+                        						      # csyTS2 : 116.987
+                        						      # csyTS3 : 115.965
+                        						      # CSY confirm TS1/TS2/TS3 -- aug.18.2014
+                        						      # no fit was done, used original parameters
+                        						      # CSY compromise -- aug.29.2014
+                        						      # tried to override vdw
+
+angle         2    1   82       48.41     108.00        # HOLD
+                                                        # CSY fitted TS1 (19_15_16) -- looks OK aug.12.2014
+                                                        # taken from OPLSAA: ester H-C-C(=O) bend
+                                                        # angle         3   13   46      35.00     109.50
+                                                        # csyTS1 : 107.937 [only used 19_15_16]
+                                                        # csyTS1 (19_15_17) : 111.720
+                                                        # csyTS1 (19_15_18) : 109.739
+                                                        # csyTS2 (19_15_16) : 111.771
+                                                        # csyTS3 (19_15_16) : 107.757
+                                                        # csyTS2 (19_15_17) : 108.128
+                                                        # csyTS3 (19_15_17) : 112.303
+                                                        # csyTS2 (19_15_18) : 109.445
+                                                        # csyTS3 (19_15_18) : 109.960
+                                                        # CSY confirm fit TS1/TS2/TS3 -- aug.18.2014
+                                                        # looks OK by tinker/g09 analysis -- sept.3.2014, but one angle is strangely large
+                                                        # tried ParameterOptimizer on all three angles simultaneously
+                                                        # original 45.0 106.5
+                                                        # newly optimized 48.41 106.16 TS1, seems worse
+                                                        # new guess at 48.41 108.00 seems very good
+                                                        # all parabolas are right-shifted in tinker for TS01, but this seems like a good compromise given all three TS
+
+angle        81   82    1       50.00      107.0        # HOLD
+                                                        # taken from OPLSAA: ester RO-C(=O)-C bend
+                                                        # angle        13    3   20      81.00     111.40
+                                                        # CSY fitted TS1 -- aug.15.2014
+                                                        # (7_19_15)
+                                                        # csyTS1 : 107.120 <-- could be problematic
+                                                        # fitted with no coupled coordinates
+                                                        # csyTS2 : 107.541
+                                                        # csyTS3 : 106.292
+                                                        # CSY confirm fit TS1/TS2/TS3 -- aug.18.2014
+                                                        # TS3 good, slightly shifted to the right
+                                                        # refit Sept.6.2014 -- coupled 53.33 114.46
+                                                        # COUPLING 6 ANGLES TOGETHER:
+                                                        # angle        13   51   20      50.00     109.50
+                                                        # 51-52-53 and 8-52-54 angle and fc both change a lot, so made them static
+
+angle        81   82   83       83.0      119.06        # VARY -- no fitting necessary
+                                                        # CSY TS1
+                                                        # taken from OPLSAA: ester RO-C=O bend
+                                                        # angle         4    3   20      83.00     123.40
+                                                        # csyTS1 : 119.055
+                                                        # (20_19_7)
+                                                        # csyTS2 : 118.979
+                                                        # csyTS3 : 118.598
+                                                        # CSY confirm fit TS1/TS2/TS3 -- aug.18.2014
+                                                        # or CSY confirm TS1/TS2/TS3 -- aug.18.2014
+                                                        # TS1 too sharp, TS3 too sharp and slightly shifted to the right
+                                                        # CSY OK -- aug.29.2014
+                                                        # refit Sept.6.2014 -- coupled 83.0 119.06
+                                                        # angle        20   51   20      92.60     111.55
+
+angle        81   82   84       89.05       99.0        # VARY -- fitted, looks great
+                                                        # taken from OPLSAA: alcohol O...C(=O)-OR bend treated as acetal
+                                                        # angle        20   51   20      92.60     111.55
+                                                        # CSY fitted TS1 -- aug.15.2014
+                                                        # (7_19_45)
+                                                        # csyTS1 : 96.728
+                                                        # fitted with no coupled coordinates
+                                                        # csyTS2 : 97.648
+                                                        # csyTS3 : 102.336
+                                                        # CSY confirm fit TS1/TS2/TS3 -- aug.18.2014
+                                                        # or CSY confirm TS1/TS2/TS3 -- aug.18.2014
+                                                        # TS2 good more or less, TS3 too shallow, shifted slightly to the left
+                                                        # might be OK since TS3 has quite a different angle here...
+                                                        # CSY changed 95.62 --> 99.0 compromise -- aug.29.2014
+                                                        # refit Sept.6.2014 -- coupled 85.35 99.0
+
+angle         1   82   83       98.96      119.92       # HOLD -- no fitting necessary
+                                                        # CSY fitted TS1 -- looks OK aug.12.2014
+                                                        # taken from OPLSAA: ester C-C=O bend
+                                                        # angle         4    3   13      80.00     120.40
+                                                        # csyTS1 : 118.560
+                                                        # fitted with no coupled coordinates
+                                                        # (20_19_15)
+                                                        # csyTS2 : 118.175
+                                                        # csyTS3 : 117.528
+                                                        # CSY confirm fit TS1/TS2/TS3 -- aug.18.2014
+                                                        # or CSY confirm TS1/TS2/TS3 -- aug.18.2014
+                                                        # TS3 too sharp, slightly shifted to the left
+                                                        # refit CSY -- aug.29.2014
+                                                        # increased force constant to decrease eq angle
+                                                        # compromise leads to steep curves
+                                                        # original 43.0 126.56
+                                                        # refit Sept.6.2014 -- 140.0 120.0
+
+angle         1   82   84       38.0      101.70        # HOLD -- fitted, looks great
+                                                        # CSY fitted TS1 -- looks OK aug.12.2014
+                                                        # taken from OPLSAA: alcohol O...C(=O)-C bend treated as acetal
+                                                        # angle        13   51   20      50.00     109.50
+                                                        # (15_19_45)
+                                                        # csyTS1 : 104.333
+                                                        # fitted with no coupled coordinates
+                                                        # csyTS2 : 103.861
+                                                        # csyTS3 : 105.354
+                                                        # CSY confirm fit TS1/TS2/TS3 -- aug.18.2014
+                                                        # TS3 slightly too steep but center is good
+                                                        # refit Sept.6.2014 -- 38.0 103.70
+
+angle        83   82   84       60.0       114.0        # HOLD -- fitted, looks great
+                                                        # CSY fitted TS1 -- aug.15.2014
+                                                        # taken from OPLSAA: alcohol O...C(=O)-OR bend treated as acetal
+                                                        # angle        20   51   20      92.60     111.55
+                                                        # (20_19_45)
+                                                        # csyTS1 : 107.804
+                                                        # fitted with no coupled coordinates
+                                                        # csyTS2 : 118.175
+                                                        # csyTS3 : 117.528
+                                                        # CSY confirm fit TS1/TS2/TS3 -- aug.18.2014
+                                                        # or CSY confirm TS1/TS2/TS3 -- aug.18.2014
+                                                        # TS3 slightly shifted to the right, otherwise good
+                                                        # tried to compromise, TS3 doesn't move much
+                                                        # original 75.0 110.12
+                                                        # CSY refit aug.29.2014
+                                                        # refit Sept.6.2014 -- 90.0 110.12
+
+angle         2    1   84       120.0      109.50       # HOLD -- fitted, looks great
+                                                        # CSY fitted TS1 (45_41_42) -- aug.15.2014
+                                                        # taken from OPLSAA: alcohol H-C-O bend
+                                                        # angle         5   13   46      35.00     109.50
+						                                # csyTS1 : 111.541
+						                                # csyTS1 (45_41_43) : 109.220
+						                                # csyTS1 (45_41_44) : 108.733
+						                                # fitted with no coupled coordinates
+						                                # csyTS2 (45_41_42) : 108.512
+						                                # csyTS3 (45_41_42) : 108.786
+						                                # csyTS2 (45_41_43) : 109.051
+						                                # csyTS3 (45_41_43) : 108.522
+						                                # csyTS2 (45_41_44) : 111.626
+						                                # csyTS3 (45_41_44) : 111.691
+						                                # CSY confirm TS1/TS2/TS3 -- aug.18.2014
+						                                # both TS2 and TS3 shifted slightly to the right, otherwise shape is good
+						                                # original 66.88 109.50
+						                                # CSY fit -- aug.29.2014
+						                                # compromise is to make it steeper
+                                                        # Sept.12.2014 -- check by TS1/TS2/TS3 tinker opt, looks good!
+
+angle        82   84    1       60.0      108.1         # VARY -- fitted, no changes required
+                                                        # taken from OPLSAA: methanol C-O...C=O ester treated as ether
+                                                        # angle        13   20   13      60.00     109.50 
+						                                # (19_45_41)
+						                                # CSY TS1 -- aug.15.2014
+						                                # csyTS1 : 115.074
+						                                # csyTS2 : 114.957
+						                                # csyTS3 : 117.850
+						                                # CSY confirm TS1/TS2/TS3 -- aug.18.2014
+						                                # vdw dominated, confirm aug.29.2014
+						                                # compromise, decrease equilibrium angle
+						                                # original 60.0 115.07
+                                                        # coupled fit Sept.12.2014 -- 80.0 110.0
+
+angle        82   84   85       80.0      103.2         # VARY
+                                                        # taken from OPLSAA: methanol H-C-O bend
+                                                        # angle         7    5   13      55.00     108.50
+						                                # (19_45_54)
+						                                # csyTS1 : 106.232
+						                                # CSY TS1 -- aug.15.2014
+						                                # csyTS2 : 109.565
+						                                # csyTS3 : 106.026
+						                                # CSY confirm TS1/TS2/TS3 -- aug.18.2014
+						                                # vdw dominated
+						                                # compromise to try to get to fit
+						                                # original 55.0 106.20
+						                                # CSY fit aug.29.2014 -- 60.0 100.2
+                                                        # ParameterOptimizer having a lot of trouble with this
+                                                        # did all these angles just by looking
+						
+angle         1   84   85       80.0       114.0        # VARY -- fitted, no changes required
+						                                # CSY TS1 -- aug.15.2014
+                                                        # taken from OPLSAA: methanol H-C-O bend
+                                                        # angle         7    5   13      55.00     108.50
+						                                # csyTS1 : 116.360
+						                                # (41_45_54)
+						                                # csyTS2 : 109.565
+						                                # csyTS3 : 106.026
+						                                # CSY confirm TS1/TS2/TS3 -- aug.18.2014
+						                                # shape not well represented, TS3 is too sharp
+						                                # try re-scanning opposite direction, get better picture
+						                                # i.e. 54_45_41
+						                                # original 55.0 116.36
+						                                # new scans (54_45_41)
+						                                # still vdw dominated
+						                                # CSY fit sept.1.2014
+						                                # compromise by increasing angle to 115
+						                                # well is too steep, but center is at right location
+						                                # original 80.0 110.0
+                                                        # coupled fit Sept.12.2014 -- original 100.0 115.0
+
+# torsional parameters for truncated TS
+torsion       2    65   81    82      0.000 0.0 1   0.000 180.0 2   0.760 0.0 3 # VARY
+                                                                               # taken from OPLSAA ester H-C-O-C(=O)
+                                                                               # torsion      20    3   13   46      0.000 0.0 1   0.000 180.0 2   0.132 0.0 3
+									       # (19_7_3_5)CSY
+									       # (19_7_3_6)
+									       # csyTS1 : 134.180
+									       # points 5-17 only
+									       # CSY noFit TS1 -- aug.15.2014
+									       # CSY fit sept.1.2014
+									       # torsion      13   13   20   13      0.650 0.0 1  -0.250 180.0 2   0.670 0.0 3
+									       # vdw dominated 
+									       # CSY truncated scan -- sept.2.2014
+									       # looks pretty good, no need to change further (tinker is slightly more sharp)
+									       # actually found a better one using acetal
+									       # torsion      46   13   20   51      0.000 0.0 1   0.000 180.0 2   0.760 0.0 3
+
+torsion       65   81   82     1      0.000 0.0 1   0.000 180.0 2   0.000 0.0 3 # VARY -- keep at zero?
+                                                                               # O-C(=O)-O-C torsion
+									       # (15_19_7_3)REP
+
+torsion       65   81   82    83      0.000 0.0 1   0.000 180.0 2   0.000 0.0 3 # VARY -- needs to be softer
+                                                                               # taken from OPLSAA ester O=C-O-C
+                                                                               # torsion       4    3   20   13      0.000 0.0 1   5.124 180.0 2   0.000 0.0 3
+									       # (20_19_7_3)REP
+									       # set to zero, because it is a repeat
+									       # parameters are 0.0 4.5 0.0
+
+torsion       65   81   82    84      1.100 0.0 1  -14.100 180.0 2   3.710 0.0 3 # VARY -- keep at zero?
+                                                                               # O...C(=O)-O-C torsion: transition state residue chi3
+                                                                               # (45_19_7_3)CSY
+                                                                               # CSY noFit TS1 -- aug.15.2014
+                                                                               # csyTS1 : -72.780
+                                                                               # not enough points, need better scan
+                                        
+torsion       2    1   82    81      0.000 0.0 1   0.000 180.0 2   0.000 0.0 3 # HOLD
+                                                                               # taken from OPLSAA ester H-C-C(=O)-O
+                                                                               # torsion is not present 
+									       # (16_15_19_7)REP
+									       # (17_15_19_7)
+									       # (18_15_19_7)
+									       # set to zero because it is a repeat
+									       # CSY -- aug.18.2014
+
+torsion       2    1   82    83      0.000 0.0 1   0.000 180.0 2   0.000 0.0 3 # VARY
+                                                                               # taken from OPLSAA ester H-C-C=O
+                                                                               # torsion      20    3   13   46      0.000 0.0 1   0.000 180.0 2   0.132 0.0 3
+									       # (20_19_15_16)REP
+									       # (20_19_15_17)
+									       # (20_19_15_18)
+									       # set to zero because it is a repeat
+									       # CSY -- aug.18.2014
+
+torsion       2    1   82    84      0.000 0.0 1   0.130 180.0 2   0.550 0.0 3 # HOLD
+                                                                               # taken from OPLSAA ester H-C-C(=O)-O
+                                                                               # torsion is not present
+									       # (45_19_15_16)
+									       # (45_19_15_17)CSY
+									       # (45_19_15_18)
+									       # original 0.000 0.000 0.000
+									       # CSY fitted TS1 -- aug.15.2014
+									       # fitted with no coupled coordinates
+									       # points 4-18 only
+									       # csyTS1 : -53.057
+									       # not enough points
+
+torsion      81   82   84     1      -3.341 0.0 1   0.000 180.0 2   0.000 0.0 3 # VARY
+                                                                               # C-O...C(=O)-O torsion
+                                                                               # chi4 for TS serine residue
+                                                                               # initially set to zero
+									                                           # (7_19_45_41)REP
+
+torsion      81   82   84    85      0.000 0.0 1   0.000 180.0 2   0.000 0.0 3 # VARY
+                                                                               # H-O...(C=O)-O torsion
+                                                                               # initially set to zero
+									                                           # (54_45_19_7)REP
+
+torsion       1   82   84     1      0.000 0.0 1   0.000 180.0 2   0.000 0.0 3 # VARY
+                                                                               # C-C(=O)...O-C torsion
+                                                                               # initially set to zero
+									                                           # (15_19_45_41)REP
+
+torsion       1   82   84    85      0.000 0.0 1   0.000 180.0 2   0.000 0.0 3 # VARY
+                                                                               # C-C(=O)...O-H torsion
+                                                                               # initially set to zero
+									                                           # (15_19_45_54)REP
+
+torsion      83   82   84     1      0.000 0.0 1   0.000 180.0 2   0.000 0.0 3 # VARY -- could be problematic
+                                                                               # C-O...C=O torsion
+                                                                               # initially set to zero
+                                                                               # (20_19_45_41)CSY
+                                                                               # CSY fitted TS1 -- aug.15.2014
+                                                                               # or CSY noFit TS1 -- aug.15.2014
+                                                                               # fitted with no coupled coordinates
+                                                                               # points 6-16 only
+                                                                               # original 0.000 0.000 0.000
+                                                                               # csyTS1 : 64.963
+                                                                               # from 5.0 0.0 0.0 back to 0.0 0.0 0.0
+                                                                               # using compare analysis, vdw is largely different
+                                                                               # parabolas are actually very close for all TS1/TS2/TS3
+
+torsion      83   82   84    85      0.000 0.0 1   0.000 180.0 2   0.000 0.0 3 # VARY
+                                                                               # H-O...C=O torsion
+                                                                               # initially set to to zero
+                                                                               # (20_19_45_54)REP
+
+torsion       2    1   84    82      0.000 0.0 1   0.000 180.0 2   0.350 0.0 3 # VARY
+                                                                               # H-C-O...C(=O) torsion
+                                                                               # initially set to zero
+                                                                               # (19_45_41_44)CSY
+                                                                               # (19_45_41_42)
+                                                                               # (19_45_41_43)
+                                                                               # csyTS1 : -34.197
+                                                                               # CSY fitted TS1 -- aug.15.2014
+                                                                               # or CSY DIHEDRAL TS1 -- aug.15.2014
+                                                                               # fitted with no coupled coordinates
+                                                                               # points 4-18 only
+                                                                               # original 0.000 0.000 0.000
+                                                                               # csyTS2 : -87.701
+                                                                               # csyTS3 : -79.926
+                                                                               # CSY refitted TS1 -- aug.18.2014 with all points and >5 limit
+                                                                               # function looks good, but concerned that it might not map onto TS2/TS3
+                                                                               # if limit >12, optimizer causes an error, making the third parameter >millions
+                                                                               # new: 0.5 11.0 0.17
+                                                                               # CSY confirm noFit -- aug.18.2014
+                                                                               # both TS2/TS3 are inverted parabolas
+                                                                               # shape is actually pretty close, but TS2 is slightly to the left, TS3 slightly too sharp
+                                                                               # not enough points
+                                                                               # using truncated system: (19_33_29_31), atom classes stay the same
+                                                                               # CSY sept.2.2014
+                                                                               # torsion      46   13   20    3      0.000 0.0 1   0.000 180.0 2   0.198 0.0 3
+                                                                               # old fit 4.96 5.0 0.0
+                                                                               # new parameters with truncated system looks better with 0.0 0.0 0.198 than 0.0 0.0 0.0
+                                                                               # shape is better
+                                                                    
+torsion       2    1   84    85      0.000 0.0 1   0.000 180.0 2   0.000 0.0 3 # VARY
+                                                                               # H-C-O-H methanol torsion
+                                                                               # initially set to zero
+                                                                               # (44_41_45_54)REP
+                                                                               # (43_41_45_54)
+                                                                               # (42_41_45_54)
+
+torsion       2    1    65    81      0.000 0.0 1   0.000 180.0 2   0.341 0.0 3 # VARY
+                                                                               # HA-CA-CB-O torsion
+                                                                               # taken from amoebapro13 serine:
+                                                                               # torsion       6    7    8   10      0.000 0.0 1   0.000 180.0 2   0.341 0.0 3
+                                                                               # CSY: what is #6?  6 is a methine hydrogen
+
+torsion      21    1    65    81      0.000 0.0 1   0.000 180.0 2   0.000 0.0 3 # VARY
+                                                                               # backboneC-CA-CB-O torsion ==> duplicates chi1 of TS serine
+                                                                               # EEK I don't know what these other comments are about
+                                                                               # initially set to zero (same as amoebapro13 serine)
+                                                                               # (7_3_1_4)CSY
+                                                                               # csyTS1 : 123.385
+                                                                               # fitted with no coupled coordinates
+                                                                               # points 7-15 only
+                                                                               # original 0.000 0.000 0.000
+                                                                               # CSY noFit TS1 -- aug.15.2014
+                                                                               # tinker shape is too wide
+
+torsion     23    1    65    81      2.500 0.0 1   0.000 180.0 2   1.000 0.0 3 # EEK fit 9/24/14: reasonable fit based on shape of profile for butane
+                                                                               # N-CA-CB-O torsion (chi1 in TS serine residue)
+                                                                               # initial guess taken from amoebapro13 serine:
+                                                                               # torsion       1    7    8   10      0.630 0.0 1   0.000 180.0 2   0.000 0.0 3
+									                                           # (7_3_1_21)REP
+								
+torsion       1    65   81    82     0.650 0.0 1  -0.250 180.0 2   0.670 0.0 3 # EEK fit 9/24:14: reasonable fit to a variety of settings, left it at OPLSAA
+                                                                             # CA-CB-O-CT (chi2 in TS serine residue) taken from OPLSAA
+
+
+#Charges
+
+charge		401		0.4613
+charge		402		-0.4759
+charge		403		0.0332
+charge		404		0.0819
+charge		405		0.1139
+charge		406		-0.4195
+charge		407		0.8506
+charge		408		-0.7685
+charge		409		-0.5005
+charge		410		0.2555
+charge		411		0.0019
+
+charge		421		0.4613
+charge		422		-0.4759
+charge		423		0.0332
+charge		424		0.0819
+charge		425		0.1139
+charge		426		-0.4195
+charge		427		0.8506
+charge		428		-0.7685
+charge		429		-0.5005
+charge		430		0.2555
+charge		431		0.0019
+
+#Close contact
+atom        431    2    H     "TS methyl ester hydrogen            "         1     1.008    1    #atom class from HR (6) Alkane
+atom        430    65    C     "TS methyl ester carbon              "         6    12.011    4
+
+atom        429   81    O     "TS methyl ester single bond oxygen  "         8    15.999    2
+
+atom        426    1    C     "TS acetate carbon for methyl ester  "         6    12.011    4    #atom class RCH3 (1)
+atom        425    2    H     "TS acetate hydrogen for methyl ester"         1     1.008    1    #atom class HR (6)
+
+atom        427   82    C     "TS methyl ester carbonyl carbon     "         6    12.011    4
+atom        428   83    O     "TS methyl ester carbonyl oxygen     "         8    15.999    1
+
+atom        423    1    C     "TS methanol carbon                  "         6    12.011    4    #atom class 19
+atom        424    2    H     "TS methanol hydrogen                "         1     1.008    1    #atom class 18
+
+atom        422   84    O     "TS methanol hydroxyl oxygen         "         8    15.999    3
+atom        421   85    H     "TS methanol hydroxyl hydrogen       "         1     1.008    2
+
+atom        412   39    C     "TS imidazole                        "         6    12.011    3
+atom        413    6    H     "TS imidazole                        "         1     1.008    1
+atom        414   40    C     "TS imidazole                        "         6    12.011    3
+atom        415    6    H     "TS imidazole                        "         1     1.008    1
+atom        416    7    N     "TS imidazole                        "         7    14.007    3
+atom        417   37    N     "TS imidazole                        "         7    14.007    3
+atom        418   24    H     "TS imidazole                        "         1     1.008    1
+atom        419   38    C     "TS imidazole                        "         6    12.011    3
+atom        420    6    H     "TS imidazole                        "         1     1.008    1
+
+
+#imidazole charges
+charge		412		-0.0150
+charge		413		0.1150
+charge		414		0.0150
+charge		415		0.1150
+charge		416		-0.4900
+charge		417		-0.5700
+charge		418		0.4200
+charge		419		0.2950
+charge		420		0.1150
+
+#mapped to OPLS
+bond          85   7            169.42   1.2000  # guess for H bond stretch
+						  # CSY fitted TS1 -- aug.15.2014
+						  # (54_55)
+						  # csyTS1 : 1.23197
+						  # csyTS2 : 1.21614
+						  # csyTS3 : 1.20152
+						  # CSY confirm fit TS1/TS2/TS3 -- aug.18.2014
+						  # TS2 slightly to the left, TS3 very slightly to the right
+
+angle         84   85   7       30.0      185.00      # VARY guess for NH...O angle
+						       # (45_54_55)
+						       # csyTS1 : 177.203
+						       # CSY noFit TS1 -- aug.15.2014 [need better scan]
+
+angle         38   7   85       30.0      125.00      # VARY guess for C=N...H angle
+						       # scans not completed, poorly defined motion
+						       # CSY
+angle         39   7   85       30.0      107.50      # VARY guess for C-N...H angle
+						       # scans not completed, poorly defined motion
+						       # CSY
+
+torsion      82   84   85   7      0.000 0.0 1   0.000 180.0 2   0.000 0.0 3  # EEK: collinear torsion, so set to zero
+                                          # (19_45_54_55)CSY
+									      # CSY fitted -- aug.15.2014
+									      # csyTS1 : 43.046
+									      # fitted with no coupled coordinates
+									      # original 0.000 0.000 0.235
+									      # points 4-18 only
+									      # actually looks really good
+									      # CSY fit sept.1.2014
+									      # 4.32 3.20 1.95 not necessary
+									      # all fit to zeros gives slightly worse fitting at top of the curve, so potentially we could use just 0.0 0.0 0.0
+
+torsion      1    84   85   7      0.000 0.0 1   0.000 180.0 2   0.000 0.0 3  # EEK: collinear torsion, so set to zero
+torsion      37   38   7   85      0.000 0.0 1   0.000 180.0 2   0.235 0.0 3  # EEK: ???
+torsion      6   38   7   85      -0.530 0.0 1   3.000 180.0 2   0.000 0.0 3 # CSY adjusted -- aug.26.2014
+									                                           # original 0.000 0.000 0.235
+									                                           # fixes planarity problem for imidazole
+
+torsion      6   40   7   85      -0.530 0.0 1   3.000 180.0 2   0.000 0.0 3 # CSY adjusted -- aug.26.2014
+									                                           # original 0.000 0.000 0.235
+									                                           # fixes planarity problem for imidazole
+
+torsion      1    39   7   85      -0.530 0.0 1   3.000 180.0 2   0.000 0.0 3 # redundant copy of 27 26 29 55 for histidine tautomer -EEK
+
+torsion      84   85   7   38      0.000 0.0 1   0.000 180.0 2   0.000 0.0 3 # EEK: collinear torsion, so set to zero
+torsion      84   85   7   39      0.000 0.0 1   0.000 180.0 2   0.000 0.0 3 # (45_54_55_47)CSY
+									                                          # csyTS1 : -15.432
+									                                          # fitted with no coupled coordinates
+									                                          # CSY fitted -- aug.15.2014
+									                                          # original 0.000 0.000 0.235
+									                                          # points 5-17 only
+
+torsion      6   39   39   6      0.000 0.0 1   0.000 180.0 2   0.235 0.0 3 # EEK:
+torsion      40   40   7   85      0.000 0.0 1   0.000 180.0 2   0.235 0.0 3
+
+# vdw
+vdw          81               3.4050     0.1100
+vdw          82               3.7800     0.1060
+vdw          83               3.3000     0.1120
+vdw          84               3.4050     0.1100
+vdw          85               2.6550     0.0135      0.910
+
