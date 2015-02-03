@@ -404,8 +404,12 @@ public class RotamerFactory
  
         // get the backbone atoms
         int sequenceLength = peptide.sequence.size();
+        if ( sequenceLength % 2 != 0 )
+            throw new IllegalArgumentException("expecting even sequence length");
         List<Integer> variablePositions = new ArrayList<>(sequenceLength-2);
         int forbiddenIndex = (sequenceLength/2) - 1;
+        if ( sequenceIndex == forbiddenIndex || sequenceIndex == forbiddenIndex + 1 )
+            throw new IllegalArgumentException("can't place TS at a hairpin position");
         for (int i=0; i < sequenceLength; i++)
             {
                 if ( i == forbiddenIndex )
@@ -478,6 +482,33 @@ public class RotamerFactory
         if ( atomOindex == null )
             throw new NullPointerException("null oxygen index");
 
+        // find compatible HNs
+        // this must be the HN adjacent to the position and the HN must not be hydrogen
+        // bonded in the sheet; this means that there may be no solution for some residues
+        List<Integer> HNindices = new ArrayList<>(); // sequence indices of adjacent residues with accessible, non-sheet HNs
+        for (int k=sequenceIndex-1; k < sequenceIndex+2; k++)
+            {
+                if ( k >= 0 &&                                                           // must be inside the sequence
+                     k != forbiddenIndex && k != forbiddenIndex+1 )                      // must not be a hairpin position
+                    {
+                        if ( ( sequenceLength / 2 ) % 2 == 0 )                           // n/2 even; n = 8, 12, 16, ...
+                            {
+                                if ( k < forbiddenIndex && k % 2 == 1 )                  // before hairpin, odd
+                                    HNindices.add(k);
+                                else if ( k > forbiddenIndex + 1 && k % 2 == 0 )         // after hairpin, even
+                                    HNindices.add(k);
+                            }
+                        else if ( ( sequenceLength / 2 ) % 2 == 1 )                      // n/2 odd; n = 10, 14, 18, ...
+                            {
+                                if ( k < forbiddenIndex && k % 2 == 0 )                  // before hairpin, even
+                                    HNindices.add(k);
+                                else if ( k > forbiddenIndex + 1 && k % 2 == 1 )         // after hairpin, odd
+                                    HNindices.add(k);
+                            }
+                    }
+            }
+        System.out.println(sequenceIndex + " : " + HNindices);
+
         // rotate chi1 and chi2 on a grid
         // check for the desired contact
         List<List<Double>> returnList = new ArrayList<>();
@@ -485,6 +516,8 @@ public class RotamerFactory
         double chi1 = -180.0;
         for (int i=0; i < TS_GRID_SIZE; i++)
             {
+                if ( HNindices.size() == 0 )
+                    break;
                 List<Atom> thisAtoms = setDihedral(allAtoms, chi1atoms, chi1torsion, chi1);
                 chi2atoms.clear();
                 for (Integer index : chi2indices)
@@ -505,28 +538,24 @@ public class RotamerFactory
                         Atom atomO = thisAtoms2.get(atomOindex);
 
                         // check that the oxygen forms a hydrogen bond to a backbone NH
+                        // check for N-H...O contact distance and angle
                         boolean acceptable = false;
-                        for (Residue peptideResidue : peptide.sequence)
+                        for (Integer HNindex : HNindices)
                             {
+                                Residue peptideResidue = peptide.sequence.get(HNindex);
                                 Atom atomN = peptideResidue.N;
                                 Atom atomHN = peptideResidue.HN;
-                                if ( atomHN == null )
-                                    continue;
 
                                 // check distance and angle
                                 double distance = Vector3D.distance(atomO.position, atomHN.position);
-                                if ( distance > Settings.MAXIMUM_HBOND_DISTANCE )
-                                    continue;
-                                
-                                double angle = Molecule.getAngle(atomO.position, atomHN.position, atomN.position);
-                                //if ( distance > Settings.MINIMUM_INTERATOMIC_DISTANCE && angle > Settings.MINIMUM_HBOND_ANGLE )
-                                if ( distance > 1.25 && angle > Settings.MINIMUM_HBOND_ANGLE )
+                                if ( distance < Settings.MAXIMUM_HBOND_DISTANCE && distance > 1.25 &&
+                                     Molecule.getAngle(atomO.position, atomHN.position, atomN.position) > Settings.MINIMUM_HBOND_ANGLE )
                                     {
                                         acceptable = true;
                                         break;
                                     }
                             }
-                        
+
                         // if acceptable, check for clashes and add it to the list of chis to return if it's ok
                         if ( acceptable )
                             {
@@ -766,15 +795,16 @@ public class RotamerFactory
     public static void main(String[] args)
     {
         DatabaseLoader.go();
-        List<Peptide> sheets = BetaSheetGenerator.generateSheets(6, 10, 10000, 0.01);
+        List<Peptide> sheets = BetaSheetGenerator.generateSheets(5, 10, 10000, 0.01);
         Collections.sort(sheets);
         Peptide peptide = sheets.get(0);
         
+        int TSindex = 4; // put the TS at this sequence index
         ProtoAminoAcid tsTemplate = ProtoAminoAcidDatabase.getTemplate("ts1");
-        peptide = SidechainMutator.mutateSidechain(peptide, peptide.sequence.get(1), tsTemplate);
+        peptide = SidechainMutator.mutateSidechain(peptide, peptide.sequence.get(TSindex), tsTemplate);
         new GaussianInputFile(peptide).write("test_peptides/peptide.gjf");
 
-        List<Rotamer> rotamers = generateRotamers(peptide, peptide.sequence.get(1), true);
+        List<Rotamer> rotamers = generateRotamers(peptide, peptide.sequence.get(TSindex), true);
         for (int i=0; i < rotamers.size(); i++)
             {
                 Rotamer rotamer = rotamers.get(i);
