@@ -9,7 +9,7 @@ amino_acid ts                 ! three-letter abbreviation that will be
 
 ! the description of this amino acid (all fields on one line will be recorded)
 ! isHairpin is read from this field
-description TS3_ts3r1
+description transition_state_ts3r1
 
 xyz_file TS_03.xyz            ! the geometry will be read from this file
 

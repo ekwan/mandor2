@@ -167,8 +167,9 @@ public class RotamerMutator implements Mutator
             }
         else if ( residue.aminoAcid == AminoAcid.TS )
             {
-                // for transition states
-                newChis = RotamerDatabase.getRandomRotamer(AminoAcid.TS, omegaValue, phiValue, psiValue);
+                // for transition states, just take a wild guess
+                List<Double> specialChis = RotamerDatabase.getRandomRotamer(AminoAcid.SER, omegaValue, phiValue, psiValue);
+                newChis = ImmutableList.of(specialChis.get(0), 120.0);
             }
         else if ( residue.aminoAcid == AminoAcid.DPRO ) 
             {

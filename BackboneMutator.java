@@ -151,6 +151,12 @@ public class BackboneMutator implements Mutator
         if ( rightAminoAcid == AminoAcid.DPRO )
             rightAminoAcid = null;
 
+        // use serine data for adjacent transition states
+        if ( leftAminoAcid == AminoAcid.TS )
+            leftAminoAcid = AminoAcid.SER;
+        if ( rightAminoAcid == AminoAcid.TS )
+            rightAminoAcid = AminoAcid.SER;
+
         // obtain appropriate probability distribution of phi,psi
         DiscreteProbabilityDistribution<RotamerLibrary.Angles> DPD = null;
         if ( leftAminoAcid != null && rightAminoAcid != null )

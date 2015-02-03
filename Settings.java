@@ -1,5 +1,6 @@
 import java.util.*;
 import java.io.*;
+import com.google.common.collect.*;
 
 /**
  * Holds variables that control the behavior of the program.
@@ -99,6 +100,20 @@ public class Settings implements Immutable, Singleton
 
         /** cutoff distance in angstroms for calculating steric energies */
         public static final double CUTOFF_DISTANCE = 6.0;
+
+    // Geometry Settings
+
+        /** atoms farther this apart in angstroms are considered not hydrogen bonded */
+        public static final double MAXIMUM_HBOND_DISTANCE = 2.20;
+
+        /** minimum H-bond angle in degrees */
+        public static final double MINIMUM_HBOND_ANGLE = 120.0;
+
+        /** polar elements in a hydrogen bond */
+        public static final Set<Element> HBOND_ELEMENTS = ImmutableSet.of(Element.OXYGEN, Element.NITROGEN, Element.SULFUR);
+
+        /** atoms closer than this distance in angstroms are considered to be clashing */
+        public static final double MINIMUM_INTERATOMIC_DISTANCE = 0.90;
 
     /** static initializer */
     static

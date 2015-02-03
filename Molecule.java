@@ -79,6 +79,28 @@ public class Molecule implements Immutable, Serializable
     }
 
     /**
+     * A shallow clone of a connectivity graph.
+     * @param oldConnectivity the old connectivity graph
+     * @return the clone
+     */
+    public static SimpleWeightedGraph<Atom,DefaultWeightedEdge> cloneConnectivity(SimpleWeightedGraph<Atom,DefaultWeightedEdge> oldConnectivity)
+    {
+        // populate a new connectivity graph
+        SimpleWeightedGraph<Atom,DefaultWeightedEdge> newConnectivity = new SimpleWeightedGraph<Atom,DefaultWeightedEdge>(DefaultWeightedEdge.class);
+        for (Atom oldAtom : oldConnectivity.vertexSet())
+            newConnectivity.addVertex(oldAtom);
+        for (DefaultWeightedEdge e : oldConnectivity.edgeSet())
+            {
+                Double bondOrder = oldConnectivity.getEdgeWeight(e);
+                Atom fromAtom    = oldConnectivity.getEdgeSource(e);
+                Atom toAtom      = oldConnectivity.getEdgeTarget(e);
+                DefaultWeightedEdge newEdge = newConnectivity.addEdge(fromAtom,toAtom);
+                newConnectivity.setEdgeWeight(newEdge, bondOrder);
+            }
+        return newConnectivity;
+    }
+
+    /**
      * Factory method to create a new molecule by shifting this one to have its center at the origin.
      * @return this minus the barycenter of this 
      */

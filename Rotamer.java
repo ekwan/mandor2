@@ -120,7 +120,7 @@ public class Rotamer implements Immutable
     {
         String chiString = "";
         for (Double d : chis)
-            chiString += String.format("%.0f, ", d);
+            chiString += String.format("%.1f, ", d);
         if ( chiString.length() > 0 )
             chiString = chiString.substring(0, chiString.length()-2);
         return String.format("[%d] %s: [%s]", sequenceIndex, description, chiString);
