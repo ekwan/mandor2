@@ -19,15 +19,17 @@ public class RotamerFactory
     }
 
     /**
-     * Finds the possible rotamers.  This is for "normal" amino acids (i.e., not transition state, histidine, or hairpin).
-     * Assumes that the residue is already of the correct type.  This method must return at least one result.
-     * If there are no rotamers possible, a rotamer using the existing atoms in the peptide is returned.
+     * Finds the possible rotamers.  The method will draw chis for normal residues (not TS, histidine or hairpin)
+     * Assumes that the residue is already of the correct type.  This method does not check the resulting rotamers for
+     * clashes with anything (backbone or other rotamers).
+     * If there are no rotamers possible, an empty list is returned.
      * @param peptide the peptide to analyze
      * @param residue the residue to generate rotamers for
      * @param includeHN if set to true, the backboneHN of this residue will be included in the atoms list of the resulting rotamers
+     * @param inputChis if non-null, these are lists of chi values in degrees that will be used
      * @return a list of rotamers that are possible at the specified position
      */
-    public static List<Rotamer> generateRotamers(Peptide peptide, Residue residue, boolean includeHN)
+    public static List<Rotamer> generateRotamers(Peptide peptide, Residue residue, boolean includeHN, List<List<Double>> inputChis)
     {
         // check this is an appropriate residue
         if ( !peptide.sequence.contains(residue) )
@@ -37,19 +39,38 @@ public class RotamerFactory
         int sequenceIndex = peptide.sequence.indexOf(residue);
         String description = residue.description;
         AminoAcid aminoAcid = residue.aminoAcid;
-        if ( aminoAcid.chirality == Chirality.D )
+        if ( inputChis == null && aminoAcid.chirality == Chirality.D )
             throw new IllegalArgumentException("can't use this method to generate rotamers for " + description);
         List<Rotamer> returnList = new ArrayList<>(); // result rotamers will be placed here
 
         // get possible chi angles
         List<List<Double>> possibleChis = null;
-        if ( residue.description.indexOf("transition_state") > -1 )
-            possibleChis = getTransitionStateChis(peptide, residue, includeHN);
-        else if ( residue.description.indexOf("histidine") > -1 )
-            throw new IllegalArgumentException("not supported");
+        if ( inputChis != null )
+            {
+                // no chis so return no rotamers
+                if ( inputChis.size() == 0 )
+                    return returnList;
+
+                // the method has been called with specific chi values, so try to use those
+                // first check if there's the expected number of chis
+                for (List<Double> list : inputChis)
+                    if ( list.size() != residue.chis.size() )
+                        throw new IllegalArgumentException("unexpected number of chis");
+                possibleChis = inputChis;
+            }
         else
-            possibleChis = RotamerSummarizer.getPossibleRotamers(residue);
-        if ( possibleChis.size() == 0 && residue.aminoAcid.rotamerType != AminoAcid.RotamerType.HAS_NO_ROTAMERS && residue.aminoAcid != AminoAcid.TS )
+            {
+                // the method has not been called with specific chi values
+                // if there are no chis, return no rotamers
+                if ( residue.aminoAcid.rotamerType == AminoAcid.RotamerType.HAS_NO_ROTAMERS )
+                    return returnList;
+                // D amino acids are not supported 
+                else if ( residue.aminoAcid.chirality == Chirality.D )
+                    throw new IllegalArgumentException("no data for D amino acids");
+                // draw normal chis
+                possibleChis = RotamerSummarizer.getPossibleRotamers(residue);
+            }
+        if ( possibleChis.size() == 0 )
             throw new IllegalArgumentException("no chis for " + description);
 
         // get the torsions that describe where the sidechain is
@@ -80,16 +101,6 @@ public class RotamerFactory
         List<Atom> allAtoms = new ArrayList<>(getHalfGraph(connectivity, prochiralConnection.getFirst(), prochiralConnection.getSecond()));
         if ( includeHN && residue.HN != null )
             allAtoms.add(residue.HN);
-
-        // if there are no rotamers, just return the sidechain atoms
-        if ( aminoAcid.rotamerType == AminoAcid.RotamerType.HAS_NO_ROTAMERS )
-            {
-                // special case for where the amino acid has no rotamers
-                List<Double> requestedAngles = ImmutableList.of();  // no torsion angles
-                Rotamer singleRotamer = new Rotamer(allAtoms, sequenceIndex, requestedAngles, description);
-                returnList.add(singleRotamer);
-                return returnList;
-            }
 
         // add the backbone atoms we need for the first torsions
         allAtoms.add(oldProtoTorsions.get(0).atom1);
@@ -600,13 +611,33 @@ public class RotamerFactory
         return ImmutableList.copyOf(returnList);
     }
 
-//    /**
-//     * Finds the chi values for a histidine amino acid, under the constraint that the pi-nitrogen must be near a
-//     * transition state hydroxyl.
-//     */
-//    public static List<List<Double>> getHistidineChis(Peptide peptide, Residue residue,
-//                                                      List<List<Rotamer>> rotamerSpace, List<Atom> backboneAtoms)
-//    {
+    /**
+     * Finds the chi values for a histidine amino acid, under the constraint that the pi-nitrogen must be near a
+     * transition state hydroxyl.
+     * @param peptide the peptide to generate histidine rotamers for
+     * @param transitionStateRotamer the transition state rotamer to find compatible histidines with
+     * @return pairs of transition state and histidine rotamers that should be reactive
+     */
+    public static List<Pair<Rotamer,Rotamer>> getHistidineRotamerPairs(Peptide peptide, Rotamer transitionStateRotamer)
+    {
+        // make a list of where we can put histidines
+        // the histidine should be on the same face of the hairpin as the transition state
+        // and can't be where the transition state or hairpin residues are
+
+        // make peptides containing a histidine at each valid position, noting that we need both HID and HIE
+
+        // for each peptide, rotate the sidechain on a grid and see if it gets close to the transition state hydroxyl
+    
+        // convert the interesting chi angles to rotamer objects
+        // alter generateRotamers to take List<List<Double>> as the chis
+
+        // return pairs of interesting rotamers
+        return null;
+    }
+
+
+
+
 //        // make a list of interesting atoms at other positions; i.e., the hydroxyl hydrogens
 //        int i = peptide.sequence.indexOf(residue);
 //        List<Atom> interestingAtoms = new ArrayList<>();
@@ -807,7 +838,8 @@ public class RotamerFactory
         peptide = SidechainMutator.mutateSidechain(peptide, peptide.sequence.get(hisIndex), hisTemplate);
         new GaussianInputFile(peptide).write("test_peptides/peptide.gjf");
 
-        List<Rotamer> rotamers = generateRotamers(peptide, peptide.sequence.get(TSindex), true);
+        List<List<Double>> TSchis = getTransitionStateChis(peptide, peptide.sequence.get(TSindex), true);
+        List<Rotamer> rotamers = generateRotamers(peptide, peptide.sequence.get(TSindex), true, TSchis);
         for (int i=0; i < rotamers.size(); i++)
             {
                 Rotamer rotamer = rotamers.get(i);
