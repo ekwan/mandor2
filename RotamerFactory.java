@@ -375,6 +375,7 @@ public class RotamerFactory
     /**
      * Returns the atoms that are in the backbone.  Backbone atoms are defined as those that will never move during
      * rotamer packing.  If a position has no rotamers, all atoms at the position are considered part of the backbone.
+     * If a position is marked as variable, its sidechain atoms will not be included in the result.
      * @param peptide the peptide to analyze
      * @param variablePositions indices in the peptide sequence where we want to vary the rotamers
      * @param includeHN if true, the backbone HNs are considered part of the sidechain
@@ -612,215 +613,287 @@ public class RotamerFactory
     }
 
     /**
+     * Determines if the specified residue is up or down.  Exceptions will be thrown if this isn't a hairpin or a hairpin position is given.
+     * @param sequenceLength the length of the sequence
+     * @param sequenceIndex the index of the residue
+     * @return true if the substituent is up, false if it is down (the absolute direction is arbitrary but is always consistent)
+     */
+    public static boolean isUp(int sequenceLength, int sequenceIndex)
+    {
+        if ( sequenceLength % 2 != 0 )
+            throw new IllegalArgumentException("expecting even sequence length");
+        int halfway = sequenceLength/2 - 1; // the index of the first hairpin position (i.e., d-pro)
+        if ( sequenceIndex == halfway || sequenceIndex == halfway + 1 )
+            throw new IllegalArgumentException("this is a hairpin position");
+        if ( sequenceIndex < 0 || sequenceIndex > sequenceLength-1 )
+            throw new IllegalArgumentException("sequence index exceeds sequence length");
+        if ( (sequenceLength/2) % 2 == 0 )
+            {
+                // n = 12, 16, ...
+                if ( sequenceIndex < halfway )
+                    {
+                        if ( sequenceIndex % 2 == 0 )
+                            return false;
+                        return true;
+                    }
+                else
+                    {
+                        if ( sequenceIndex % 2 == 0 )
+                            return true;
+                        return false;
+                    }
+            }
+        else if ( (sequenceLength/2) % 2 == 1 )
+            {
+                // n = 10, 14, ...
+                if ( sequenceIndex < halfway )
+                    {
+                        if ( sequenceIndex % 2 == 0 )
+                            return true;
+                        return false;
+                    }
+                else
+                    {
+                        if ( sequenceIndex % 2 == 0 )
+                            return false;
+                        return true;
+                    }
+ 
+            }
+        throw new IllegalArgumentException("unreachable");
+    }
+
+    /**
+     * Takes a poly-gly template and creates interesting pairs of transition states and histidines.
+     * @param peptide the poly-gly template
+     * @param includeHN whether to include the backboneHN in the sidechain
+     * @return pairs of TS and histidine rotamers
+     */
+    public static List<Pair<Rotamer,Rotamer>> generateInterestingPairs(Peptide peptide, boolean includeHN)
+    {
+        return null;
+    }
+
+    /** how many points to use to search for histidine rotamers */
+    public static final int HISTIDINE_GRID_SIZE = 13;
+
+    /**
      * Finds the chi values for a histidine amino acid, under the constraint that the pi-nitrogen must be near a
      * transition state hydroxyl.
-     * @param peptide the peptide to generate histidine rotamers for
+     * @param inputPeptide the peptide to generate histidine rotamers for
      * @param transitionStateRotamer the transition state rotamer to find compatible histidines with
+     * @param includeHN if true, include the HN in the resulting rotamers
      * @return pairs of transition state and histidine rotamers that should be reactive
      */
-    public static List<Pair<Rotamer,Rotamer>> getHistidineRotamerPairs(Peptide peptide, Rotamer transitionStateRotamer)
+    public static List<Pair<Rotamer,Rotamer>> getHistidineRotamerPairs(Peptide inputPeptide, Rotamer transitionStateRotamer, boolean includeHN)
     {
         // make a list of where we can put histidines
         // the histidine should be on the same face of the hairpin as the transition state
         // and can't be where the transition state or hairpin residues are
+        int sequenceLength = inputPeptide.sequence.size();
+        int sequenceIndex = transitionStateRotamer.sequenceIndex;
+        boolean transitionStateIsUp = isUp(sequenceLength, sequenceIndex); // figure out whether the transition state rotamer is up or down
+        int forbiddenIndex = (sequenceLength/2) - 1;
+        List<Integer> availablePositions = new ArrayList<>(sequenceLength/2);
+        for (int i=0; i < sequenceLength; i++)
+            {
+                // skip over hairpin positions
+                if ( i == forbiddenIndex )
+                    {
+                        i++;
+                        continue;
+                    }
+                // can't place a histidine at the same position as the transition state
+                if ( i == sequenceIndex )
+                    continue;
 
-        // make peptides containing a histidine at each valid position, noting that we need both HID and HIE
+                // if this residue is on the same side as the transition state, mark the position as open
+                boolean positionIsUp = isUp(sequenceLength,i);
+                if ( ( transitionStateIsUp && positionIsUp ) || ( ! transitionStateIsUp && ! positionIsUp ) )
+                    availablePositions.add(i);
+            }
+        if ( availablePositions.size() == 0 )
+            throw new IllegalArgumentException("should have at least one available position");
+
+        // make peptides containing a histidine at each valid position, noting that we need both HID and HIE tautomers
+        // map is from peptides to the sequence index of the histidine
+        ProtoAminoAcid histidine_HID = ProtoAminoAcidDatabase.getTemplate("histidine_hd");
+        ProtoAminoAcid histidine_HIE = ProtoAminoAcidDatabase.getTemplate("histidine_he");
+        Map<Peptide,Integer> histidinePeptides = new HashMap<>();
+        for (Integer i : availablePositions)
+            {
+                histidinePeptides.put(SidechainMutator.mutateSidechain(inputPeptide, inputPeptide.sequence.get(i), histidine_HID), i);
+                histidinePeptides.put(SidechainMutator.mutateSidechain(inputPeptide, inputPeptide.sequence.get(i), histidine_HIE), i);
+            }
+
+        // get the transition state hydroxyl atoms
+        Atom atomH = null;
+        Atom atomO = null;
+        for (Atom a : transitionStateRotamer.atoms)
+            {
+                if ( a.type1 == 401 )
+                    {
+                        if ( atomH == null )
+                            atomH = a;
+                        else
+                            throw new IllegalArgumentException("duplicate hydroxyl H found");
+                    }
+                else if ( a.type1 == 402 )
+                    {
+                        if ( atomO == null )
+                            atomO = a;
+                        else
+                            throw new IllegalArgumentException("duplicate hydroxyl O found");
+                    }
+            }
+        if ( atomH == null || atomO == null )
+            throw new NullPointerException("hydroxyl atom not found");
 
         // for each peptide, rotate the sidechain on a grid and see if it gets close to the transition state hydroxyl
-    
-        // convert the interesting chi angles to rotamer objects
-        // alter generateRotamers to take List<List<Double>> as the chis
+        List<Pair<Rotamer,Rotamer>> returnList = new ArrayList<>();
+        for (Peptide histidinePeptide : histidinePeptides.keySet())
+            {
+                // get backbone atoms
+                // the backbone will include everything but the histidine sidechain
+                // this makes sense if the peptide is a poly-gly with one transition state
+                // if we run into glycine Hs, we will have a problem with any other sidechain anyways
+                int histidineResidueIndex = histidinePeptides.get(histidinePeptide);
+                List<Atom> backboneAtoms = getBackboneAtoms(histidinePeptide, ImmutableList.of(histidineResidueIndex), includeHN);
 
-        // return pairs of interesting rotamers
-        return null;
+                // get the rotation axes
+                Residue residue = histidinePeptide.sequence.get(histidineResidueIndex);
+                ProtoTorsion chi1torsion = residue.chis.get(0);
+                ProtoTorsion chi2torsion = residue.chis.get(1);
+
+                // get the sidechain positions
+                Pair<Atom,Atom> prochiralConnection = residue.prochiralConnection;
+                List<Atom> allAtoms = new ArrayList<>(histidinePeptide.getHalfGraph(prochiralConnection.getFirst(), prochiralConnection.getSecond()));
+                allAtoms.add(chi1torsion.atom1);
+                allAtoms.add(chi1torsion.atom2);
+
+                // add the backboneHN if requested
+                if ( residue.HN == null )
+                    throw new NullPointerException("null HN for histidine");
+                if ( includeHN )
+                    allAtoms.add(residue.HN);
+
+                // we don't want to check atoms that are part of the backbone for clashes
+                // but just in case there are numerical issues we refer to them by index instead of reference
+                HashSet<Integer> ignoreAtomIndices = new HashSet<>();
+                ignoreAtomIndices.add(allAtoms.indexOf(chi1torsion.atom1));
+                ignoreAtomIndices.add(allAtoms.indexOf(chi1torsion.atom2));
+                ignoreAtomIndices.add(allAtoms.indexOf(chi1torsion.atom3));
+                if ( includeHN && residue.HN != null )
+                    ignoreAtomIndices.add(allAtoms.indexOf(residue.HN));
+
+                // the atoms to rotate for each torsion
+                List<Atom> chi1atoms = new ArrayList<>(histidinePeptide.getHalfGraph(chi1torsion.atom2, chi1torsion.atom3));
+                List<Atom> chi2atoms = new ArrayList<>(histidinePeptide.getHalfGraph(chi2torsion.atom2, chi2torsion.atom3));
+            
+                // the indices to rotate for chi2
+                List<Integer> chi2indices = new ArrayList<>();
+                for (Atom a : chi2atoms)
+                    {
+                        int atomIndex = allAtoms.indexOf(a);
+                        chi2indices.add(atomIndex);
+                    }
+
+                // the indices of the torsion for chi2
+                List<Integer> chi2torsionIndices = new ArrayList<>();
+                chi2torsionIndices.add(allAtoms.indexOf(chi2torsion.atom1));
+                chi2torsionIndices.add(allAtoms.indexOf(chi2torsion.atom2));
+                chi2torsionIndices.add(allAtoms.indexOf(chi2torsion.atom3));
+                chi2torsionIndices.add(allAtoms.indexOf(chi2torsion.atom4));
+
+                // get the index of the histidine pi nitrogen 
+                Integer histidinePiNitrogenIndex = null;
+                for (Atom a : allAtoms)
+                    {
+                        if ( a.type1 == 130 || a.type1 == 126 )
+                            {
+                                if ( histidinePiNitrogenIndex != null )
+                                    histidinePiNitrogenIndex = allAtoms.indexOf(a);
+                                else
+                                    throw new IllegalArgumentException("duplicate histidine pi nitrogen found");
+                            }
+                    }
+
+
+                // rotate chi1 and chi2 on a grid and check for the desired contact
+                double stepSize = 360.0 / (HISTIDINE_GRID_SIZE-1.0);
+                double chi1 = -180.0;
+                for (int i=0; i < HISTIDINE_GRID_SIZE; i++)
+                    {
+                        List<Atom> thisAtoms = setDihedral(allAtoms, chi1atoms, chi1torsion, chi1);
+                        chi2atoms.clear();
+                        for (Integer index : chi2indices)
+                            chi2atoms.add(thisAtoms.get(index));
+                        Atom atom1 = thisAtoms.get(chi2torsionIndices.get(0));
+                        Atom atom2 = thisAtoms.get(chi2torsionIndices.get(1));
+                        Atom atom3 = thisAtoms.get(chi2torsionIndices.get(2));
+                        Atom atom4 = thisAtoms.get(chi2torsionIndices.get(3));
+                        chi2torsion = new ProtoTorsion(atom1, atom2, atom3, atom4);
+
+                        double chi2 = -180.0;
+                        for (int j=0; j < HISTIDINE_GRID_SIZE; j++)
+                            {
+                                // try this rotamer
+                                List<Atom> thisAtoms2 = setDihedral(thisAtoms, chi2atoms, chi2torsion, chi2);
+
+                                // get the atoms in the putative hydrogen bond
+                                Atom atomN = thisAtoms2.get(histidinePiNitrogenIndex);
+
+                                // check that the oxygen forms a hydrogen bond to a backbone NH
+                                // check for N-H...O contact distance and angle
+                                double distance = Vector3D.distance(atomN.position, atomH.position);
+                                if ( distance < Settings.MAXIMUM_HBOND_DISTANCE && distance > 1.25 &&
+                                     Molecule.getAngle(atomN.position, atomH.position, atomO.position) > Settings.MINIMUM_HBOND_ANGLE )
+                                    {
+                                        // check for backbone atom clashes
+                                        HashSet<Atom> ignoreAtoms = new HashSet<>();
+                                        for (Integer index : ignoreAtomIndices)
+                                            ignoreAtoms.add(thisAtoms2.get(index));
+
+                                        // check if this rotamer now clashes with the backbone
+                                        boolean acceptable = true;
+                                        checking:
+                                        for (Atom rotamerAtom : thisAtoms2)
+                                            {
+                                                if ( ignoreAtoms.contains(rotamerAtom) )
+                                                    continue;
+
+                                                for (Atom backboneAtom : backboneAtoms)
+                                                    {
+                                                        if ( Vector3D.distance(rotamerAtom.position, backboneAtom.position) < Settings.MINIMUM_INTERATOMIC_DISTANCE )
+                                                            {
+                                                                acceptable = false;
+                                                                break checking;
+                                                            }
+                                                    }
+                                            }
+                                        if (acceptable)
+                                            {
+                                                // build the actual rotamer
+                                                List<List<Double>> thisChis = new ArrayList<>(1);
+                                                thisChis.add(ImmutableList.of(chi1, chi2));
+                                                Rotamer histidineRotamer = generateRotamers(histidinePeptide, residue, includeHN, thisChis).get(0);
+                                                Pair<Rotamer,Rotamer> thisRotamerPair = new Pair<>(transitionStateRotamer, histidineRotamer);
+                                                returnList.add(thisRotamerPair);
+                                            }
+                                    }
+
+                                // increment chi2
+                                chi2 += stepSize;
+                            }
+                        
+                        // increment chi1
+                        chi1 += stepSize;
+                    }
+            }
+
+        // return pairs of interesting rotamers: (transition state rotamer, histidine rotamer)
+        return returnList;
     }
-
-
-
-
-//        // make a list of interesting atoms at other positions; i.e., the hydroxyl hydrogens
-//        int i = peptide.sequence.indexOf(residue);
-//        List<Atom> interestingAtoms = new ArrayList<>();
-//        List<Atom> interestingOxygenAtoms = new ArrayList<>(); // make a list of the corresponding hydroxyl oxygens
-//        for (int j=0; j < rotamerSpace.size(); j++)
-//            {
-//                if ( i==j )
-//                    continue;
-//                List<Rotamer> list = rotamerSpace.get(j);
-//                for (Rotamer r : list)
-//                    {
-//                        if ( r.protoAminoAcid.r.description.indexOf("transition_state") > -1 )
-//                            {
-//                                interestingAtoms.add(r.getInterestingAtom());
-//                                boolean partnerFound = false;
-//                                for (Atom a : r.atoms)
-//                                    {
-//                                        if ( a.tinkerAtomType == 402 )
-//                                            {
-//                                                interestingOxygenAtoms.add(a);
-//                                                partnerFound = true;
-//                                                break;
-//                                            }
-//                                    }
-//                                if ( !partnerFound )
-//                                    throw new IllegalArgumentException("partner not found");
-//                            }
-//                    }
-//            }
-//
-//
-//        // get the rotation axes
-//        ProtoTorsion chi1torsion = residue.chis.get(0);
-//        ProtoTorsion chi2torsion = residue.chis.get(1);
-//
-//        // get the sidechain positions
-//        Pair<Atom,Atom> prochiralConnection = residue.prochiralConnection;
-//        List<Atom> allAtoms = new ArrayList<>(peptide.getHalfGraph(prochiralConnection.getFirst(), prochiralConnection.getSecond()));
-//        allAtoms.add(chi1torsion.atom1);
-//        allAtoms.add(chi1torsion.atom2);
-//
-//        // we don't want to check atoms that are part of the backbone for clashes
-//        // but just in case there are numerical issues we refer to them by index instead of reference
-//        HashSet<Integer> ignoreAtomIndices = new HashSet<>();
-//        ignoreAtomIndices.add(allAtoms.indexOf(chi1torsion.atom1));
-//        ignoreAtomIndices.add(allAtoms.indexOf(chi1torsion.atom2));
-//        ignoreAtomIndices.add(allAtoms.indexOf(chi1torsion.atom3));
-//        
-//        // the atoms to rotate for each torsion
-//        List<Atom> chi1atoms = new ArrayList<>(peptide.getHalfGraph(chi1torsion.atom2, chi1torsion.atom3));
-//        List<Atom> chi2atoms = new ArrayList<>(peptide.getHalfGraph(chi2torsion.atom2, chi2torsion.atom3));
-//
-//        // the indices to rotate for chi2
-//        List<Integer> chi2indices = new ArrayList<>();
-//        for (Atom a : chi2atoms)
-//            {
-//                int atomIndex = allAtoms.indexOf(a);
-//                chi2indices.add(atomIndex);
-//            }
-//
-//        // the indices of the torsion for chi2
-//        List<Integer> chi2torsionIndices = new ArrayList<>();
-//        chi2torsionIndices.add(allAtoms.indexOf(chi2torsion.atom1));
-//        chi2torsionIndices.add(allAtoms.indexOf(chi2torsion.atom2));
-//        chi2torsionIndices.add(allAtoms.indexOf(chi2torsion.atom3));
-//        chi2torsionIndices.add(allAtoms.indexOf(chi2torsion.atom4));
-//
-//        // get the index of the histidine pi-nitrogen
-//        Integer atomNindex = null; 
-//        for (Atom a : allAtoms)
-//            {
-//                if ( a.tinkerAtomType == 126 || a.tinkerAtomType == 135 )
-//                    {
-//                        atomNindex = allAtoms.indexOf(a);
-//                        break;
-//                    }
-//            }
-//        if ( atomNindex == null )
-//            throw new NullPointerException("null histidine N index");
-//
-//        // rotate chi1 and chi2 on a grid
-//        // check for the desired contact
-//        List<List<Double>> returnList = new ArrayList<>();
-//        double stepSize = 360.0 / (TS_GRID_SIZE-1.0);
-//        double chi1 = -180.0;
-//        int sequenceIndex = peptide.sequence.indexOf(residue);
-//        if ( sequenceIndex == -1 )
-//            throw new IllegalArgumentException("bad sequence index");
-//        for (int j=0; j < TS_GRID_SIZE; j++)
-//            {
-//                List<Atom> thisAtoms = setDihedral(allAtoms, chi1atoms, chi1torsion, chi1);
-//                chi2atoms.clear();
-//                for (Integer index : chi2indices)
-//                    chi2atoms.add(thisAtoms.get(index));
-//                Atom atom1 = thisAtoms.get(chi2torsionIndices.get(0));
-//                Atom atom2 = thisAtoms.get(chi2torsionIndices.get(1));
-//                Atom atom3 = thisAtoms.get(chi2torsionIndices.get(2));
-//                Atom atom4 = thisAtoms.get(chi2torsionIndices.get(3));
-//                chi2torsion = new ProtoTorsion(atom1, atom2, atom3, atom4);
-//
-//                double chi2 = -180.0;
-//                for (int k=0; k < TS_GRID_SIZE; k++)
-//                    {
-//                        // try this rotamer
-//                        List<Atom> thisAtoms2 = setDihedral(thisAtoms, chi2atoms, chi2torsion, chi2);
-//
-//                        // get the oxygen
-//                        Atom atomN = thisAtoms2.get(atomNindex);
-//
-//                        // check that this could become an interesting pair
-//                        boolean acceptable = false;
-//
-//                        for ( Atom a : interestingAtoms )
-//                            {
-//                                double distance = Vector3D.distance(atomN.position, a.position);
-//                                if ( distance > RotamerPacker.HBONDED_MIN_DISTANCE && distance < RotamerPacker.INTERESTING_DISTANCE )
-//                                    {
-//                                        Integer index = interestingAtoms.indexOf(a); 
-//                                        Atom oxygenAtom = interestingOxygenAtoms.get(index);
-//                                        double angle = Molecule.getAngle(oxygenAtom, a, atomN); 
-//                                        if ( angle > HBONDED_MINIMUM_ANGLE )
-//                                            {
-//                                                acceptable = true;
-//                                                break;
-//                                            }
-//                                    }
-//                            }
-//
-//                        if ( acceptable )
-//                            {
-//                                // check for backbone atom clashes
-//                                HashSet<Atom> ignoreAtoms = new HashSet<>();
-//                                for (Integer index : ignoreAtomIndices)
-//                                    ignoreAtoms.add(thisAtoms2.get(index));
-//
-//                                clashCheck:
-//                                for ( Atom a1 : thisAtoms2 )
-//                                    {
-//                                        if ( ignoreAtoms.contains(a1) )
-//                                            continue;
-//                                        for (Atom a2 : backboneAtoms )
-//                                            {
-//                                                double distance = Vector3D.distance(a1.position, a2.position);
-//                                                if ( distance < RotamerPacker.HBONDED_MIN_DISTANCE )
-//                                                    {
-//                                                        acceptable = false;
-//                                                        break clashCheck;
-//                                                    }
-//                                            }
-//                                    }
-//                        
-//                                // if acceptable, add it to the list of chis to return
-//                                if ( acceptable )
-//                                    returnList.add(ImmutableList.of(chi1,chi2));
-//                            }
-//
-//                        // increment chi2
-//                        chi2 += stepSize;
-//                    }
-//                // increment chi1
-//                chi1 += stepSize;
-//            }
-//        //System.out.println("his size: " + returnList.size());
-//        //System.out.println("his: " + returnList);
-//        return returnList;
-//    }
-//
-//    /**
-//     * Returns the interesting atom in this Rotamer.
-//     * Only the first hit is returned.  Intended to be used on structures that are not using the close
-//     * contact atom types.  See atom typing.cdx.
-//     * @return the interesting atom if present, null otherwise
-//     */
-//    public Atom getInterestingAtom()
-//    {
-//        for (Atom a : atoms)
-//            {
-//                if ( a.tinkerAtomType == 126 || a.tinkerAtomType == 130 ||   // histidine pi nitrogens
-//                     a.tinkerAtomType == 401                               ) // methanol HO
-//                    return a;
-//            }
-//        return null;
-//    }
 
     /** For testing. */
     public static void main(String[] args)
@@ -831,14 +904,34 @@ public class RotamerFactory
         Peptide peptide = sheets.get(0);
         
         int TSindex = 1; // put the TS at this sequence index
-        int hisIndex = 10;
         ProtoAminoAcid tsTemplate = ProtoAminoAcidDatabase.getTemplate("ts1");
-        ProtoAminoAcid hisTemplate = ProtoAminoAcidDatabase.getTemplate("hd");
         peptide = SidechainMutator.mutateSidechain(peptide, peptide.sequence.get(TSindex), tsTemplate);
-        peptide = SidechainMutator.mutateSidechain(peptide, peptide.sequence.get(hisIndex), hisTemplate);
         new GaussianInputFile(peptide).write("test_peptides/peptide.gjf");
 
         List<List<Double>> TSchis = getTransitionStateChis(peptide, peptide.sequence.get(TSindex), true);
+        List<Rotamer> transitionStateRotamers = generateRotamers(peptide, peptide.sequence.get(TSindex), true, TSchis);
+        Rotamer transitionStateRotamer = transitionStateRotamers.get(0);
+        List<Pair<Rotamer,Rotamer>> rotamerPairs = getHistidineRotamerPairs(peptide, transitionStateRotamer, true);
+        int i=0;
+        for (Pair<Rotamer,Rotamer> rotamerPair : rotamerPairs)
+            {
+                i++;
+                Rotamer TSrotamer = rotamerPair.getFirst();
+                Rotamer histidineRotamer = rotamerPair.getSecond();
+                Peptide newPeptide = Rotamer.reconstitute(peptide, TSrotamer);
+                newPeptide = Rotamer.reconstitute(peptide, histidineRotamer);
+                GaussianInputFile f = new GaussianInputFile(newPeptide);
+                String filename = String.format("test_peptides/rotamer_%02d.gjf", i);
+                f.write(filename);
+                filename = String.format("test_peptides/rotamer_%02d.xyz", i);
+                TinkerXYZInputFile f2 = new TinkerXYZInputFile(newPeptide, Forcefield.OPLS);
+                f2.write(filename);
+                System.out.printf("%02d   TS: %s   histidine: %s\n", i, TSrotamer.toString(), histidineRotamer.toString());
+            }
+        if ( rotamerPairs.size() == 0 )
+            System.out.println("no rotamer pairs found");
+
+/*        List<List<Double>> TSchis = getTransitionStateChis(peptide, peptide.sequence.get(TSindex), true);
         List<Rotamer> rotamers = generateRotamers(peptide, peptide.sequence.get(TSindex), true, TSchis);
         for (int i=0; i < rotamers.size(); i++)
             {
@@ -852,5 +945,6 @@ public class RotamerFactory
                 f2.write(filename);
                 System.out.printf("%02d %s\n", i, rotamer.toString());
             }
+*/
     }
 }
