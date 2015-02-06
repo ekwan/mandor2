@@ -2767,7 +2767,7 @@ atom        412   39    C     "TS imidazole                        "         6  
 atom        413    6    H     "TS imidazole                        "         1     1.008    1
 atom        414   40    C     "TS imidazole                        "         6    12.011    3
 atom        415    6    H     "TS imidazole                        "         1     1.008    1
-atom        416    7    N     "TS imidazole                        "         7    14.007    3
+atom        416   41    N     "TS imidazole                        "         7    14.007    3
 atom        417   37    N     "TS imidazole                        "         7    14.007    3
 atom        418   24    H     "TS imidazole                        "         1     1.008    1
 atom        419   38    C     "TS imidazole                        "         6    12.011    3
@@ -2786,7 +2786,7 @@ charge		419		0.2950
 charge		420		0.1150
 
 #mapped to OPLS
-bond          85   7            169.42   1.2000  # guess for H bond stretch
+bond          85   41            169.42   1.2000  # guess for H bond stretch
 						  # CSY fitted TS1 -- aug.15.2014
 						  # (54_55)
 						  # csyTS1 : 1.23197
@@ -2795,19 +2795,19 @@ bond          85   7            169.42   1.2000  # guess for H bond stretch
 						  # CSY confirm fit TS1/TS2/TS3 -- aug.18.2014
 						  # TS2 slightly to the left, TS3 very slightly to the right
 
-angle         84   85   7       30.0      185.00      # VARY guess for NH...O angle
+angle         84   85   41       30.0      185.00      # VARY guess for NH...O angle
 						       # (45_54_55)
 						       # csyTS1 : 177.203
 						       # CSY noFit TS1 -- aug.15.2014 [need better scan]
 
-angle         38   7   85       30.0      125.00      # VARY guess for C=N...H angle
+angle         38   41   85       30.0      125.00      # VARY guess for C=N...H angle
 						       # scans not completed, poorly defined motion
 						       # CSY
-angle         39   7   85       30.0      107.50      # VARY guess for C-N...H angle
+angle         39   41   85       30.0      107.50      # VARY guess for C-N...H angle
 						       # scans not completed, poorly defined motion
 						       # CSY
 
-torsion      82   84   85   7      0.000 0.0 1   0.000 180.0 2   0.000 0.0 3  # EEK: collinear torsion, so set to zero
+torsion      82   84   85   41      0.000 0.0 1   0.000 180.0 2   0.000 0.0 3  # EEK: collinear torsion, so set to zero
                                           # (19_45_54_55)CSY
 									      # CSY fitted -- aug.15.2014
 									      # csyTS1 : 43.046
@@ -2819,20 +2819,20 @@ torsion      82   84   85   7      0.000 0.0 1   0.000 180.0 2   0.000 0.0 3  # 
 									      # 4.32 3.20 1.95 not necessary
 									      # all fit to zeros gives slightly worse fitting at top of the curve, so potentially we could use just 0.0 0.0 0.0
 
-torsion      1    84   85   7      0.000 0.0 1   0.000 180.0 2   0.000 0.0 3  # EEK: collinear torsion, so set to zero
-torsion      37   38   7   85      0.000 0.0 1   0.000 180.0 2   0.235 0.0 3  # EEK: ???
-torsion      6   38   7   85      -0.530 0.0 1   3.000 180.0 2   0.000 0.0 3 # CSY adjusted -- aug.26.2014
+torsion      1    84   85   41      0.000 0.0 1   0.000 180.0 2   0.000 0.0 3  # EEK: collinear torsion, so set to zero
+torsion      37   38   41   85      0.000 0.0 1   0.000 180.0 2   0.235 0.0 3  # EEK: ???
+torsion      6   38   41   85      -0.530 0.0 1   3.000 180.0 2   0.000 0.0 3 # CSY adjusted -- aug.26.2014
 									                                           # original 0.000 0.000 0.235
 									                                           # fixes planarity problem for imidazole
 
-torsion      6   40   7   85      -0.530 0.0 1   3.000 180.0 2   0.000 0.0 3 # CSY adjusted -- aug.26.2014
+torsion      6   39   41   85      -0.530 0.0 1   3.000 180.0 2   0.000 0.0 3 # CSY adjusted -- aug.26.2014
 									                                           # original 0.000 0.000 0.235
 									                                           # fixes planarity problem for imidazole
 
-torsion      1    39   7   85      -0.530 0.0 1   3.000 180.0 2   0.000 0.0 3 # redundant copy of 27 26 29 55 for histidine tautomer -EEK
+torsion      1    39   41   85      -0.530 0.0 1   3.000 180.0 2   0.000 0.0 3 # redundant copy of 27 26 29 55 for histidine tautomer -EEK
 
-torsion      84   85   7   38      0.000 0.0 1   0.000 180.0 2   0.000 0.0 3 # EEK: collinear torsion, so set to zero
-torsion      84   85   7   39      0.000 0.0 1   0.000 180.0 2   0.000 0.0 3 # (45_54_55_47)CSY
+torsion      84   85   41   38      0.000 0.0 1   0.000 180.0 2   0.000 0.0 3 # EEK: collinear torsion, so set to zero
+torsion      84   85   41   39      0.000 0.0 1   0.000 180.0 2   0.000 0.0 3 # (45_54_55_47)CSY
 									                                          # csyTS1 : -15.432
 									                                          # fitted with no coupled coordinates
 									                                          # CSY fitted -- aug.15.2014
@@ -2840,7 +2840,7 @@ torsion      84   85   7   39      0.000 0.0 1   0.000 180.0 2   0.000 0.0 3 # (
 									                                          # points 5-17 only
 
 torsion      6   39   39   6      0.000 0.0 1   0.000 180.0 2   0.235 0.0 3 # EEK:
-torsion      40   40   7   85      0.000 0.0 1   0.000 180.0 2   0.235 0.0 3
+torsion      40   39   41   85      0.000 0.0 1   0.000 180.0 2   0.235 0.0 3
 
 # vdw
 vdw          81               3.4050     0.1100

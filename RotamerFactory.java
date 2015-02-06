@@ -500,7 +500,7 @@ public class RotamerFactory
         List<Integer> HNindices = new ArrayList<>(); // sequence indices of adjacent residues with accessible, non-sheet HNs
         for (int k=sequenceIndex-1; k < sequenceIndex+2; k++)
             {
-                if ( k >= 0 &&                                                           // must be inside the sequence
+                if ( k >= 0 && k < sequenceLength &&                                     // must be inside the sequence
                      k != forbiddenIndex && k != forbiddenIndex+1 )                      // must not be a hairpin position
                     {
                         if ( ( sequenceLength / 2 ) % 2 == 0 )                           // n/2 even; n = 8, 12, 16, ...
@@ -519,7 +519,7 @@ public class RotamerFactory
                             }
                     }
             }
-        System.out.println(sequenceIndex + " : " + HNindices);
+        //System.out.println(sequenceIndex + " : " + HNindices);
 
         // rotate chi1 and chi2 on a grid
         // check for the desired contact
@@ -669,9 +669,52 @@ public class RotamerFactory
      * @param includeHN whether to include the backboneHN in the sidechain
      * @return pairs of TS and histidine rotamers
      */
-    public static List<Pair<Rotamer,Rotamer>> generateInterestingPairs(Peptide peptide, boolean includeHN)
+    public static List<Pair<Rotamer,Rotamer>> generateInterestingPairs(Peptide betaSheet, boolean includeHN)
     {
-        return null;
+        // create peptides that have each kind of transition state at each non-hairpin position
+        List<ProtoAminoAcid> tsTemplates = new ArrayList<>(3);
+        tsTemplates.add(ProtoAminoAcidDatabase.getTemplate("ts1"));
+        tsTemplates.add(ProtoAminoAcidDatabase.getTemplate("ts2"));
+        tsTemplates.add(ProtoAminoAcidDatabase.getTemplate("ts3"));
+        
+        int sequenceLength = betaSheet.sequence.size();
+        if ( sequenceLength % 2 != 0 )
+            throw new IllegalArgumentException("even sequence length expected");
+        int forbiddenIndex = (sequenceLength/2) - 1;
+        Map<Peptide,Integer> transitionStatePeptides = new HashMap<>(); // peptides mapped to TS sequence index
+        for (int i=0; i < sequenceLength; i++)
+            {
+                if ( i == forbiddenIndex )
+                    {
+                        i++;
+                        continue;
+                    }
+                for (ProtoAminoAcid tsTemplate : tsTemplates)
+                    {
+                        Peptide newPeptide = SidechainMutator.mutateSidechain(betaSheet, betaSheet.sequence.get(i), tsTemplate);
+                        transitionStatePeptides.put(newPeptide, i);
+                    }
+            }
+
+        // generate pairs of transition state rotamers and histidine rotamers
+        List<Pair<Rotamer,Rotamer>> returnList = new ArrayList<>();
+        for (Peptide tsPeptide : transitionStatePeptides.keySet())
+            {
+                // generate transition state rotamers
+                int TSindex = transitionStatePeptides.get(tsPeptide);
+                List<List<Double>> TSchis = getTransitionStateChis(tsPeptide, tsPeptide.sequence.get(TSindex), includeHN);
+                List<Rotamer> transitionStateRotamers = generateRotamers(tsPeptide, tsPeptide.sequence.get(TSindex), includeHN, TSchis);
+                System.out.printf("%d TS rotamers generated\n", transitionStateRotamers.size());
+
+                // generate histidine rotamers
+                for (Rotamer TSrotamer : transitionStateRotamers)
+                    {
+                        List<Pair<Rotamer,Rotamer>> rotamerPairs = getHistidineRotamerPairs(tsPeptide, TSrotamer, includeHN);
+                        System.out.printf("   %d histidine rotamers generated\n", rotamerPairs.size());
+                        returnList.addAll(rotamerPairs);
+                    }
+            }
+        return returnList;
     }
 
     /** how many points to use to search for histidine rotamers */
@@ -811,7 +854,7 @@ public class RotamerFactory
                     {
                         if ( a.type1 == 130 || a.type1 == 126 )
                             {
-                                if ( histidinePiNitrogenIndex != null )
+                                if ( histidinePiNitrogenIndex == null )
                                     histidinePiNitrogenIndex = allAtoms.indexOf(a);
                                 else
                                     throw new IllegalArgumentException("duplicate histidine pi nitrogen found");
@@ -847,7 +890,8 @@ public class RotamerFactory
                                 // check for N-H...O contact distance and angle
                                 double distance = Vector3D.distance(atomN.position, atomH.position);
                                 if ( distance < Settings.MAXIMUM_HBOND_DISTANCE && distance > 1.25 &&
-                                     Molecule.getAngle(atomN.position, atomH.position, atomO.position) > Settings.MINIMUM_HBOND_ANGLE )
+                                     Molecule.getAngle(atomN.position, atomH.position, atomO.position) > 150.0 )
+                                     //Molecule.getAngle(atomN.position, atomH.position, atomO.position) > Settings.MINIMUM_HBOND_ANGLE )
                                     {
                                         // check for backbone atom clashes
                                         HashSet<Atom> ignoreAtoms = new HashSet<>();
@@ -871,7 +915,7 @@ public class RotamerFactory
                                                             }
                                                     }
                                             }
-                                        if (acceptable)
+                                        if ( acceptable )
                                             {
                                                 // build the actual rotamer
                                                 List<List<Double>> thisChis = new ArrayList<>(1);
@@ -903,15 +947,7 @@ public class RotamerFactory
         Collections.sort(sheets);
         Peptide peptide = sheets.get(0);
         
-        int TSindex = 1; // put the TS at this sequence index
-        ProtoAminoAcid tsTemplate = ProtoAminoAcidDatabase.getTemplate("ts1");
-        peptide = SidechainMutator.mutateSidechain(peptide, peptide.sequence.get(TSindex), tsTemplate);
-        new GaussianInputFile(peptide).write("test_peptides/peptide.gjf");
-
-        List<List<Double>> TSchis = getTransitionStateChis(peptide, peptide.sequence.get(TSindex), true);
-        List<Rotamer> transitionStateRotamers = generateRotamers(peptide, peptide.sequence.get(TSindex), true, TSchis);
-        Rotamer transitionStateRotamer = transitionStateRotamers.get(0);
-        List<Pair<Rotamer,Rotamer>> rotamerPairs = getHistidineRotamerPairs(peptide, transitionStateRotamer, true);
+        List<Pair<Rotamer,Rotamer>> rotamerPairs = generateInterestingPairs(peptide, true);
         int i=0;
         for (Pair<Rotamer,Rotamer> rotamerPair : rotamerPairs)
             {
@@ -919,14 +955,29 @@ public class RotamerFactory
                 Rotamer TSrotamer = rotamerPair.getFirst();
                 Rotamer histidineRotamer = rotamerPair.getSecond();
                 Peptide newPeptide = Rotamer.reconstitute(peptide, TSrotamer);
-                newPeptide = Rotamer.reconstitute(peptide, histidineRotamer);
+                newPeptide = Rotamer.reconstitute(newPeptide, histidineRotamer);
+                
                 GaussianInputFile f = new GaussianInputFile(newPeptide);
                 String filename = String.format("test_peptides/rotamer_%02d.gjf", i);
                 f.write(filename);
                 filename = String.format("test_peptides/rotamer_%02d.xyz", i);
-                TinkerXYZInputFile f2 = new TinkerXYZInputFile(newPeptide, Forcefield.OPLS);
-                f2.write(filename);
+                new TinkerXYZInputFile(newPeptide, Forcefield.OPLS).write(filename);
                 System.out.printf("%02d   TS: %s   histidine: %s\n", i, TSrotamer.toString(), histidineRotamer.toString());
+                
+                new GaussianInputFile(newPeptide).write("test_peptides/original.gjf");
+                new TinkerXYZInputFile(newPeptide, Forcefield.OPLS).write("test_peptides/original_OPLS.xyz");
+                new TinkerXYZInputFile(newPeptide, Forcefield.AMOEBA).write("test_peptides/original_AMOEBA.xyz");
+                
+                Peptide closePeptide = HydrogenBondMutator.mutate(newPeptide);
+                new GaussianInputFile(closePeptide).write("test_peptides/close.gjf");
+                new TinkerXYZInputFile(closePeptide, Forcefield.OPLS).write("test_peptides/close_OPLS.xyz");
+                new TinkerXYZInputFile(closePeptide, Forcefield.AMOEBA).write("test_peptides/close_AMOEBA.xyz");
+
+                Peptide separatedPeptide = HydrogenBondMutator.unmutate(closePeptide);
+                new GaussianInputFile(separatedPeptide).write("test_peptides/separated.gjf");
+                new TinkerXYZInputFile(separatedPeptide, Forcefield.OPLS).write("test_peptides/separated_OPLS.xyz");
+                new TinkerXYZInputFile(separatedPeptide, Forcefield.AMOEBA).write("test_peptides/separated_AMOEBA.xyz");
+                break;
             }
         if ( rotamerPairs.size() == 0 )
             System.out.println("no rotamer pairs found");

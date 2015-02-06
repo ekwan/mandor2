@@ -334,7 +334,8 @@ public class TinkerMinimizationJob implements WorkUnit, Serializable, Immutable
                         readEnergy = Double.valueOf(fields[4]);
                     else if ( line.indexOf("Final RMS Gradient") > -1 )
                         {
-                            readGradient = Double.valueOf(fields[4]);
+                            try { readGradient = Double.valueOf(fields[4]); }
+                            catch (Exception e) { readGradient = 999.9; }
                             //System.out.println(readGradient + " : " + line);
                         }
                     else 
