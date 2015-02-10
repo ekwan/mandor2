@@ -150,6 +150,25 @@ public class Peptide extends Molecule implements Immutable, Serializable, Compar
     }
 
     /**
+     * Writes the specified peptides to disk in gjf format.
+     * @param peptides the peptides to write to disk
+     * @param prefix the location and prefix to send the peptides to (e.g., "test_peptides/prefix_")
+     * @param digits how many digits to use in the filename
+     */
+    public static void writePeptideGJFs(List<Peptide> peptides, String prefix, int digits)
+    {
+        if ( digits < 1 )
+            throw new IllegalArgumentException("must use at least one digit");
+        for (int i=0; i < peptides.size(); i++)
+            {
+                Peptide peptide = peptides.get(i);
+                String filename = String.format("%s%0" + digits + "d.gjf", prefix, i);
+                GaussianInputFile f = new GaussianInputFile(peptide);
+                f.write(filename);
+            }
+    }
+
+    /**
      * Compares peptides on the basis of their total energy in
      * energy breakdown (allows for sorting lists in ascending order) 
      * @param p2 the peptide to compare this peptide to

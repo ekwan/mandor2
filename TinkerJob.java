@@ -98,6 +98,14 @@ public class TinkerJob implements WorkUnit
         double gradient = tinkerMinimizationLogFile.gradient;
         int iterations = tinkerMinimizationLogFile.iterations;
 
+        // return result now if nothing else was requested
+        if ( !solvateDuringMinimization && !approximateSolvationSinglePoint && !doAnalysis )
+            {
+                EnergyBreakdown energyBreakdown = new EnergyBreakdown(null, potentialEnergy, 0.0, potentialEnergy, null, forcefield);
+                newPeptide = newPeptide.setEnergyBreakdown(energyBreakdown);
+                return new TinkerResult(newPeptide);
+            }
+
         // debugging
         //System.out.printf("Forcefield:       %s\n", forcefield.toString());
         //System.out.printf("Iterations:       %d\n", iterations);

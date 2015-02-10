@@ -1,9 +1,8 @@
 -----
 todo:
 -----
-create minimizationunit in peptideutilities that takes the forcefield and whether to do solvation or not
-betasheetgenerator should extend montecarlojob, or maybe just a nested class inside betasheetgenerator?
-
+switch to AMOEBA for betasheetgenerator and rotamerfactory
+point 
 
 ----
 done:

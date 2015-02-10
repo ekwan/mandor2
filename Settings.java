@@ -140,7 +140,9 @@ public class Settings implements Immutable, Singleton
             tempThreads = 8;
         else if ( HOSTNAME.startsWith("holy"))
             tempThreads = 64;
-        
+        else if ( HOSTNAME.equals("localhost") )
+            tempThreads = 2;
+
         //NUMBER_OF_THREADS=12;
         NUMBER_OF_THREADS = tempThreads;
 

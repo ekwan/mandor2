@@ -704,13 +704,13 @@ public class RotamerFactory
                 int TSindex = transitionStatePeptides.get(tsPeptide);
                 List<List<Double>> TSchis = getTransitionStateChis(tsPeptide, tsPeptide.sequence.get(TSindex), includeHN);
                 List<Rotamer> transitionStateRotamers = generateRotamers(tsPeptide, tsPeptide.sequence.get(TSindex), includeHN, TSchis);
-                System.out.printf("%d TS rotamers generated\n", transitionStateRotamers.size());
+                //System.out.printf("%d TS rotamers generated\n", transitionStateRotamers.size());
 
                 // generate histidine rotamers
                 for (Rotamer TSrotamer : transitionStateRotamers)
                     {
                         List<Pair<Rotamer,Rotamer>> rotamerPairs = getHistidineRotamerPairs(tsPeptide, TSrotamer, includeHN);
-                        System.out.printf("   %d histidine rotamers generated\n", rotamerPairs.size());
+                        //System.out.printf("   %d histidine rotamers generated\n", rotamerPairs.size());
                         returnList.addAll(rotamerPairs);
                     }
             }
@@ -939,63 +939,177 @@ public class RotamerFactory
         return returnList;
     }
 
+    /**
+     * Trys to add arginine to the specified sheets.
+     * @param sheets the input peptides, which should be on the close contact forcefield, and have one TS and one histidine
+     * @return peptides with arg on the close contact forcefield
+     */
+    public static List<Peptide> addArginine(List<Peptide> sheets)
+    {
+        List<Peptide> returnList = new ArrayList<>();
+        ProtoAminoAcid arginine = ProtoAminoAcidDatabase.getTemplate("arginine");
+        for (Peptide sheetPeptide : sheets)
+            {
+                // determine what positions are valid for placing arginine
+                // will only place this on the same side as the transition state
+                Peptide inputPeptide = HydrogenBondMutator.unmutate(sheetPeptide);
+                List<Integer> validPositions = new ArrayList<>();
+                int sequenceLength = inputPeptide.sequence.size();
+                int forbiddenIndex = (sequenceLength/2) - 1;
+                Integer TSindex = null;
+                Atom transitionStateOatom = null;
+                for (int i=0; i < sequenceLength; i++)
+                    {
+                        Residue residue = inputPeptide.sequence.get(i);
+                        if ( residue.aminoAcid == AminoAcid.TS )
+                            {
+                                if ( TSindex == null )
+                                    {
+                                        TSindex = i;
+                                        for (Atom a : residue.atoms)
+                                            {
+                                                if ( a.type1 == 408 )
+                                                    {
+                                                        if ( transitionStateOatom == null )
+                                                            transitionStateOatom = a;
+                                                        else
+                                                            throw new IllegalArgumentException("duplicate TS O atoms");
+                                                    }
+                                            }
+                                    }
+                                else
+                                    throw new IllegalArgumentException("two TSs not allowed");
+                            }
+                    }
+                if ( TSindex == null )
+                    throw new NullPointerException("TS index not found");
+                if ( transitionStateOatom == null )
+                    throw new NullPointerException("TS O atom not found");
+                
+                // whether the arginine should be up or down
+                boolean shouldBeUp = isUp(sequenceLength, TSindex);
+
+                for (int i=0; i < sequenceLength; i++)
+                    {
+                        Residue residue = inputPeptide.sequence.get(i);
+                        if ( i == forbiddenIndex )
+                            {
+                                i++;
+                                continue;
+                            }
+                        if ( residue.aminoAcid == AminoAcid.GLY && isUp(sequenceLength,i) == shouldBeUp )
+                            validPositions.add(i);
+                    }
+
+                // for each position, introduce an arginine residue
+                System.out.println(validPositions);
+                for (Integer index : validPositions)
+                    {
+                        // mutate to arginine
+                        Peptide candidatePeptide = SidechainMutator.mutateSidechain(inputPeptide, inputPeptide.sequence.get(index), arginine);
+
+                        // draw rotamers for this position
+                        Residue residue = candidatePeptide.sequence.get(index);
+                        List<Rotamer> rotamers = generateRotamers(candidatePeptide, residue, true, null);
+                        //System.out.println(rotamers.size() + " rotamers generated");
+
+                        // get the atoms at al the other positions
+                        List<Atom> otherAtoms = new ArrayList<>();
+                        for (int i=0; i < sequenceLength; i++)
+                            {
+                                if ( i == index )
+                                    continue;
+                                otherAtoms.addAll(candidatePeptide.sequence.get(i).atoms);
+                            }
+
+                        // for each rotamer, check if it is interesting
+                        List<Rotamer> interestingRotamers = new ArrayList<>();
+                        for (Rotamer rotamer : rotamers)
+                            {
+                                boolean interesting = false;
+                                for (Atom a : rotamer.atoms)
+                                    {
+                                        if ( ( a.type1 == 209 || a.type1 == 212 ) && Molecule.getDistance(a, transitionStateOatom) < 3.0 )
+                                            {
+                                                interesting = true;
+                                                break;
+                                            }
+                                    }
+                                if ( !interesting )
+                                    {
+                                        //System.out.println("not interesting");
+                                        continue;
+                                    }
+
+                                // if it is interesting, check to see it clashes with any other residue
+                                boolean clashes = false;
+                                clashCheck:
+                                for (Atom a1 : rotamer.atoms)
+                                    {
+                                        for (Atom a2 : otherAtoms)
+                                            {
+                                                if ( Molecule.getDistance(a1,a2) < Settings.MINIMUM_INTERATOMIC_DISTANCE )
+                                                    {
+                                                        clashes = true;
+                                                        System.out.printf("clash found between %d and %s\n", a1.type1, a2.type1);
+                                                        break clashCheck;
+                                                    }
+                                            }
+                                    }
+
+                                if ( !clashes )
+                                    interestingRotamers.add(rotamer);
+                            }
+
+                        // add to the final pile of results
+                        for (Rotamer rotamer : interestingRotamers)
+                            {
+                                Peptide reconstituted = Rotamer.reconstitute(candidatePeptide, rotamer);
+                                reconstituted = HydrogenBondMutator.mutate(reconstituted);
+                                returnList.add(reconstituted);
+                            }
+                    }
+            }
+        return returnList;
+    }
+
     /** For testing. */
     public static void main(String[] args)
     {
         DatabaseLoader.go();
         List<Peptide> sheets = BetaSheetGenerator.generateSheets(5, 10, 10000, 0.01);
         Collections.sort(sheets);
-        Peptide peptide = sheets.get(0);
+        Peptide peptide = sheets.get(0); // --> do more sheets
         
         List<Pair<Rotamer,Rotamer>> rotamerPairs = generateInterestingPairs(peptide, true);
-        int i=0;
+        List<Peptide> interestingPairPeptides = new ArrayList<>(rotamerPairs.size());
         for (Pair<Rotamer,Rotamer> rotamerPair : rotamerPairs)
             {
-                i++;
                 Rotamer TSrotamer = rotamerPair.getFirst();
                 Rotamer histidineRotamer = rotamerPair.getSecond();
                 Peptide newPeptide = Rotamer.reconstitute(peptide, TSrotamer);
                 newPeptide = Rotamer.reconstitute(newPeptide, histidineRotamer);
-                
-                GaussianInputFile f = new GaussianInputFile(newPeptide);
-                String filename = String.format("test_peptides/rotamer_%02d.gjf", i);
-                f.write(filename);
-                filename = String.format("test_peptides/rotamer_%02d.xyz", i);
-                new TinkerXYZInputFile(newPeptide, Forcefield.OPLS).write(filename);
-                System.out.printf("%02d   TS: %s   histidine: %s\n", i, TSrotamer.toString(), histidineRotamer.toString());
-                
-                new GaussianInputFile(newPeptide).write("test_peptides/original.gjf");
-                new TinkerXYZInputFile(newPeptide, Forcefield.OPLS).write("test_peptides/original_OPLS.xyz");
-                new TinkerXYZInputFile(newPeptide, Forcefield.AMOEBA).write("test_peptides/original_AMOEBA.xyz");
-                
-                Peptide closePeptide = HydrogenBondMutator.mutate(newPeptide);
-                new GaussianInputFile(closePeptide).write("test_peptides/close.gjf");
-                new TinkerXYZInputFile(closePeptide, Forcefield.OPLS).write("test_peptides/close_OPLS.xyz");
-                new TinkerXYZInputFile(closePeptide, Forcefield.AMOEBA).write("test_peptides/close_AMOEBA.xyz");
-
-                Peptide separatedPeptide = HydrogenBondMutator.unmutate(closePeptide);
-                new GaussianInputFile(separatedPeptide).write("test_peptides/separated.gjf");
-                new TinkerXYZInputFile(separatedPeptide, Forcefield.OPLS).write("test_peptides/separated_OPLS.xyz");
-                new TinkerXYZInputFile(separatedPeptide, Forcefield.AMOEBA).write("test_peptides/separated_AMOEBA.xyz");
-                break;
+                newPeptide = HydrogenBondMutator.mutate(newPeptide);
+                interestingPairPeptides.add(newPeptide);
             }
         if ( rotamerPairs.size() == 0 )
             System.out.println("no rotamer pairs found");
 
-/*        List<List<Double>> TSchis = getTransitionStateChis(peptide, peptide.sequence.get(TSindex), true);
-        List<Rotamer> rotamers = generateRotamers(peptide, peptide.sequence.get(TSindex), true, TSchis);
-        for (int i=0; i < rotamers.size(); i++)
-            {
-                Rotamer rotamer = rotamers.get(i);
-                Peptide newPeptide = Rotamer.reconstitute(peptide, rotamer);
-                GaussianInputFile f = new GaussianInputFile(newPeptide);
-                String filename = String.format("test_peptides/rotamer_%02d.gjf", i);
-                f.write(filename);
-                filename = String.format("test_peptides/rotamer_%02d.xyz", i);
-                TinkerXYZInputFile f2 = new TinkerXYZInputFile(newPeptide, Forcefield.OPLS);
-                f2.write(filename);
-                System.out.printf("%02d %s\n", i, rotamer.toString());
-            }
-*/
+        // minimize peptides and retain sheets
+        List<Peptide> minimizedSheets = BetaSheetGenerator.minimizeSheets(interestingPairPeptides, 2000, Forcefield.AMOEBA);  // --> unset limit of 4
+        System.out.printf("%d interesting peptides generated\n", minimizedSheets.size());
+
+        // add arginine
+        List<Peptide> argininePeptides = addArginine(minimizedSheets);
+        minimizedSheets = BetaSheetGenerator.minimizeSheets(argininePeptides, 2000, Forcefield.AMOEBA);
+        Peptide.writePeptideGJFs(minimizedSheets, "test_peptides/result_", 3);
+        System.out.printf("\n%d of %d arg peptides are valid\n", argininePeptides.size(), minimizedSheets.size());
+
+        // add asp/glu
+
+        // minimize peptides and retain sheets
+
+        // rotamer pack remaining positions
+
     }
 }

@@ -74,8 +74,8 @@ public class BetaSheetGenerator
         // queue the calculations
         Map<BackboneFingerprint,Peptide> resultMap = new ConcurrentHashMap<>();
         List<Future<Result>> futures = new ArrayList<>();
-        for (int i=0; i < Settings.NUMBER_OF_THREADS; i++)
-        //for (int i=0; i < 1; i++)
+        //for (int i=0; i < Settings.NUMBER_OF_THREADS; i++)
+        for (int i=0; i < 1; i++)
             {
                 SheetUnit job = new SheetUnit(seedPeptide, resultMap, armLength, maxIterations, desiredNumberOfResults, deltaAlpha);
                 Future<Result> f = GeneralThreadService.submit(job);
@@ -172,23 +172,13 @@ public class BetaSheetGenerator
                     }
                     
                 // OPLS minimization
-                candidatePeptide = TinkerJob.minimize(candidatePeptide, Forcefield.OPLS, 100, false, true, false, false, false);
+                //candidatePeptide = TinkerJob.minimize(candidatePeptide, Forcefield.OPLS, 100, false, true, false, false, false);
+                candidatePeptide = TinkerJob.minimize(candidatePeptide, Forcefield.AMOEBA, 250, false, true, false, false, false);
 
                 // check for hydrogen bonds
-                int numberOfHydrogenBonds = 0;
-                for (int i=0; i < (numberOfResidues / 2)-1; i++)
+                if ( !isSheet(candidatePeptide ) )
                     {
-                        int j = numberOfResidues-i-1;
-                        Residue residueI = candidatePeptide.sequence.get(i);
-                        Residue residueJ = candidatePeptide.sequence.get(j);
-                        if ( Molecule.getDistance(residueI.O, residueJ.HN) < 2.5 && Molecule.getAngle(residueI.O, residueJ.HN, residueJ.N) > 120.0 )
-                            numberOfHydrogenBonds++;
-                        if ( Molecule.getDistance(residueJ.O, residueI.HN) < 2.5 && Molecule.getAngle(residueJ.O, residueI.HN, residueI.N) > 120.0 )
-                            numberOfHydrogenBonds++;
-                    }
-                if ( numberOfHydrogenBonds < (numberOfResidues / 2) - 1 )
-                    {
-                        System.out.printf("[%2d] %d of %d: rejected ( %d of %d H-bonds )\n", ID, iteration, maxIterations, numberOfHydrogenBonds, (numberOfResidues/2) - 1);
+                        System.out.printf("[%2d] %d of %d: rejected ( not enough H-bonds )\n", ID, iteration, maxIterations);
                         continue;
                     }
 
@@ -227,6 +217,70 @@ public class BetaSheetGenerator
         return m;
     }
 
+    /**
+     * Determines if the specified peptide is in a beta sheet conformation.
+     * @param candidatePeptide the peptide to check
+     * @return true if this is in a beta sheet conformation
+     */
+    public static boolean isSheet(Peptide candidatePeptide)
+    {
+        // check for hydrogen bonds
+        int numberOfResidues = candidatePeptide.sequence.size();
+        int numberOfHydrogenBonds = 0;
+        for (int i=0; i < (numberOfResidues / 2)-1; i++)
+            {
+                int j = numberOfResidues-i-1;
+                Residue residueI = candidatePeptide.sequence.get(i);
+                Residue residueJ = candidatePeptide.sequence.get(j);
+                if ( residueJ.HN != null &&
+                     Molecule.getDistance(residueI.O, residueJ.HN) < 2.5 && Molecule.getAngle(residueI.O, residueJ.HN, residueJ.N) > 120.0 )
+                    numberOfHydrogenBonds++;
+                if ( residueI.HN != null &&
+                     Molecule.getDistance(residueJ.O, residueI.HN) < 2.5 && Molecule.getAngle(residueJ.O, residueI.HN, residueI.N) > 120.0 )
+                    numberOfHydrogenBonds++;
+            }
+        if ( numberOfHydrogenBonds < (numberOfResidues / 2) - 1 )
+            return false;
+        return true;
+    }
+    
+    /**
+     * Minimizes the specified sheets and checks them for whether they are beta sheets.
+     * Does not use any solvation at all.
+     * @param sheets the peptides to minimize
+     * @param iterations the maximum number of iterations to use
+     * @param forcefield which forcefield to use
+     * @return the minimized beta sheetes
+     */
+    public static List<Peptide> minimizeSheets(List<Peptide> sheets, int iterations, Forcefield forcefield)
+    {
+        // run minimizations
+        List<Future<Result>> futures = new ArrayList<>(sheets.size());
+        for (Peptide p : sheets)
+            {
+                TinkerJob job = new TinkerJob(p, forcefield, iterations, false, false, false, false, false);
+                Future<Result> f = GeneralThreadService.submit(job);
+                futures.add(f);
+            }
+        //GeneralThreadService.silentWaitForFutures(futures);
+        GeneralThreadService.waitForFutures(futures);
+
+        // retrieve results
+        List<Peptide> returnList = new ArrayList<>();
+        for (Future<Result> f : futures)
+            {
+                try
+                    {
+                        TinkerJob.TinkerResult result = (TinkerJob.TinkerResult)f.get();
+                        Peptide resultPeptide = result.minimizedPeptide;
+                        if ( isSheet(resultPeptide) )
+                            returnList.add(resultPeptide);
+                    }
+                catch (Exception e) {}
+            }
+        return ImmutableList.copyOf(returnList);
+    }
+    
     /** Creates some beta sheets. */
     public static void main(String[] args)
     {

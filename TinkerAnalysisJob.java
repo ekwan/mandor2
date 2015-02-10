@@ -123,7 +123,7 @@ public class TinkerAnalysisJob implements WorkUnit, Serializable, Immutable
                         process.waitFor();
                         long endTime = System.currentTimeMillis();
                         exitValue = process.exitValue();
-                        System.out.println("done");
+                        System.out.println("--> done");
                         elapsedTime = (endTime - startTime) / 1000.0;
                     }
             }
