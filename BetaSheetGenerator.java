@@ -74,8 +74,8 @@ public class BetaSheetGenerator
         // queue the calculations
         Map<BackboneFingerprint,Peptide> resultMap = new ConcurrentHashMap<>();
         List<Future<Result>> futures = new ArrayList<>();
-        //for (int i=0; i < Settings.NUMBER_OF_THREADS; i++)
-        for (int i=0; i < 1; i++)
+        for (int i=0; i < Settings.NUMBER_OF_THREADS; i++)
+        //for (int i=0; i < 1; i++)
             {
                 SheetUnit job = new SheetUnit(seedPeptide, resultMap, armLength, maxIterations, desiredNumberOfResults, deltaAlpha);
                 Future<Result> f = GeneralThreadService.submit(job);
@@ -173,7 +173,15 @@ public class BetaSheetGenerator
                     
                 // OPLS minimization
                 //candidatePeptide = TinkerJob.minimize(candidatePeptide, Forcefield.OPLS, 100, false, true, false, false, false);
-                candidatePeptide = TinkerJob.minimize(candidatePeptide, Forcefield.AMOEBA, 250, false, true, false, false, false);
+                try
+                    {
+                        candidatePeptide = TinkerJob.minimize(candidatePeptide, Forcefield.AMOEBA, 250, false, true, false, false, false);
+                    }
+                catch (Exception e)
+                    {
+                        System.out.printf("[%2d] %d of %d: rejected ( tinker error )\n", ID, iteration, maxIterations);
+                        continue;
+                    }
 
                 // check for hydrogen bonds
                 if ( !isSheet(candidatePeptide ) )
@@ -262,8 +270,8 @@ public class BetaSheetGenerator
                 Future<Result> f = GeneralThreadService.submit(job);
                 futures.add(f);
             }
-        //GeneralThreadService.silentWaitForFutures(futures);
-        GeneralThreadService.waitForFutures(futures);
+        GeneralThreadService.silentWaitForFutures(futures);
+        //GeneralThreadService.waitForFutures(futures);
 
         // retrieve results
         List<Peptide> returnList = new ArrayList<>();
@@ -281,6 +289,26 @@ public class BetaSheetGenerator
         return ImmutableList.copyOf(returnList);
     }
     
+    /**
+     * Minimizes sheets in serial.
+     */
+    public static List<Peptide> minimizeSheetsInSerial(List<Peptide> sheets, int iterations, Forcefield forcefield)
+    {
+        List<Peptide> results = new ArrayList<>();
+        for (Peptide p : sheets)
+            {
+                TinkerJob job = new TinkerJob(p, forcefield, iterations, false, false, false, false, false);
+                try
+                    {
+                        Peptide resultPeptide = job.call().minimizedPeptide;
+                        if ( isSheet(resultPeptide) )
+                            results.add(resultPeptide);
+                    }
+                catch (Exception e) {}
+            }
+        return results;
+    }
+
     /** Creates some beta sheets. */
     public static void main(String[] args)
     {
