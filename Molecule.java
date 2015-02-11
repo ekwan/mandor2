@@ -887,7 +887,7 @@ public class Molecule implements Immutable, Serializable
                     {
                         Vector3D newPosition = newAtom.position;
                         double distance = Vector3D.distance(oldPosition,newPosition);
-                        if ( distance < Settings.MINIMUM_DISTANCE &&
+                        if ( distance < Settings.MINIMUM_INTERATOMIC_DISTANCE &&
                              connectivity.getEdge(oldAtom, newAtom) == null )
                             return true;
                     }
