@@ -169,7 +169,7 @@ public class Settings implements Immutable, Singleton
         if ( HOSTNAME.startsWith("dae") || HOSTNAME.startsWith("enj") || HOSTNAME.startsWith("holy") )
             {
                 TINKER_TARGET_DIRECTORY = "/dev/shm/";
-                TINKER_PROGRAM_DIRECTORY = "/n/home11/ekwan/tinker/bin/";
+                TINKER_PROGRAM_DIRECTORY = "/n/jacobsen_lab/ekwan/tinker7/bin/";
             }
         else if ( HOSTNAME.equals("localhost") )
             {
