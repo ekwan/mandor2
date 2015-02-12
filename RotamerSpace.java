@@ -11,7 +11,7 @@ import java.util.concurrent.atomic.*;
 /**
  * This represents the possible rotamers at each position of a peptide.
  */
-public class RotamerSpace implements Immutable
+public abstract class RotamerSpace implements Immutable
 {
     /** the peptide to pack */
     public final Peptide peptide;
@@ -46,51 +46,51 @@ public class RotamerSpace implements Immutable
      * @param inputPeptide the peptide to pack the rotamers of
      * @param whether HNs should be considered part of the rotamers
      */
-    public static RotamerSpace create(Peptide inputPeptide, boolean includeHN)
+    public RotamerSpace(Peptide inputPeptide, boolean includeHN)
     {
         // get rotamer space, which may or may not span different amino acids
-        List<List<Rotamer>> rotamerSpace = getRotamerSpace(inputPeptide, includeHN);
+        List<List<Rotamer>> tempRotamerSpace = getRotamerSpace(inputPeptide, includeHN);
 
         // if a position has only one possible rotamer, reconstitute the peptide with that rotamer
-        Peptide peptide = inputPeptide;
-        for (int i=0; i < rotamerSpace.size(); i++)
+        Peptide tempPeptide = inputPeptide;
+        for (int i=0; i < tempRotamerSpace.size(); i++)
             {
-                if ( rotamerSpace.get(i).size() == 1 )
+                if ( tempRotamerSpace.get(i).size() == 1 )
                     {
-                        Rotamer onlyRotamer = rotamerSpace.get(i).get(0);
-                        peptide = Rotamer.reconstitute(peptide, onlyRotamer);
+                        Rotamer onlyRotamer = tempRotamerSpace.get(i).get(0);
+                        tempPeptide = Rotamer.reconstitute(tempPeptide, onlyRotamer);
                     }
             }
 
         // determine which positions are variable (i.e., ones where we have a choice of rotamers)
-        List<Integer> variablePositions = new ArrayList<>(peptide.sequence.size());
-        for (int i=0; i < rotamerSpace.size(); i++)
-            if ( rotamerSpace.get(i).size() > 1 )
+        List<Integer> variablePositions = new ArrayList<>(tempPeptide.sequence.size());
+        for (int i=0; i < tempRotamerSpace.size(); i++)
+            if ( tempRotamerSpace.get(i).size() > 1 )
                 variablePositions.add(i);
 
         // get backbone atoms, which include the sidechains for fixed positions
         // outer index is residue index
-        List<List<Atom>> backboneAtoms = getBackboneAtoms(peptide, variablePositions, includeHN);
+        List<List<Atom>> backboneAtoms = getBackboneAtoms(tempPeptide, variablePositions, includeHN);
 
         // prune rotamers that clash with the backbone
-        rotamerSpace = pruneRotamerSpace(peptide, backboneAtoms, rotamerSpace);
+        tempRotamerSpace = pruneRotamerSpace(tempPeptide, backboneAtoms, tempRotamerSpace);
 
         // check if any solutions are possible
         for (Integer i : variablePositions)
             {
-                List<Rotamer> list = rotamerSpace.get(i);
+                List<Rotamer> list = tempRotamerSpace.get(i);
                 if ( list.size() == 0 )
                     throw new IllegalArgumentException("no rotamers left at position " + i + " after initial pruning");
             }
 
         // figure out which pairs are incompatible
-        Set<RotamerPair> incompatiblePairs = Collections.newSetFromMap(new ConcurrentHashMap<RotamerPair,Boolean>());
-        PairIterator iterator = new PairIterator(rotamerSpace, 1000);
+        Set<RotamerPair> tempIncompatiblePairs = Collections.newSetFromMap(new ConcurrentHashMap<RotamerPair,Boolean>());
+        PairIterator iterator = new PairIterator(tempRotamerSpace, 1000);
         List<Future<Result>> futures = new ArrayList<>();
         while (iterator.hasNext())
             {
                 List<RotamerPair> thisBatch = iterator.next();
-                IncompatibleWorkUnit unit = new IncompatibleWorkUnit(rotamerSpace,thisBatch,incompatiblePairs);
+                IncompatibleWorkUnit unit = new IncompatibleWorkUnit(tempRotamerSpace,thisBatch,tempIncompatiblePairs);
                 Future<Result> f = GeneralThreadService.submit(unit);
                 futures.add(f);
             }
@@ -98,14 +98,16 @@ public class RotamerSpace implements Immutable
         GeneralThreadService.silentWaitForFutures(futures);
         
         // prune incompatible rotamers
-        pruneIncompatibleRotamers(rotamerSpace, incompatiblePairs);
+        pruneIncompatibleRotamers(tempRotamerSpace, tempIncompatiblePairs);
    
         // check if any solutions are possible
-        checkRotamerSpace(rotamerSpace, peptide, incompatiblePairs);
+        checkRotamerSpace(tempRotamerSpace, tempPeptide, tempIncompatiblePairs);
 
         // return result
-        printRotamerSizes(rotamerSpace);
-        return new RotamerSpace(peptide, rotamerSpace, incompatiblePairs);
+        printRotamerSizes(tempRotamerSpace);
+        peptide = tempPeptide;
+        rotamerSpace = tempRotamerSpace;
+        incompatiblePairs = tempIncompatiblePairs;
     }
 
     /**
@@ -114,10 +116,7 @@ public class RotamerSpace implements Immutable
      * @param includeHN whether to consider backbone HNs part of sidechains
      * @return the rotamer space (empty inner lists mean no variation is desired)
      */
-    public static List<List<Rotamer>> getRotamerSpace(Peptide inputPeptide, boolean includeHN)
-    {
-        throw new IllegalArgumentException("must override");
-    }
+    public abstract List<List<Rotamer>> getRotamerSpace(Peptide inputPeptide, boolean includeHN);
 
     /**
      * Returns the atoms that are in the backbone.  Backbone atoms are defined as those that will never move during
@@ -198,7 +197,7 @@ public class RotamerSpace implements Immutable
                 List<Rotamer> prunedList = pruneRotamers(startingPeptide, backboneAtoms, unprunedList);
                 returnList.add(prunedList);
             }
-        return ImmutableList.copyOf(returnList);
+        return returnList;
     }
 
     /**
@@ -217,7 +216,7 @@ public class RotamerSpace implements Immutable
                 if ( !clashes )
                     returnList.add(rotamer);
             }
-        return ImmutableList.copyOf(returnList);
+        return returnList;
     }
 
     /**

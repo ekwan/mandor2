@@ -92,12 +92,6 @@ public class Settings implements Immutable, Singleton
 
     // Steric Energy Settings
 
-        /**
-         * the threshold distance in angstroms for an interatomic distance to be
-         * considered too small (ignores directly connected atoms)
-         */
-        public static final double MINIMUM_DISTANCE = 1.00;
-
         /** cutoff distance in angstroms for calculating steric energies */
         public static final double CUTOFF_DISTANCE = 6.0;
 

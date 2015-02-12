@@ -914,7 +914,7 @@ public class Molecule implements Immutable, Serializable
                         Vector3D position2 = atom2.position;
 
                         // ignores distances between directly connected atoms
-                        if ( Vector3D.distance(position1, position2) < Settings.MINIMUM_DISTANCE &&
+                        if ( Vector3D.distance(position1, position2) < Settings.MINIMUM_INTERATOMIC_DISTANCE &&
                              connectivity.getEdge(atom1,atom2) == null )
                             return true;
                     }
