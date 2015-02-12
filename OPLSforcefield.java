@@ -77,9 +77,9 @@ public class OPLSforcefield implements Singleton
     /** Forces the database to load. */
     public static void load()
     {
-        System.out.printf("%d atom types have been loaded.\n", CLASS_MAP.size());
-        System.out.printf("%d vdw classes have been loaded.\n", VDW_DISTANCE_MAP.size());
-        System.out.printf("%d charge parameters have been loaded.\n", CHARGE_MAP.size());
+        System.out.printf("%d OPLS atom types have been loaded.\n", CLASS_MAP.size());
+        System.out.printf("%d OPLS vdw classes have been loaded.\n", VDW_DISTANCE_MAP.size());
+        System.out.printf("%d OPLS charge parameters have been loaded.\n", CHARGE_MAP.size());
     }
 
     /** For testing. */

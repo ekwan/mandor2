@@ -38,6 +38,7 @@ public class OPLScalculator implements Singleton
         Double charge = OPLSforcefield.CHARGE_MAP.get(type);
         if ( charge == null )
             throw new NullPointerException("charge not found for type " + type);
+        return charge;
     }
 
     /**
@@ -50,6 +51,7 @@ public class OPLScalculator implements Singleton
         Double distance = OPLSforcefield.VDW_DISTANCE_MAP.get(classNumber);
         if ( distance == null )
             throw new NullPointerException("vdw not found for class " + classNumber);
+        return distance;
     }
 
     /**
@@ -253,8 +255,8 @@ public class OPLScalculator implements Singleton
                 Integer atomClass1 = getOPLSClass(atomType1);
 
                 double charge1 = getCharge(atomType1);
-                double vdw_distance1 = getVDWDistance.get(atomClass1);
-                double vdw_depth1 = getVDWDepth.get(atomClass1);
+                double vdw_distance1 = getVDWDistance(atomClass1);
+                double vdw_depth1 = getVDWDepth(atomClass1);
                 
                 for (Atom atom2 : rotamer2.atoms)
                     {
@@ -307,7 +309,31 @@ public class OPLScalculator implements Singleton
 
     public static void main(String[] args)
     {
-        Atom atom1 = new Atom("H", new Vector3D(0.0, 0.0, 0.0), 28);
+        DatabaseLoader.go();
+        List<Peptide> sheets = BetaSheetGenerator.generateSheets(5, 5, 10000, 0.01);
+        Peptide peptide = sheets.get(0);
+        
+        int sequenceLength = peptide.sequence.size();
+        int forbiddenIndex = (sequenceLength/2) - 1;
+        List<String> stringSequence = ImmutableList.of("standard_alanine", "arg", "asparagine", "aspartate", "glutamine", "glycine",
+                                                       "histidine_hd", "isoleucine", "phenylalanine", "serine", "tryptophan", "standard_alanine");
+        List<ProtoAminoAcid> protoAminoAcids = ProtoAminoAcidDatabase.getSpecificSequence(stringSequence);
+        int j = 0;
+        for (int i=0; i < sequenceLength; i++)
+            {
+                if ( i == forbiddenIndex || i == forbiddenIndex+1 )
+                    continue;
+                Residue residue = peptide.sequence.get(i);
+                ProtoAminoAcid protoAminoAcid = protoAminoAcids.get(j);
+                peptide = SidechainMutator.mutateSidechain(peptide, residue, protoAminoAcid);
+                j++; 
+            }
+        new GaussianInputFile(peptide).write("test_peptides/test.gjf");
+        List<Interaction> interactions = getInteractions(peptide);
+        for (int i=0; i < 10; i++)
+            System.out.println(interactions.get(i).toString(peptide));
+
+        /*Atom atom1 = new Atom("H", new Vector3D(0.0, 0.0, 0.0), 28);
         Atom atom2 = new Atom("H", new Vector3D(0.0, 0.0, 2.0), 28);
         
         List<Atom> contents = ImmutableList.of(atom1, atom2);
@@ -320,6 +346,6 @@ public class OPLScalculator implements Singleton
         
         List<Interaction> interactions = getInteractions(molecule);
         for (Interaction i : interactions)
-            System.out.println(i.toString(molecule));
+            System.out.println(i.toString(molecule));*/
     }
 }

@@ -19,15 +19,13 @@ public class Interaction implements Immutable, Comparable<Interaction>
     public final double interactionEnergy;
 
     /** the reference energies */
-    public static final Map<AminoAcid,Double> REFERENCE_ENERGIES;
+    public static final Map<String,Double> REFERENCE_ENERGIES;
 
     /** static initializer */
     static
     {
         // read the OPLS reference energies from a file
-        Map<AminoAcid,Double> tempMap = new TreeMap<AminoAcid,Double>();
-        for (AminoAcid a : AminoAcid.values())
-            tempMap.put(a, 0.0);
+        Map<String,Double> tempMap = new HashMap<>();
 /*        OutputFileFormat file = new OutputFileFormat("amino_acids/oplsaa/reference.txt") {};
         for (List<String> line : file.fileContents)
             {
@@ -99,7 +97,10 @@ public class Interaction implements Immutable, Comparable<Interaction>
     @Override
     public int compareTo(Interaction i)
     {
-        return ComparisonChain.start().compare(i.interactionEnergy, interactionEnergy).result();
+        return ComparisonChain.start()
+               .compare(i.interactionEnergy, interactionEnergy)
+               .compare(i.atoms.hashCode(), atoms.hashCode())
+               .result();
     }
 
     /** 
@@ -111,9 +112,11 @@ public class Interaction implements Immutable, Comparable<Interaction>
      */
     public static Set<Atom> getSidechainAtoms(Peptide peptide, Residue residue)
     {
+        // treat hairpin positions as part of the backbone
         if ( residue.isHairpin )
             return new HashSet<Atom>();
         
+        // get proline sidechain if necessary
         Pair<Atom,Atom> prochiralConnection = residue.prochiralConnection;
         Set<Atom> sidechainAtoms = null;
         if (residue.aminoAcid.isProline())
@@ -130,9 +133,10 @@ public class Interaction implements Immutable, Comparable<Interaction>
             }
         else
             {
+                // include HN in result
                 sidechainAtoms = peptide.getHalfGraph(prochiralConnection.getFirst(),prochiralConnection.getSecond());
                 sidechainAtoms = new HashSet<Atom>(sidechainAtoms);
-                sidechainAtoms.add(residue.backboneHN);
+                sidechainAtoms.add(residue.HN);
             }
         return sidechainAtoms;
     }
@@ -314,11 +318,11 @@ public class Interaction implements Immutable, Comparable<Interaction>
 
     public static double getReferenceEnergy(Rotamer rotamer)
     {
-        AminoAcid aminoAcid = rotamer.aminoAcid;
-        Double referenceEnergy = REFERENCE_ENERGIES.get(aminoAcid);
+        /*Double referenceEnergy = REFERENCE_ENERGIES.get(rotamer.description);
         if ( referenceEnergy == null )
             throw new NullPointerException("null reference energy for " + aminoAcid.toString());
-        return referenceEnergy;
+        return referenceEnergy;*/
+        return 0.0;
     }
 
     /**
@@ -367,10 +371,5 @@ public class Interaction implements Immutable, Comparable<Interaction>
     public static Double getBackboneEnergy(Double[][] energyMatrix)
     {
         return energyMatrix[energyMatrix.length-1][energyMatrix.length-1];
-    }
-
-    /** for testing */
-    public static void main(String[] args)
-    {
     }
 }
