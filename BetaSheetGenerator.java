@@ -184,28 +184,27 @@ public class BetaSheetGenerator
                     }
 
                 // check for hydrogen bonds
-                if ( !isSheet(candidatePeptide ) )
+                boolean isSheet = isSheet(candidatePeptide);
+                if ( isSheet )
                     {
-                        System.out.printf("[%2d] %d of %d: rejected ( not enough H-bonds )\n", ID, iteration, maxIterations);
-                        continue;
+                        // only add to result map if this is a sheet
+                        BackboneFingerprint backboneFingerprint = new BackboneFingerprint(candidatePeptide);
+                        resultMap.put(backboneFingerprint, candidatePeptide);
                     }
-
-                // add to result map
-                BackboneFingerprint backboneFingerprint = new BackboneFingerprint(candidatePeptide);
-                resultMap.put(backboneFingerprint, candidatePeptide);
-
+ 
                 // accept or reject
                 boolean accept = MonteCarloJob.acceptChange(currentPeptide, candidatePeptide, currentAlpha);
                 if ( accept )
                     {
                         currentPeptide = candidatePeptide;
-                        System.out.printf("[%2d] %d of %d: accepted ( candidateE = %.2f, currentE = %.2f )\n", ID,
-                                      iteration, maxIterations, candidatePeptide.energyBreakdown.totalEnergy, currentPeptide.energyBreakdown.totalEnergy );
+                        System.out.printf("[%2d] %d of %d: accepted ( candidateE = %.2f, currentE = %.2f, isSheet = %b )\n", ID,
+                                      iteration, maxIterations, candidatePeptide.energyBreakdown.totalEnergy, currentPeptide.energyBreakdown.totalEnergy, isSheet );
                     }
                 else
-                    System.out.printf("[%2d] %d of %d: rejected ( candidateE = %.2f, currentE = %.2f )\n", ID,
-                                      iteration, maxIterations, candidatePeptide.energyBreakdown.totalEnergy, currentPeptide.energyBreakdown.totalEnergy );
-               }
+                    System.out.printf("[%2d] %d of %d: rejected ( candidateE = %.2f, currentE = %.2f, isSheet = %b )\n", ID,
+                                      iteration, maxIterations, candidatePeptide.energyBreakdown.totalEnergy, currentPeptide.energyBreakdown.totalEnergy, isSheet );
+               
+              }
             
             System.out.printf("[%2d] Reached the maximum number of iterations.\n", ID);
             return null;
@@ -313,7 +312,7 @@ public class BetaSheetGenerator
     public static void main(String[] args)
     {
         DatabaseLoader.go();
-        List<Peptide> sheets = generateSheets(6, 50, 10000, 0.01);
+        List<Peptide> sheets = generateSheets(8, 10, 10000, 0.01);
         Collections.sort(sheets);
         for ( int i=0; i < Math.min(10, sheets.size()); i++ )
             {

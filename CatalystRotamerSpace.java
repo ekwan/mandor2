@@ -89,7 +89,7 @@ public class CatalystRotamerSpace extends RotamerSpace
     public static void main(String[] args)
     {
         DatabaseLoader.go();
-        List<Peptide> sheets = BetaSheetGenerator.generateSheets(6, 5, 10000, 0.01);
+        List<Peptide> sheets = BetaSheetGenerator.generateSheets(8, 5, 10000, 0.01);
         Peptide peptide = sheets.get(0);
         CatalystRotamerSpace catalystRotamerSpace = new CatalystRotamerSpace(peptide, true);
     }

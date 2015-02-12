@@ -98,13 +98,24 @@ public abstract class RotamerSpace implements Immutable
         GeneralThreadService.silentWaitForFutures(futures);
         
         // prune incompatible rotamers
+        // keep track of which positions didn't start out any rotamers so we don't erroneously think we've pruned everything
+        List<Integer> emptyPositions = new ArrayList<>();
+        //printRotamerSizes(tempRotamerSpace);
+        for (int i=0; i < tempRotamerSpace.size(); i++)
+            {
+                List<Rotamer> list = tempRotamerSpace.get(i);
+                if (list.size() == 0)
+                    emptyPositions.add(i);
+            }
+        //System.out.println(emptyPositions);
         pruneIncompatibleRotamers(tempRotamerSpace, tempIncompatiblePairs);
    
         // check if any solutions are possible
-        checkRotamerSpace(tempRotamerSpace, tempPeptide, tempIncompatiblePairs);
+        checkRotamerSpace(tempRotamerSpace, tempPeptide, tempIncompatiblePairs, emptyPositions);
 
         // return result
         printRotamerSizes(tempRotamerSpace);
+        System.out.printf("%d incompatible pairs found\n", tempIncompatiblePairs.size());
         peptide = tempPeptide;
         rotamerSpace = tempRotamerSpace;
         incompatiblePairs = tempIncompatiblePairs;
@@ -376,14 +387,22 @@ public abstract class RotamerSpace implements Immutable
      * @param rotamerSpace the rotamer space
      * @param peptide the parent peptide
      * @param incompatiblePairs pairs of incompatible rotamers - optional
+     * @param emptyPositions indices of positions where there don't need to be any rotamers
      */
-    public static void checkRotamerSpace(List<List<Rotamer>> rotamerSpace, Peptide peptide, Set<RotamerPair> incompatiblePairs)
+    public static void checkRotamerSpace(List<List<Rotamer>> rotamerSpace, Peptide peptide,
+                                         Set<RotamerPair> incompatiblePairs, List<Integer> emptyPositions)
     {
         // if we prune all the rotamers from a non-hairpin position, abort
         int sequenceLength = peptide.sequence.size();
         int forbiddenIndex = (sequenceLength/2) - 1;
         for (int i=0; i < rotamerSpace.size(); i++)
             {
+                if ( emptyPositions.contains(i) )
+                    {
+                        if ( rotamerSpace.get(i).size() > 0 )
+                            throw new IllegalArgumentException("didn't expect any rotamers at an empty position");
+                        continue;
+                    }
                 if ( i == forbiddenIndex || i == forbiddenIndex + 1 || rotamerSpace.get(i).size() > 0 )
                     continue;
                 throw new IllegalArgumentException(String.format("can't continue because there are no valid rotamers at a non-hairpin position (%d)", i));
