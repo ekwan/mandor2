@@ -1,11 +1,2 @@
------
-todo:
------
-switch to AMOEBA for betasheetgenerator and rotamerfactory
-point 
-
-----
-done:
-----
-update types and surface tensions in sidechainmutator
- 
+bug that means no rotamers are generated for amino acids without rotameric/non-rotameric angles
+figure out why DEEenergyCalculator doesn't check out

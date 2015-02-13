@@ -73,8 +73,11 @@ public abstract class RotamerSpace implements Immutable
         List<List<Atom>> backboneAtoms = getBackboneAtoms(tempPeptide, variablePositions, includeHN);
 
         // prune rotamers that clash with the backbone
+        System.out.println("before pruning 1");
+        printRotamerSizes(tempRotamerSpace);
         tempRotamerSpace = pruneRotamerSpace(tempPeptide, backboneAtoms, tempRotamerSpace);
-
+        System.out.println("after pruning 1");
+        printRotamerSizes(tempRotamerSpace);
         // check if any solutions are possible
         for (Integer i : variablePositions)
             {
@@ -298,8 +301,7 @@ public abstract class RotamerSpace implements Immutable
                         
                         for (Atom rotamerAtom : rotamer.atoms)
                             {
-                                double distance = Molecule.getDistance(backboneAtom, rotamerAtom);
-                                if ( distance < Settings.MINIMUM_INTERATOMIC_DISTANCE )
+                                if ( clashes(backboneAtom, rotamerAtom) )
                                     return true;
                             }
                     }
@@ -501,8 +503,7 @@ public abstract class RotamerSpace implements Immutable
                 {
                     for (Atom a2 : pair.rotamer2.atoms)
                         {
-                            double distance = Vector3D.distance(a1.position, a2.position);
-                            if ( distance < Settings.MINIMUM_INTERATOMIC_DISTANCE )
+                            if ( clashes(a1, a2) )
                                 return true;
                         }
                 }
@@ -719,5 +720,40 @@ public abstract class RotamerSpace implements Immutable
             // return the current next
             return nextBatch;
         }
+    }
+
+    /** Elements that can hydrogen bond. */
+    public static final Set<Element> HBOND_ELEMENTS = ImmutableSet.of(Element.OXYGEN, Element.NITROGEN, Element.SULFUR);
+    
+    /** AMOEBA types of XHs. */
+    public static final Set<Integer> HBOND_HX_TYPES = ImmutableSet.of(4, 10, 36, 40, 79, 96, 110, 116, 121, 136, 146, 152, 174,
+                                                                      191, 201, 209, 212, 220, 226, 228, 238, 240, 401, 421); 
+
+    /**
+     * Tries to detect hydrogen bonds in a very dumb way.
+     * @param a1 an atom
+     * @param a2 another atom
+     * @return true if a1 and a2 clash
+     */
+    public static boolean clashes(Atom a1, Atom a2)
+    {
+        double distance = Molecule.getDistance(a1,a2);
+        if ( distance < Settings.MINIMUM_INTERATOMIC_DISTANCE )
+            return true;
+        if ( distance > 1.50 )
+            return false;
+        if ( HBOND_ELEMENTS.contains(a1.element) && HBOND_HX_TYPES.contains(a2.type1) )
+            {
+                // X  ... H  - X'
+                // a1     a2
+                return false;
+            }
+        if ( HBOND_HX_TYPES.contains(a1.type1) && HBOND_ELEMENTS.contains(a2.element) )
+            {
+                // X ... H  - X'
+                // a2    a1
+                return false;
+            }
+        return true;
     }
 }

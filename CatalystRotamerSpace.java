@@ -55,14 +55,10 @@ public class CatalystRotamerSpace extends RotamerSpace
     @Override
     public List<List<Rotamer>> getRotamerSpace(Peptide inputPeptide, boolean includeHN)
     {
-        int sequenceLength = inputPeptide.sequence.size();
-        int forbiddenIndex = (sequenceLength/2) - 1;
-        List<List<Rotamer>> rotamerSpace = new ArrayList<>(sequenceLength);
-        for (int i=0; i < sequenceLength; i++)
+        List<List<Rotamer>> rotamerSpace = new ArrayList<>(inputPeptide.sequence.size());
+        for (Residue residue : inputPeptide.sequence)
             {
-                Residue residue = inputPeptide.sequence.get(i);
-
-                if ( i == forbiddenIndex || i == forbiddenIndex + 1 || residue.aminoAcid != AminoAcid.GLY )
+                if ( residue.isHairpin || residue.aminoAcid != AminoAcid.GLY )
                     {
                         // place blank lists at positions with no rotamers
                         rotamerSpace.add(new ArrayList<Rotamer>());
@@ -73,8 +69,9 @@ public class CatalystRotamerSpace extends RotamerSpace
                         List<Rotamer> allRotamers = new ArrayList<>();
                         for (ProtoAminoAcid protoAminoAcid : MUTATION_OUTCOMES)
                             {
+                                int residueIndex = inputPeptide.sequence.indexOf(residue);
                                 Peptide mutatedPeptide = SidechainMutator.mutateSidechain(inputPeptide, residue, protoAminoAcid);
-                                Residue mutatedResidue = mutatedPeptide.sequence.get(i);
+                                Residue mutatedResidue = mutatedPeptide.sequence.get(residueIndex);
                                 List<Rotamer> thisRotamers = RotamerFactory.generateRotamers(mutatedPeptide, mutatedResidue, includeHN, null);
                                 allRotamers.addAll(thisRotamers);
                             }
