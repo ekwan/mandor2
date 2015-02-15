@@ -3,11 +3,6 @@ import java.util.concurrent.*;
 import java.util.concurrent.atomic.*;
 import com.google.common.collect.*;
 import java.io.*;
-import org.apache.commons.math3.distribution.NormalDistribution;
-import org.apache.commons.math3.geometry.euclidean.threed.*;
-import org.jgrapht.*;
-import org.jgrapht.graph.*;
-import org.jgrapht.alg.*;
 
 /**
  * This class calculates reference energies for amino acids in a beta sheet confromation. 
@@ -30,13 +25,13 @@ public class ReferenceEnergyCalculator
     /** Define constants */
 
     /** The number of poly-gly beta sheets to generate as a starting point */
-    public static final NUMBER_BETA_SHEETS = 500;
+    public static final int NUMBER_BETA_SHEETS = 500;
 
     /** The number of lowest energy structures to keep for each starting random peptide following fixed sequence Monte Carlo */
-    public static final NUMBER_LOWEST_ENERGY_STRUCTURES_TO_KEEP = 10;
+    public static final int NUMBER_LOWEST_ENERGY_STRUCTURES_TO_KEEP = 10;
 
     /** The number of structures to minimize using AMOEBA following the fixed sequence Monte Carlo */
-    public static final NUMBER_STRUCTURES_TO_MINIMIZE = 1000;
+    public static final int NUMBER_STRUCTURES_TO_MINIMIZE = 1000;
 
     /** not instantiable */
     private ReferenceEnergyCalculator()
@@ -51,9 +46,49 @@ public class ReferenceEnergyCalculator
     * @param betaSheets the initial beta sheets to be mutated
     * @return a list of random sequence peptides still in the beta sheet secondary structure
     */
-    public static List<Peptide> performMutations(List<Peptide> betaSheets)
+    public static List<Peptide> generateRandomPeptides(List<Peptide> betaSheets)
     {
 
+        // Create list of possible mutations
+        List<ProtoAminoAcid> mutationOutcomes = new ArrayList<>();
+        for (AminoAcid a : ProtoAminoAcidDatabase.KEYS)
+            {
+                // reject unusual amino acids
+                if ( a == AminoAcid.DPRO || a == AminoAcid.LPRO || a == AminoAcid.TS
+                     a == AminoAcid.LYS || a == AminoAcid.CYS  || a == AminoAcid.MET     )
+                    continue;
+                int index = ProtoAminoAcidLibrary.KEYS.indexOf(a);
+                List<ProtoAminoAcid> VALUES = ProtoAminoAcidDatabase.VALUES.get(index);
+                for (ProtoAminoAcid paa : VALUES)
+                    {
+                        // reject transition states
+                        // NOT SURE IF THIS IS NECESSARY
+                        if (paa.r.description.toLowerCase().indexOf("hairpin") > -1 )
+                            continue;
+                        mutationOutcomes.add(paa);
+                    }
+            }
+
+        // Generate random peptides
+        List<Peptide> randomPeptides = new LinkedList<>();
+        for (Peptide p : betaSheets)
+        {
+            Peptide randomPeptide = p;
+            for (Residue r : p.sequence)
+            {
+                if (r.description.toLowerCase().indexOf("hairpin") > -1)
+                    continue;
+
+                // Pick random mutation target
+                Collections.shuffle(mutationOutcomes);
+                targetPAA = mutationOutcomes.get(0);
+                randomPeptide = SidechainMutator.mutateSidechain(randomPeptide, r, targetPAA);
+            }
+
+            randomPeptides.add(randomPeptide);
+        }
+        
+        return randomPeptides;
     }
 
     
@@ -93,7 +128,25 @@ public class ReferenceEnergyCalculator
     */
     public static Map<AminoAcid, Double> calculateReferenceEnergies()
     {
+        // Draw random beta sheet backbones
+        // Generate 5000 backbones and pick 500 lowest energy ones
+        
+        List<Peptide> sheets = BetaSheetGenerator.generateSheets(5, 1000, 5000, .01);
+        Collections.sort(sheets);
+        List<Peptide> lowEnergyBackbones = sheets
+        
+        // Pick lowest energy structures
+        for (int i = 0; i < 500; i++)
+            lowEnergyBackbones.add(sheets.get(i));
+        
+        // Perform mutations
+        List<Peptide> randomPeptides = generateRandomPeptides(lowEnergyBackbones);
 
+        // Launch Monte Carlo jobs
+
+        // Minimize with AMOEBA
+
+        // Breakdown energy for each peptide and average energies
     }
 
 }
