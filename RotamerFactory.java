@@ -677,7 +677,7 @@ public class RotamerFactory
 
     /**
      * Takes a poly-gly template and creates interesting pairs of transition states and histidines.
-     * @param peptide the poly-gly template
+     * @param betaSheet the poly-gly template
      * @param includeHN whether to include the backboneHN in the sidechain
      * @return pairs of TS and histidine rotamers
      */
