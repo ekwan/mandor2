@@ -233,8 +233,19 @@ public final class ProtoAminoAcidDatabase implements Singleton
             System.out.println(getProtoAminoAcids(a));
             System.out.println("\n\n");
         }
-        List<ProtoAminoAcid> testSequence = getSpecificSequence("arg","standard_ala","gly","d_proline", "gly", "l_proline", "val", "hd");
+        //List<ProtoAminoAcid> testSequence = getSpecificSequence("arg","standard_ala","gly","d_proline", "gly", "l_proline", "val", "hd");
+        List<ProtoAminoAcid> testSequence = getSpecificSequence("glycine","standard_ala","serine","l_proline");
         for (ProtoAminoAcid p : testSequence)
-            System.out.println(p.residue.description);
+            {
+                Residue residue = p.residue;
+                System.out.println(p.residue.description);
+                if ( residue.HN != null )
+                    System.out.printf("HN  %3d %3d\n", residue.HN.type2, OPLScalculator.getOPLSClass(residue.HN.type2));
+                System.out.printf(" N  %3d %3d\n", residue.N.type2,  OPLScalculator.getOPLSClass(residue.N.type2));
+                System.out.printf(" O  %3d %3d\n", residue.O.type2,  OPLScalculator.getOPLSClass(residue.O.type2));
+                System.out.printf(" C  %3d %3d\n", residue.C.type2,  OPLScalculator.getOPLSClass(residue.C.type2));
+                System.out.printf("CA  %3d %3d\n", residue.CA.type2, OPLScalculator.getOPLSClass(residue.CA.type2));
+                System.out.printf("HA  %3d %3d\n", residue.HA.type2, OPLScalculator.getOPLSClass(residue.HA.type2));
+            }
     }
 }

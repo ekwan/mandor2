@@ -61,9 +61,15 @@ public class RotamerFactory
         else
             {
                 // the method has not been called with specific chi values
-                // if there are no chis, return no rotamers
                 if ( residue.aminoAcid.rotamerType == AminoAcid.RotamerType.HAS_NO_ROTAMERS )
-                    return returnList;
+                    {
+                        // return one rotamer that is just the current rotamer
+                        List<Atom> singleRotamerAtoms = new ArrayList<>(getSidechainAtoms(peptide, residue, includeHN));
+                        List<Double> singleRotamerChiList = ImmutableList.of();
+                        Rotamer singleRotamer = new Rotamer(singleRotamerAtoms, sequenceIndex, singleRotamerChiList, residue.description);
+                        returnList.add(singleRotamer);
+                        return returnList;
+                    }
                 // D amino acids are not supported 
                 else if ( residue.aminoAcid.chirality == Chirality.D )
                     throw new IllegalArgumentException("no data for D amino acids");
@@ -368,6 +374,12 @@ public class RotamerFactory
             {
                 // just add the sidechain atoms
                 sidechainAtoms = peptide.getHalfGraph(atomA, atomB);
+                if ( includeHN )
+                    {
+                        if ( residue.HN == null )
+                            throw new NullPointerException("expected HN");
+                        sidechainAtoms.add(residue.HN);
+                    }
             }
         return sidechainAtoms;
     }

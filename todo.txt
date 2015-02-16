@@ -1,2 +1,5 @@
+the problem might be that there aren't rotamers for every positions
+backbone atom types must have the same charge!!!
+
 bug that means no rotamers are generated for amino acids without rotameric/non-rotameric angles
 figure out why DEEenergyCalculator doesn't check out

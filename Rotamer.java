@@ -86,6 +86,14 @@ public class Rotamer implements Immutable
     public static Peptide reconstitute(Peptide startingPeptide, List<Rotamer> rotamerList)
     {
         Peptide returnPeptide = startingPeptide;
+        Set<Integer> checkSet = new HashSet<>();
+        for (Rotamer r : rotamerList)
+            {
+                if ( checkSet.contains(r.sequenceIndex) )
+                    throw new IllegalArgumentException("duplicate sequence index");
+                else
+                    checkSet.add(r.sequenceIndex);
+            }
         for (Rotamer r : rotamerList)
             returnPeptide = reconstitute(returnPeptide, r);
         return returnPeptide;

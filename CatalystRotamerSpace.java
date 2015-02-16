@@ -58,7 +58,7 @@ public class CatalystRotamerSpace extends RotamerSpace
         List<List<Rotamer>> rotamerSpace = new ArrayList<>(inputPeptide.sequence.size());
         for (Residue residue : inputPeptide.sequence)
             {
-                if ( residue.isHairpin || residue.aminoAcid != AminoAcid.GLY )
+                if ( residue.isHairpin )
                     {
                         // place blank lists at positions with no rotamers
                         rotamerSpace.add(new ArrayList<Rotamer>());

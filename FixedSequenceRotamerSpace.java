@@ -39,14 +39,10 @@ public class FixedSequenceRotamerSpace extends RotamerSpace
     @Override
     public List<List<Rotamer>> getRotamerSpace(Peptide inputPeptide, boolean includeHN)
     {
-        int sequenceLength = inputPeptide.sequence.size();
-        int forbiddenIndex = (sequenceLength/2) - 1;
-        List<List<Rotamer>> rotamerSpace = new ArrayList<>(sequenceLength);
-        for (int i=0; i < sequenceLength; i++)
+        List<List<Rotamer>> rotamerSpace = new ArrayList<>(inputPeptide.sequence.size());
+        for (Residue residue : inputPeptide.sequence)
             {
-                Residue residue = inputPeptide.sequence.get(i);
-
-                if ( i == forbiddenIndex || i == forbiddenIndex + 1 || residue.aminoAcid.rotamerType == AminoAcid.RotamerType.HAS_NO_ROTAMERS )
+                if ( residue.isHairpin )
                     {
                         // place blank lists at positions with no rotamers
                         rotamerSpace.add(new ArrayList<Rotamer>());

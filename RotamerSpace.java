@@ -740,7 +740,8 @@ public abstract class RotamerSpace implements Immutable
         double distance = Molecule.getDistance(a1,a2);
         if ( distance < Settings.MINIMUM_INTERATOMIC_DISTANCE )
             return true;
-        if ( distance > 1.50 )
+        return false;
+        /*if ( distance > 2.00 )
             return false;
         if ( HBOND_ELEMENTS.contains(a1.element) && HBOND_HX_TYPES.contains(a2.type1) )
             {
@@ -754,6 +755,6 @@ public abstract class RotamerSpace implements Immutable
                 // a2    a1
                 return false;
             }
-        return true;
+        return true;*/
     }
 }
