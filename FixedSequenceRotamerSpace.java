@@ -30,8 +30,7 @@ public class FixedSequenceRotamerSpace extends RotamerSpace
     }
 
     /**
-     * Figures out which rotamers are possible for a catalyst design.  Rotamers are placed at non-hairpin
-     * positions that do not have glycine.
+     * Figures out which rotamers are possible for a catalyst design.  Rotamers are placed at non-hairpin positions.
      * @param inputPeptide the peptide to analyze
      * @param includeHN whether to consider backbone HNs part of sidechains
      * @return the rotamer space (empty inner lists mean no variation is desired)

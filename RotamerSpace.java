@@ -65,8 +65,9 @@ public abstract class RotamerSpace implements Immutable
         // determine which positions are variable (i.e., ones where we have a choice of rotamers)
         List<Integer> variablePositions = new ArrayList<>(tempPeptide.sequence.size());
         for (int i=0; i < tempRotamerSpace.size(); i++)
-            if ( tempRotamerSpace.get(i).size() > 1 )
+            if ( tempRotamerSpace.get(i).size() > 0 )
                 variablePositions.add(i);
+        //System.out.println("variable positions: " + variablePositions);
 
         // get backbone atoms, which include the sidechains for fixed positions
         // outer index is residue index
@@ -114,6 +115,7 @@ public abstract class RotamerSpace implements Immutable
         pruneIncompatibleRotamers(tempRotamerSpace, tempIncompatiblePairs);
    
         // check if any solutions are possible
+        printRotamerSizes(tempRotamerSpace);
         checkRotamerSpace(tempRotamerSpace, tempPeptide, tempIncompatiblePairs, emptyPositions);
 
         // return result

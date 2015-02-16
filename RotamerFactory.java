@@ -1185,15 +1185,7 @@ public class RotamerFactory
             }
         GeneralThreadService.waitForFutures(futures);
 
-        // add arginine
         System.out.printf("\n%d peptides generated\n", interestingPeptides.size());
         Peptide.writePeptideGJFs(interestingPeptides, "test_peptides/result_", 3);
-
-        // add asp/glu
-
-        // minimize peptides and retain sheets
-
-        // rotamer pack remaining positions
-
     }
 }

@@ -380,7 +380,8 @@ public class DEEenergyCalculator
             }
         return backboneAtoms;
     }
-
+    
+    /** for debugging */
     public static void compareBackboneAtoms(Peptide p1, Peptide p2)
     {
         // get all rotamer atoms

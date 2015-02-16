@@ -29,27 +29,17 @@ public class AStarEnergyCalculator
     /** the backbone self energy */
     public final double backboneEnergy;
 
-    /** the positions where there are rotamers to vary */
-    public final List<Integer> variablePositions;
-
     /** constructor */
-    private AStarEnergyCalculator(Map<Rotamer,Double> rotamerSelfEnergies, Map<RotamerPair,Double> rotamerInteractionEnergies,
-                                  double backboneEnergy, List<Integer> variablePositions)
+    private AStarEnergyCalculator(Map<Rotamer,Double> rotamerSelfEnergies, Map<RotamerPair,Double> rotamerInteractionEnergies, double backboneEnergy)
     {
         this.rotamerSelfEnergies = rotamerSelfEnergies;
         this.rotamerInteractionEnergies = rotamerInteractionEnergies;
         this.backboneEnergy = backboneEnergy;
-        this.variablePositions = variablePositions;
     }
 
     /**
      * Factory method to create a AStarEnergyCalculator.  Calculates the single and pairwise energies of all the rotamers
      * in the RotamerPacker.  Energies on a truncated OPLS forcefield containing only charge and vdw interactions.
-     * @param peptide the original peptide
-     * @param rotamerSpace the rotamers to calculate the energies over
-     * @param incompatiblePairs pairs of rotamers to not calculate energies for
-     * @param variablePositions the sequence indices that can be varied
-     * @return the result of the calculations
      */
     public static AStarEnergyCalculator analyze(FixedSequenceRotamerSpace fixedSequenceRotamerSpace)
     {
@@ -57,15 +47,6 @@ public class AStarEnergyCalculator
         Peptide peptide = fixedSequenceRotamerSpace.peptide;
         List<List<Rotamer>> rotamerSpace = fixedSequenceRotamerSpace.rotamerSpace;
         Set<RotamerPair> incompatiblePairs = fixedSequenceRotamerSpace.incompatiblePairs;
-        List<Integer> variablePositions = new ArrayList<>();
-        for (int i=0; i < rotamerSpace.size(); i++)
-            {
-                List<Rotamer> list = rotamerSpace.get(i);
-                if ( list.size() > 1 )
-                    variablePositions.add(i);
-            }
-        if ( variablePositions.size() == 0 )
-            throw new IllegalArgumentException("no variable positions");
 
         // estimate the number of rotamers and rotamer pairs
         int totalRotamers = RotamerSpace.countRotamers(rotamerSpace);;
@@ -77,14 +58,13 @@ public class AStarEnergyCalculator
         AtomicDouble backboneEnergy = new AtomicDouble();
         
         // create energy jobs
-        List<Future<Result>> futures = createEnergyJobs(rotamerSpace, peptide, incompatiblePairs, selfEnergiesMap,
-                                                        interactionEnergiesMap, backboneEnergy, variablePositions);
+        List<Future<Result>> futures = createEnergyJobs(rotamerSpace, peptide, incompatiblePairs, selfEnergiesMap, interactionEnergiesMap, backboneEnergy);
 
         // wait for jobs to finish
         GeneralThreadService.silentWaitForFutures(futures);
 
         // return the object
-        return new AStarEnergyCalculator(selfEnergiesMap, interactionEnergiesMap, backboneEnergy.get(), ImmutableList.copyOf(variablePositions));
+        return new AStarEnergyCalculator(selfEnergiesMap, interactionEnergiesMap, backboneEnergy.get());
     }
 
     /**
@@ -136,15 +116,14 @@ public class AStarEnergyCalculator
      * is symmetric) corresponds to the interaction energy between the rotamer at position 0 and the rotamer at position 1.
      * The backbone is treated as the n-th residue, such that the (n,n) entry is the backbone self-energy.
      *
-     * This variant does not put backbone HNs in the rotamer sidechains.  If a position is not variable, the method will
-     * use an empty set for the atoms in that rotamer.
+     * This variant does not put backbone HNs in the rotamer sidechains.  Rotamers will be placed at all non-hairpin positions
+     * so every position must have at least one entry in its rotamer space.
      *
      * @param peptide the peptide that contains the rotamers
      * @param interactions the interactions in this peptide
-     * @param variablePositions sequence indices where rotamers are being allowed to vary
      * @return the matrix of rotamer/backbone - rotamer/backbone interaction energies
      */
-    public static Double[][] getRotamerEnergyMatrix(Peptide peptide, List<Interaction> interactions, List<Integer> variablePositions)
+    public static Double[][] getRotamerEnergyMatrix(Peptide peptide, List<Interaction> interactions)
     {
         // initialize matrix where the results will go
         // the backbone is treated as the n+1-th residue,
@@ -153,20 +132,21 @@ public class AStarEnergyCalculator
         double[][] energyMatrix = new double[numberOfResidues+1][numberOfResidues+1];
 
         // get all rotamer atoms
+        Set<Atom> allRotamerAtoms = new HashSet<>();
         List<Set<Atom>> rotamerAtoms = new ArrayList<>(numberOfResidues);
         for (int i=0; i < peptide.sequence.size(); i++)
             {
                 Residue residue = peptide.sequence.get(i);
-                Set<Atom> set = null;
-                if ( variablePositions.contains(i) )
+                Set<Atom> set = new HashSet<>();
+                if ( !residue.isHairpin )
                     set = RotamerFactory.getSidechainAtoms(peptide, residue, false);
-                else
-                    set = new HashSet<>();
                 rotamerAtoms.add(set);
+                allRotamerAtoms.addAll(set);
             }
         
         // get backbone atoms
-        Set<Atom> backboneAtoms = new HashSet<>(RotamerFactory.getBackboneAtoms(peptide, variablePositions, false));
+        Set<Atom> backboneAtoms = new HashSet<>(peptide.contents);
+        backboneAtoms.removeAll(allRotamerAtoms);
 
         // classify the interactions
         for (Interaction interaction : interactions)
@@ -295,12 +275,11 @@ public class AStarEnergyCalculator
      * @param selfEnergiesMap the map to concurrently update for rotamer single energies
      * @param interactionEnergiesMap the map to concurrently update for rotamer pair energies
      * @param backboneEnergy the backbone energy
-     * @param variablePositions the sequence indices where rotamers can be varied
      * @return the results of all the calculations (dummy objects in this case)
      */
     public static List<Future<Result>> createEnergyJobs(List<List<Rotamer>> rotamerSpace, Peptide startingPeptide, Set<RotamerPair> incompatiblePairs,
                                                         ConcurrentHashMap<Rotamer,Double> selfEnergiesMap, ConcurrentHashMap<RotamerPair,Double> interactionEnergiesMap,
-                                                        AtomicDouble backboneEnergy, List<Integer> variablePositions)
+                                                        AtomicDouble backboneEnergy)
     {
         // create rotamer jobs
         // we minimize the amount of work by going across each row of rotamers
@@ -323,7 +302,7 @@ public class AStarEnergyCalculator
                         if ( i < list.size() )
                             rotamers.add( list.get(i) );
                     }
-                RotamerEnergyJob job = new RotamerEnergyJob(startingPeptide, rotamers, selfEnergiesMap, backboneEnergy, variablePositions);
+                RotamerEnergyJob job = new RotamerEnergyJob(startingPeptide, rotamers, selfEnergiesMap, backboneEnergy);
                 Future<Result> f = GeneralThreadService.submit(job);
                 futures.add(f);
             }
@@ -555,9 +534,6 @@ public class AStarEnergyCalculator
         /** where to put the backbone energy */
         public final AtomicDouble backboneEnergy;
 
-        /** the indices of the variable positions in the sequence */
-        public final List<Integer> variablePositions;
-
         /**
          * Constructor.  We don't check that everything is consistent.  In particular, we don't check that rotamerToReconstitute
          * is compatible with rotamers and rotamerPairs.
@@ -566,14 +542,12 @@ public class AStarEnergyCalculator
          * @param map the map to concurrently update with single rotamer energies
          * @param backboneEnergy the backbone energy
          */
-        public RotamerEnergyJob(Peptide startingPeptide, List<Rotamer> rotamers, ConcurrentHashMap<Rotamer,Double> map,
-                                AtomicDouble backboneEnergy, List<Integer> variablePositions)
+        public RotamerEnergyJob(Peptide startingPeptide, List<Rotamer> rotamers, ConcurrentHashMap<Rotamer,Double> map, AtomicDouble backboneEnergy)
         {
             this.startingPeptide = startingPeptide;
             this.rotamers = rotamers;
             this.map = map;
             this.backboneEnergy = backboneEnergy;
-            this.variablePositions = variablePositions;
         }
 
         /**
@@ -595,7 +569,7 @@ public class AStarEnergyCalculator
             // note that we call a special getRotamerEnergyMatrix() method specific to this class,
             // which treats all backbone HNs as part of the backbone and not the rotamer, as is done
             // in DEEenergyCalculator
-            Double[][] energyMatrix = getRotamerEnergyMatrix(peptide, interactions, variablePositions);
+            Double[][] energyMatrix = getRotamerEnergyMatrix(peptide, interactions);
 
             // get rotamer energies
             for (Rotamer rotamer : rotamers)
@@ -674,6 +648,66 @@ public class AStarEnergyCalculator
         }
     }
 
+    /** for debugging */
+    public static void compareBackboneAtoms(Peptide p1, Peptide p2)
+    {
+        // get all rotamer atoms
+        int numberOfResidues = p1.sequence.size();
+        List<Set<Atom>> rotamerAtoms = new ArrayList<>(numberOfResidues);
+        Set<Atom> allRotamerAtoms = new HashSet<>();
+        for (Residue r : p1.sequence)
+            {
+                Set<Atom> atoms = new HashSet<>();
+                if ( !r.isHairpin )
+                    atoms = RotamerFactory.getSidechainAtoms(p1,r,false);
+                rotamerAtoms.add(atoms);
+                allRotamerAtoms.addAll(atoms);
+            }
+
+        // get backbone atoms
+        Set<Atom> backboneAtoms = new HashSet<>();
+        for (Atom a : p1.contents)
+            {
+                if ( allRotamerAtoms.contains(a) )
+                    continue;
+                backboneAtoms.add(a);
+            }
+
+        // get all rotamer atoms
+        List<Set<Atom>> rotamerAtoms2 = new ArrayList<>(numberOfResidues);
+        Set<Atom> allRotamerAtoms2 = new HashSet<>();
+        for (Residue r : p2.sequence)
+            {
+                Set<Atom> atoms = new HashSet<>();
+                if ( !r.isHairpin )
+                    atoms = RotamerFactory.getSidechainAtoms(p2,r,false);
+                rotamerAtoms2.add(atoms);
+                allRotamerAtoms2.addAll(atoms);
+            }
+
+        // get backbone atoms
+        Set<Atom> backboneAtoms2 = new HashSet<>();
+        for (Atom a : p2.contents)
+            {
+                if ( allRotamerAtoms2.contains(a) )
+                    continue;
+                backboneAtoms2.add(a);
+            }
+
+        List<Atom> list1 = new ArrayList<>(backboneAtoms);
+        List<Atom> list2 = new ArrayList<>(backboneAtoms2);
+        Collections.sort(list1);
+        Collections.sort(list2);
+        System.out.println(list1.size());
+        System.out.println(list2.size());
+        for (int i=0; i < list1.size(); i++)
+            {
+                Atom a1 = list1.get(i);
+                Atom a2 = list2.get(i);
+                System.out.printf("%s : %s : %3d : %.4f\n", a1.toString(), a2.toString(), a1.type2-a2.type2, Molecule.getDistance(a1,a2)); 
+            }
+    }
+
     /** for testing */
     public static void main(String[] args)
     {
@@ -683,16 +717,15 @@ public class AStarEnergyCalculator
         Peptide peptide = sheets.get(0);
         
         int sequenceLength = peptide.sequence.size();
-        int forbiddenIndex = (sequenceLength/2) - 1;
-        List<String> stringSequence = ImmutableList.of("standard_alanine", "arg", "asparagine", "aspartate", "glutamine", "glycine",
-                                                       "histidine_hd", "isoleucine", "phenylalanine", "serine", "tryptophan", "standard_alanine");
+        List<String> stringSequence = ImmutableList.of("glycine", "valine", "asparagine", "aspartate", "glutamine", "valine",
+                                                       "histidine_hd", "isoleucine", "phenylalanine", "serine", "threonine", "standard_alanine");
         List<ProtoAminoAcid> protoAminoAcids = ProtoAminoAcidDatabase.getSpecificSequence(stringSequence);
         int tempJ = 0;
         for (int i=0; i < sequenceLength; i++)
             {
-                if ( i == forbiddenIndex || i == forbiddenIndex+1 )
-                    continue;
                 Residue residue = peptide.sequence.get(i);
+                if ( residue.isHairpin )
+                    continue;
                 ProtoAminoAcid protoAminoAcid = protoAminoAcids.get(tempJ);
                 peptide = SidechainMutator.mutateSidechain(peptide, residue, protoAminoAcid);
                 tempJ++; 
@@ -700,9 +733,10 @@ public class AStarEnergyCalculator
 
         // create the A* iterator
         // note that the includeHN should be set to false if we want to do A* here
-        FixedSequenceRotamerSpace catalystRotamerSpace = new FixedSequenceRotamerSpace(peptide, false);
-        List<List<Rotamer>> rotamerSpace = catalystRotamerSpace.rotamerSpace;
-        AStarEnergyCalculator calculator = AStarEnergyCalculator.analyze(catalystRotamerSpace);
+        new GaussianInputFile(peptide).write("test_peptides/original.gjf");
+        FixedSequenceRotamerSpace fixedSequenceRotamerSpace = new FixedSequenceRotamerSpace(peptide, false);
+        List<List<Rotamer>> rotamerSpace = fixedSequenceRotamerSpace.rotamerSpace;
+        AStarEnergyCalculator calculator = AStarEnergyCalculator.analyze(fixedSequenceRotamerSpace);
         double backboneEnergy = calculator.backboneEnergy;
         Map<Rotamer,Double> rotamerSelfEnergies = calculator.rotamerSelfEnergies;
         Map<RotamerPair,Double> rotamerInteractionEnergies = calculator.rotamerInteractionEnergies; 
@@ -710,6 +744,7 @@ public class AStarEnergyCalculator
         
         // perform A* iteration, checking to see if the predicted and actual energies are the same
         List<RotamerIterator.Node> solutions = iterator.iterate();
+        int count = 0;
         for (RotamerIterator.Node node : solutions)
             {
                 List<Rotamer> rotamers = node.rotamers;
@@ -719,8 +754,15 @@ public class AStarEnergyCalculator
 
                 // get actual energy
                 Peptide thisPeptide = Rotamer.reconstitute(peptide, rotamers);
+                new GaussianInputFile(thisPeptide).write(String.format("test_peptides/a_star_%04d.gjf", count));
+                count++;
                 List<Interaction> interactions = OPLScalculator.getInteractions(thisPeptide);
-                Double[][] energyMatrix = AStarEnergyCalculator.getRotamerEnergyMatrix(thisPeptide, interactions, calculator.variablePositions);
+                Double[][] energyMatrix = AStarEnergyCalculator.getRotamerEnergyMatrix(thisPeptide, interactions);
+
+                compareBackboneAtoms(peptide, thisPeptide);
+
+                double thisBackboneEnergy = Interaction.getBackboneEnergy(energyMatrix);
+                System.out.printf("     backbone   predicted %12.4f   actual %12.4f   diff %6.4f\n", backboneEnergy, thisBackboneEnergy, thisBackboneEnergy-backboneEnergy);
 
                 double thisSingleEnergies = 0.0;
                 for (Rotamer rotamer : rotamers)
@@ -728,9 +770,10 @@ public class AStarEnergyCalculator
                         // get the rotamer energy without the reference energy
                         Double singleEnergy = Interaction.getRotamerEnergy(rotamer, energyMatrix, false);
                         thisSingleEnergies += singleEnergy;
+                    
+                        double predictedSingleEnergy = rotamerSelfEnergies.get(rotamer);
+                        System.out.printf("     %-25s   predicted %12.4f   actual %12.4f   diff %6.4f\n", rotamer.description, predictedSingleEnergy, singleEnergy, singleEnergy-predictedSingleEnergy);
                     }
-
-                double thisBackboneEnergy = Interaction.getBackboneEnergy(energyMatrix);
 
                 double thisInteractionEnergies = 0.0;
                 for (int i=0; i < rotamers.size()-1; i++)
@@ -740,7 +783,11 @@ public class AStarEnergyCalculator
                             {
                                 Rotamer rotamer2 = rotamers.get(j);
                                 RotamerPair pair = new RotamerPair(rotamer1, rotamer2);
-                                thisInteractionEnergies += OPLScalculator.getInteractionEnergy(rotamer1, null, rotamer2, null);
+                                double doubleEnergy = OPLScalculator.getInteractionEnergy(rotamer1, null, rotamer2, null);
+                                thisInteractionEnergies += doubleEnergy;
+                                double predictedDoubleEnergy = rotamerInteractionEnergies.get(pair);
+
+                                System.out.printf("     %-50s   predicted %12.4f   actual %12.4f   diff %6.4f\n", rotamer1.description + " / " + rotamer2.description, predictedDoubleEnergy, doubleEnergy, doubleEnergy-predictedDoubleEnergy);
                             }
                     }
                 
@@ -748,6 +795,13 @@ public class AStarEnergyCalculator
 
                 // compare
                 System.out.printf("predicted: %10.2f   actual: %10.2f   difference: %7.4f\n", predictedEnergy, actualEnergy, predictedEnergy-actualEnergy);
+                double tempEnergy = 0.0;
+                for (Interaction interaction : interactions)
+                    tempEnergy += interaction.interactionEnergy;
+                System.out.printf("total energy: %12.4f     diff %12.4f\n", tempEnergy, predictedEnergy-tempEnergy);
+                System.out.print("\n\npress enter");
+                Scanner scanner = new Scanner(System.in);
+                scanner.nextLine();            
             }
     }
 }
