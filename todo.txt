@@ -1,2 +1,4 @@
-bug that means no rotamers are generated for amino acids without rotameric/non-rotameric angles
-figure out why DEEenergyCalculator doesn't check out
+Astar line 689
+incorporate variable positions into backbone detection
+ensure backbone atoms are always the same between runs
+

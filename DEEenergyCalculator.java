@@ -217,8 +217,8 @@ public class DEEenergyCalculator
          * @param map the map to concurrently update with single rotamer energies
          * @param backboneEnergy the backbone energy
          */
-        public RotamerEnergyJob(Peptide startingPeptide, ImmutableList<Rotamer> rotamersToReconstitute,
-                                ImmutableList<Rotamer> rotamers, ConcurrentHashMap<Rotamer,Double> map, AtomicDouble backboneEnergy)
+        public RotamerEnergyJob(Peptide startingPeptide, ImmutableList<Rotamer> rotamersToReconstitute, ImmutableList<Rotamer> rotamers,
+                                ConcurrentHashMap<Rotamer,Double> map, AtomicDouble backboneEnergy)
         {
             this.startingPeptide = startingPeptide;
             this.rotamersToReconstitute = rotamersToReconstitute;
@@ -243,12 +243,14 @@ public class DEEenergyCalculator
             Map<Rotamer,Double> rotamerMap = new LinkedHashMap<>();
 
             // analyze all interactions in this peptide
-            Double[][] energyMatrix = Interaction.getRotamerEnergyMatrix(peptide, interactions);
+            Double[][] energyMatrix = Interaction.getRotamerEnergyMatrix(peptide, interactions, true);
 
             // get rotamer energies
             for (Rotamer rotamer : rotamers)
                 {
                     Double singleEnergy = Interaction.getRotamerEnergy(rotamer, energyMatrix); 
+                    //if ( rotamerMap.containsKey(rotamer) && Math.abs(rotamerMap.get(rotamer) - singleEnergy) > 0.01 )
+                    //    System.out.println("mismatch");
                     rotamerMap.put(rotamer,singleEnergy);
                 }
 
@@ -338,20 +340,101 @@ public class DEEenergyCalculator
                     if ( incompatiblePairs.contains(pair) )
                         continue;
                     
-                    Atom extraAtom1 = null;
-                    if ( rotamer1.description.indexOf("proline") == -1 )
-                        extraAtom1 = peptide.sequence.get(rotamer1.sequenceIndex).HN;
+                    //Atom extraAtom1 = null;
+                    //if ( rotamer1.description.indexOf("proline") == -1 )
+                    //    extraAtom1 = peptide.sequence.get(rotamer1.sequenceIndex).HN;
                     
-                    Atom extraAtom2 = null;
-                    if ( rotamer2.description.indexOf("proline") == -1 )
-                        extraAtom2 = peptide.sequence.get(rotamer2.sequenceIndex).HN;
+                    //Atom extraAtom2 = null;
+                    //if ( rotamer2.description.indexOf("proline") == -1 )
+                    //    extraAtom2 = peptide.sequence.get(rotamer2.sequenceIndex).HN;
                     
-                    double energy = OPLScalculator.getInteractionEnergy(rotamer1, extraAtom1, rotamer2, extraAtom2);
+                    //double energy = OPLScalculator.getInteractionEnergy(rotamer1, extraAtom1, rotamer2, extraAtom2);
+                    double energy = OPLScalculator.getInteractionEnergy(rotamer1, null, rotamer2, null);
                     tempMap.put(pair,energy);
                 }
             map.putAll(tempMap);
             return null;
         }
+    }
+
+    public static Set<Atom> getBackboneAtoms(Peptide peptide)
+    {
+        // get all rotamer atoms
+        int numberOfResidues = peptide.sequence.size();
+        List<Set<Atom>> rotamerAtoms = new ArrayList<>(numberOfResidues);
+        Set<Atom> allRotamerAtoms = new HashSet<>();
+        for (Residue r : peptide.sequence)
+            {
+                Set<Atom> atoms = RotamerFactory.getSidechainAtoms(peptide,r,true);
+                rotamerAtoms.add(atoms);
+                allRotamerAtoms.addAll(atoms);
+            }
+
+        // get backbone atoms
+        Set<Atom> backboneAtoms = new HashSet<>();
+        for (Atom a : peptide.contents)
+            {
+                if ( allRotamerAtoms.contains(a) )
+                    continue;
+                backboneAtoms.add(a);
+            }
+        return backboneAtoms;
+    }
+    
+    /** for debugging */
+    public static void compareBackboneAtoms(Peptide p1, Peptide p2)
+    {
+        // get all rotamer atoms
+        int numberOfResidues = p1.sequence.size();
+        List<Set<Atom>> rotamerAtoms = new ArrayList<>(numberOfResidues);
+        Set<Atom> allRotamerAtoms = new HashSet<>();
+        for (Residue r : p1.sequence)
+            {
+                Set<Atom> atoms = RotamerFactory.getSidechainAtoms(p1,r,true);
+                rotamerAtoms.add(atoms);
+                allRotamerAtoms.addAll(atoms);
+            }
+
+        // get backbone atoms
+        Set<Atom> backboneAtoms = new HashSet<>();
+        for (Atom a : p1.contents)
+            {
+                if ( allRotamerAtoms.contains(a) )
+                    continue;
+                backboneAtoms.add(a);
+            }
+
+        // get all rotamer atoms
+        List<Set<Atom>> rotamerAtoms2 = new ArrayList<>(numberOfResidues);
+        Set<Atom> allRotamerAtoms2 = new HashSet<>();
+        for (Residue r : p2.sequence)
+            {
+                Set<Atom> atoms = RotamerFactory.getSidechainAtoms(p2,r,true);
+                rotamerAtoms2.add(atoms);
+                allRotamerAtoms2.addAll(atoms);
+            }
+
+        // get backbone atoms
+        Set<Atom> backboneAtoms2 = new HashSet<>();
+        for (Atom a : p2.contents)
+            {
+                if ( allRotamerAtoms2.contains(a) )
+                    continue;
+                backboneAtoms2.add(a);
+            }
+
+        List<Atom> list1 = new ArrayList<>(backboneAtoms);
+        List<Atom> list2 = new ArrayList<>(backboneAtoms2);
+        Collections.sort(list1);
+        Collections.sort(list2);
+        System.out.println(list1.size());
+        System.out.println(list2.size());
+        for (int i=0; i < list1.size(); i++)
+            {
+                Atom a1 = list1.get(i);
+                Atom a2 = list2.get(i);
+                System.out.println(a1.toString() + " : " + a2.toString() + " : " + (a1.type1-a2.type1));
+            }
     }
 
     /** for testing */
@@ -447,6 +530,8 @@ public class DEEenergyCalculator
                 // reconstitute the peptide
                 Peptide reconstitutedPeptide = Rotamer.reconstitute(peptide, randomRotamers);
 
+                compareBackboneAtoms(peptide, reconstitutedPeptide);
+
                 GaussianInputFile f = new GaussianInputFile(reconstitutedPeptide);
                 f.write("test_peptides/reconstituted.gjf");
 
@@ -459,7 +544,7 @@ public class DEEenergyCalculator
                     System.out.println(interactions.get(i).toString(reconstitutedPeptide));
                 System.out.println();
 
-                Double[][] energyMatrix = Interaction.getRotamerEnergyMatrix(reconstitutedPeptide, interactions);
+                Double[][] energyMatrix = Interaction.getRotamerEnergyMatrix(reconstitutedPeptide, interactions, true);
                 System.out.println("\nbreakdown of actual energy:");
                 double actualBackboneEnergy = energyMatrix[energyMatrix.length-1][energyMatrix.length-1];
                 for (int i=0; i <= reconstitutedPeptide.sequence.size(); i++)
@@ -507,12 +592,16 @@ public class DEEenergyCalculator
                                 double thisDifference = thisActualEnergy - thisPredictedEnergy;
                                 System.out.printf("%-3d %-40s  pred: %12.4f   actual: %12.4f   diff: %12.4f\n",
                                                  r.sequenceIndex, r.description, thisPredictedEnergy, thisActualEnergy, thisDifference);
-                            
+                                //int numberOfAtomsInThisRotamer = RotamerFactory.getSidechainAtoms(reconstitutedPeptide,reconstitutedPeptide.sequence.get(r.sequenceIndex),true).size();
+                                //System.out.printf("%2d  : %3d  %3d  \n", r.sequenceIndex, r.atoms.size(), numberOfAtomsInThisRotamer);
+
                                 if ( Math.abs(difference) > 0.1 )
                                    {
-                                        reconstitutedPeptide = Rotamer.reconstitute(peptide, ImmutableList.of(r));
-                                        List<Interaction> extraInteractions = new ArrayList<>(OPLScalculator.getInteractions(reconstitutedPeptide));
-                                        Double[][] extraMatrix = Interaction.getRotamerEnergyMatrix(reconstitutedPeptide, extraInteractions);
+                                        Peptide tempPeptide = Rotamer.reconstitute(peptide, ImmutableList.of(r));
+                                        List<Interaction> extraInteractions = new ArrayList<>(OPLScalculator.getInteractions(tempPeptide));
+                                        Double[][] extraMatrix = Interaction.getRotamerEnergyMatrix(tempPeptide, extraInteractions, true);
+                                        double thisBackboneEnergy = extraMatrix[extraMatrix.length-1][extraMatrix.length-1];
+                                        System.out.printf("old backbone energy: %.2f     this backbone energy: %.2f    diff: %.2f\n", actualBackboneEnergy, thisBackboneEnergy, thisBackboneEnergy-actualBackboneEnergy);
                                         int thisIndex = r.sequenceIndex;
                                         System.out.println(extraMatrix[thisIndex][thisIndex]+extraMatrix[thisIndex][extraMatrix.length-1]);
                                     }

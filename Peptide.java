@@ -169,6 +169,77 @@ public class Peptide extends Molecule implements Immutable, Serializable, Compar
     }
 
     /**
+     * Looks for pairs of backbone atoms that should be checked for clashes.
+     * Only backbone atoms that are more than two bonds apart are checked.
+     * Hairpin positions are treated as part of the backbone.  All other positions
+     * are treated as having rotamers, even if it's just the H of glycine.
+     * HNs are treated as part of the backbone for this method.
+     * @return pairs of indices of backbone atoms that should be checked for clashes
+     */
+    public List<Pair<Integer,Integer>> getBackbonePairs()
+    {
+        // get all rotamer atoms
+        int numberOfResidues = sequence.size();
+        Set<Atom> allRotamerAtoms = new HashSet<>();
+        for (Residue r : sequence)
+            {
+                if ( r.isHairpin )
+                    continue;
+                allRotamerAtoms.addAll( RotamerFactory.getSidechainAtoms(this,r,false) );
+            }
+
+        // get backbone atoms
+        Set<Atom> backboneAtoms = new HashSet<>();
+        for (Atom a : contents)
+            {
+                if ( allRotamerAtoms.contains(a) )
+                    continue;
+                backboneAtoms.add(a);
+            }
+        if ( backboneAtoms.size() == 0 )
+            throw new IllegalArgumentException("expected to find some backbone atoms");
+        
+        // create all pairs
+        List<Atom> backboneAtomsList = new ArrayList<>(backboneAtoms);
+        int expectedSize = backboneAtomsList.size() * (backboneAtomsList.size() - 1);
+        List<Pair<Integer,Integer>> returnList = new ArrayList<>(expectedSize);
+        for (int i=0; i < backboneAtomsList.size()-1; i++)
+            {
+                Atom atomI = contents.get(i);
+                for (int j=i+1; j < backboneAtomsList.size(); j++)
+                    {
+                        Atom atomJ = contents.get(j);
+                        if ( !areSeparated(atomI,atomJ) )
+                            continue;
+                        Pair<Integer,Integer> pair = new Pair<>(i,j);
+                        returnList.add(pair);
+                    }
+            }
+
+        // return result
+        return ImmutableList.copyOf(returnList);
+    }
+
+    /**
+     * Checks if the backbone atoms in the specified peptide clash. 
+     * @param backbonePairs pairs of indices of backbone atoms that should be checked for clashes
+     * @return true if there is a clash
+     */
+    public boolean hasBackboneClash(List<Pair<Integer,Integer>> backbonePairs)
+    {
+        for (Pair<Integer,Integer> pair : backbonePairs)
+            {
+                int i = pair.getFirst();
+                int j = pair.getSecond();
+                Atom atomI = contents.get(i);
+                Atom atomJ = contents.get(j);
+                if ( RotamerSpace.clashes(atomI,atomJ) )
+                    return true;
+            }
+        return false;
+    }
+
+    /**
      * Compares peptides on the basis of their total energy in
      * energy breakdown (allows for sorting lists in ascending order) 
      * @param p2 the peptide to compare this peptide to

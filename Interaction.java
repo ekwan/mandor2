@@ -9,6 +9,17 @@ import java.util.concurrent.atomic.*;
 
 /**
  * Represents an interaction in a molecule.
+ *
+ * Note that the rotamer energy matrix method will run into a problem in the following complex scenario.
+ * If we want the one-center energy terms to be consistent across a set of peptides with unequal composition,
+ * then we must ensure that the assumption that the backbone does not change between mutations holds true.
+ * The simplest case where this might be violated is when we mutate between proline and non-proline.  In this
+ * scenario, we lose or gain a backbone HN.  The fix is easy: just consider the backbone HN to be part of the
+ * sidechain.  The nasty case is where we mutate between glycine/normal/proline amino acids.  The issue is that
+ * the backbone atom types change during these mutations.  If the OPLS charges/vdw types change, then even though
+ * the number of backbone atoms and their positions don't change, the energy will change slightly.  The fix is to
+ * set all the backbone atoms to have the same charge and vdw types.  This is done as a hack in OPLSforcefield
+ * so that the oplsaal.prm file is not changed.
  */
 public class Interaction implements Immutable, Comparable<Interaction>
 {
@@ -103,44 +114,6 @@ public class Interaction implements Immutable, Comparable<Interaction>
                .result();
     }
 
-    /** 
-     * Utility method for getting the sidechain atoms of a peptide residue.
-     * Could run into a problem if the peptide connectivity is concurrently modified!
-     * @param peptide the peptide
-     * @param residue a residue in the peptide
-     * @return the sidechain atoms in the specified residue
-     */
-    public static Set<Atom> getSidechainAtoms(Peptide peptide, Residue residue)
-    {
-        // treat hairpin positions as part of the backbone
-        if ( residue.isHairpin )
-            return new HashSet<Atom>();
-        
-        // get proline sidechain if necessary
-        Pair<Atom,Atom> prochiralConnection = residue.prochiralConnection;
-        Set<Atom> sidechainAtoms = null;
-        if (residue.aminoAcid.isProline())
-            {
-                // temporarily disconnect atom2 and atom3 of chi4
-                ProtoTorsion chi3 = residue.chis.get(2);
-                Atom atom3 = chi3.atom3;
-                Atom atom4 = chi3.atom4;
-                SimpleWeightedGraph<Atom, DefaultWeightedEdge> connectivity = peptide.connectivity;
-                connectivity.removeEdge(atom3, atom4);
-                sidechainAtoms = peptide.getHalfGraph(prochiralConnection.getFirst(),prochiralConnection.getSecond());
-                DefaultWeightedEdge e = connectivity.addEdge(atom3, atom4);
-                connectivity.setEdgeWeight(e, 1.0);
-            }
-        else
-            {
-                // include HN in result
-                sidechainAtoms = peptide.getHalfGraph(prochiralConnection.getFirst(),prochiralConnection.getSecond());
-                sidechainAtoms = new HashSet<Atom>(sidechainAtoms);
-                sidechainAtoms.add(residue.HN);
-            }
-        return sidechainAtoms;
-    }
-
     //public static AtomicInteger counter = new AtomicInteger();
 
     /**
@@ -151,8 +124,10 @@ public class Interaction implements Immutable, Comparable<Interaction>
      * The backbone is treated as the n-th residue, such that the (n,n) entry is the backbone self-energy.
      * @param peptide the peptide that contains the rotamers
      * @param interactions the interactions in this peptide
+     * @param includeHN if true, backbone HNs will be considered part of the sidechain
+     * @return a grid of interaction energies indexed by residue
      */
-    public static Double[][] getRotamerEnergyMatrix(Peptide peptide, List<Interaction> interactions)
+    public static Double[][] getRotamerEnergyMatrix(Peptide peptide, List<Interaction> interactions, boolean includeHN)
     {
         // initialize matrix where the results will go
         // the backbone is treated as the n+1-th residue,
@@ -165,7 +140,7 @@ public class Interaction implements Immutable, Comparable<Interaction>
         Set<Atom> allRotamerAtoms = new HashSet<>();
         for (Residue r : peptide.sequence)
             {
-                Set<Atom> atoms = getSidechainAtoms(peptide,r);
+                Set<Atom> atoms = RotamerFactory.getSidechainAtoms(peptide,r,includeHN);
                 rotamerAtoms.add(atoms);
                 allRotamerAtoms.addAll(atoms);
             }
@@ -201,7 +176,7 @@ public class Interaction implements Immutable, Comparable<Interaction>
         */
         for (Interaction interaction : interactions)
             {
-                List<Atom> backboneAtomsList = ImmutableList.copyOf(interaction.atoms);
+                //List<Atom> backboneAtomsList = ImmutableList.copyOf(interaction.atoms);
 
                 // figure out which groups this interaction belongs to
                 boolean inBackbone = false;

@@ -44,7 +44,7 @@ public abstract class RotamerSpace implements Immutable
      * Creates a RotamerSpace.  Assumes the inputPeptide is clash-free.  Throws an exception if no solutions are possible.
      * The input peptide will be mutated if there are any variable positions with only one possible rotamer.
      * @param inputPeptide the peptide to pack the rotamers of
-     * @param whether HNs should be considered part of the rotamers
+     * @param includeHN whether HNs should be considered part of the rotamers
      */
     public RotamerSpace(Peptide inputPeptide, boolean includeHN)
     {
@@ -65,8 +65,9 @@ public abstract class RotamerSpace implements Immutable
         // determine which positions are variable (i.e., ones where we have a choice of rotamers)
         List<Integer> variablePositions = new ArrayList<>(tempPeptide.sequence.size());
         for (int i=0; i < tempRotamerSpace.size(); i++)
-            if ( tempRotamerSpace.get(i).size() > 1 )
+            if ( tempRotamerSpace.get(i).size() > 0 )
                 variablePositions.add(i);
+        //System.out.println("variable positions: " + variablePositions);
 
         // get backbone atoms, which include the sidechains for fixed positions
         // outer index is residue index
@@ -114,6 +115,7 @@ public abstract class RotamerSpace implements Immutable
         pruneIncompatibleRotamers(tempRotamerSpace, tempIncompatiblePairs);
    
         // check if any solutions are possible
+        printRotamerSizes(tempRotamerSpace);
         checkRotamerSpace(tempRotamerSpace, tempPeptide, tempIncompatiblePairs, emptyPositions);
 
         // return result
@@ -740,7 +742,9 @@ public abstract class RotamerSpace implements Immutable
         double distance = Molecule.getDistance(a1,a2);
         if ( distance < Settings.MINIMUM_INTERATOMIC_DISTANCE )
             return true;
-        if ( distance > 1.50 )
+        return false;
+        /*
+        if ( distance > 2.00 )
             return false;
         if ( HBOND_ELEMENTS.contains(a1.element) && HBOND_HX_TYPES.contains(a2.type1) )
             {
@@ -754,6 +758,7 @@ public abstract class RotamerSpace implements Immutable
                 // a2    a1
                 return false;
             }
-        return true;
+        System.out.printf("%s(%d) - %s(%d) : %.2f\n", a1.element.symbol, a1.type1, a2.element.symbol, a2.type1, distance);
+        return true;*/
     }
 }
