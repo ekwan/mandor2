@@ -18,6 +18,20 @@ public class RotamerFactory
         throw new IllegalArgumentException("not instantiable");
     }
 
+    public static List<Rotamer> getOneRotamer(Peptide peptide, Residue residue, boolean includeHN)
+    {
+        // return one rotamer that is just the current rotamer
+        List<Atom> singleRotamerAtoms = new ArrayList<>(getSidechainAtoms(peptide, residue, includeHN));
+        List<Double> singleRotamerChiList = ImmutableList.of();
+        int sequenceIndex = peptide.sequence.indexOf(residue);
+        if ( sequenceIndex == -1 )
+            throw new IllegalArgumentException("residue not found in sequence");
+        Rotamer singleRotamer = new Rotamer(singleRotamerAtoms, sequenceIndex, singleRotamerChiList, residue.description);
+        List<Rotamer> returnList = new ArrayList<>(1);
+        returnList.add(singleRotamer);
+        return returnList;
+    }
+
     /**
      * Finds the possible rotamers.  The method will draw chis for normal residues (not TS, histidine or hairpin)
      * Assumes that the residue is already of the correct type.  This method does not check the resulting rotamers for
@@ -953,6 +967,9 @@ public class RotamerFactory
 
     /**
      * Trys to add arginine to the specified sheets.
+     * For every peptide specified, it tries to place an arginine at every non-hairpin, non-transition-state location.
+     * If the rotamer doesn't clash and contains a hydrogen bond with the transition state it is minimized.  All operations
+     * in this method occur in serial.
      * @param sheets the input peptides, which should be on the close contact forcefield, and have one TS and one histidine
      * @return peptides with arg on the close contact forcefield
      */
@@ -1069,6 +1086,9 @@ public class RotamerFactory
                                             }
                                     }
 
+
+                                // check TS oxygen/HN atom distance
+
                                 if ( !clashes )
                                     interestingRotamers.add(rotamer);
                             }
@@ -1085,7 +1105,9 @@ public class RotamerFactory
         return returnList;
     }
 
-    /** Places transistion state serine, histidine, and arginine in a beta sheet. */
+    /**
+     * Places transistion state serine, histidine, and arginine in a beta sheet.
+     */
     public static class InterestingJob implements WorkUnit
     {
         public final Peptide peptide;

@@ -58,11 +58,15 @@ public class CatalystRotamerSpace extends RotamerSpace
         List<List<Rotamer>> rotamerSpace = new ArrayList<>(inputPeptide.sequence.size());
         for (Residue residue : inputPeptide.sequence)
             {
-                // should add arg and TS residues here
                 if ( residue.isHairpin )
                     {
                         // place blank lists at positions with no rotamers
                         rotamerSpace.add(new ArrayList<Rotamer>());
+                    }
+                else if ( residue.aminoAcid != AminoAcid.GLY )
+                    {
+                        // add a single rotamer for the TS, his, arg
+                        rotamerSpace.add(RotamerFactory.getOneRotamer(inputPeptide, residue, includeHN));
                     }
                 else
                     {

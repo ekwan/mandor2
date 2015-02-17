@@ -240,6 +240,52 @@ public class Peptide extends Molecule implements Immutable, Serializable, Compar
     }
 
     /**
+     * Writes the peptide to disk.  Will not die from exceptions.
+     * @param filename the filename to write to
+     */
+    public void checkpoint(String filename)
+    {
+        if ( filename == null || filename.length() == 0 )
+            throw new NullPointerException("must specify a filename");
+        try
+            {
+                 FileOutputStream fileOut = new FileOutputStream(filename);
+                 ObjectOutputStream out = new ObjectOutputStream(fileOut);
+                 out.writeObject(this);
+                 out.close();
+                 fileOut.close();
+            }
+        catch (Exception e)
+            {
+                e.printStackTrace();
+            }
+    }
+
+    /**
+     * Loads a peptide checkpoint from disk.  WIll not die from exceptions.
+     * @param filename the filename to write to
+     * @return the deserialized peptide
+     */
+    public static Peptide load(String filename)
+    {
+        if ( filename == null || filename.length() == 0 )
+            throw new NullPointerException("must specify a filename");
+        try
+            {
+                FileInputStream fileIn = new FileInputStream(filename);
+                ObjectInputStream in = new ObjectInputStream(fileIn);
+                Peptide p = (Peptide)in.readObject();
+                in.close();
+                fileIn.close();
+            }
+        catch (IOException e)
+            {
+                e.printStackTrace();
+                return null;
+            }
+    }
+
+    /**
      * Compares peptides on the basis of their total energy in
      * energy breakdown (allows for sorting lists in ascending order) 
      * @param p2 the peptide to compare this peptide to

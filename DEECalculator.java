@@ -306,9 +306,13 @@ public class DEECalculator implements Immutable
         GeneralThreadService.waitForFutures(futures);
 
         System.out.printf("\n%d peptides generated\n", interestingPeptides.size());
-        Peptide.writePeptideGJFs(interestingPeptides, "test_peptides/result_", 3);
+        //Peptide.writePeptideGJFs(interestingPeptides, "test_peptides/result_", 3);
 
         Peptide peptide = interestingPeptides.get(0);
-        List<Peptide> poses = generatePoses(peptide, rotamerSpace, 100);
+        new GaussianInputFile(peptide).write("test_peptides/interesting_peptide.gjf");
+        peptide.checkpoint("test_peptides/interesting_peptide.chk");
+        CatalystRotamerSpace catalystRotamerSpace = new CatalystRotamerSpace(peptide,true);
+        List<Peptide> poses = generatePoses(peptide, catalystRotamerSpace, 100);
+        Peptide.writePeptideGJFs(poses, "test_peptides/poses_", 3);
     }
 }
