@@ -91,7 +91,7 @@ public abstract class MonteCarloJob implements WorkUnit
                 Peptide candidate = mutate(currentPeptide);
 
                 // minimize the candidate
-                //candidate = minimizeSingle(candidate);
+                candidate = minimizeSingle(candidate);
 
                 // apply modified Metropolis criterion
                 boolean isAccepted = acceptChange(currentPeptide, candidate, currentAlpha);
@@ -134,6 +134,8 @@ public abstract class MonteCarloJob implements WorkUnit
 
     /** Runs the minimization. */
     public abstract MonteCarloResult call();
+
+    /** Performs minimization of candidate structures */
 
     /**
      * Represents a list of peptides with a maximum size.  This object is not thread safe.

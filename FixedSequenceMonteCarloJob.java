@@ -55,7 +55,7 @@ public class FixedSequenceMonteCarloJob extends MonteCarloJob
      * (2) If this is a hairpin residue, set the hairpin to one of several pre-defined conformations.<p>
      * (3) If this is not a hairpin residue, choose (omega,phi,psi) for it.  If a proline was selected,
      *     give a cis-proline angle with some probability.<p>
-     * The resulting peptide may clash, but the clash may be resolved by rotamer packing later.
+     * (4) Rotamer pack and pick lowest energy candidate sturcture. <p>
      * Obviously, the sequence cannot be changed.
      * @param peptide the peptide whose backbone we should perturb
      * @return the perturbed peptide
@@ -149,6 +149,19 @@ public class FixedSequenceMonteCarloJob extends MonteCarloJob
                     }
             }
             //ROTAMER PACK HERE
+    }
+
+    /** 
+    * Performs OPLS minimization with single point solvation energy.
+    * @param peptide the input peptide that will be minimized
+    * @return OPLS-minimized peptide
+    */
+    public Peptide minimizeSingle(Peptide peptide)
+    {
+        // Minimize each peptide on OPLS forcefield
+        TinkerJob job = new TinkerJob(peptide, Forcefield.OPLS, 2000, false, true, false, false, false);
+        TinkerResult result = job.call();
+        return result.minimizedPeptide;
     }
 
     public MonteCarloResult call()

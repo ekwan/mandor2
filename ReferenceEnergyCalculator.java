@@ -54,7 +54,7 @@ public class ReferenceEnergyCalculator
         for (AminoAcid a : ProtoAminoAcidDatabase.KEYS)
             {
                 // reject unusual amino acids
-                if ( a == AminoAcid.DPRO || a == AminoAcid.LPRO || a == AminoAcid.TS
+                if ( a == AminoAcid.DPRO || a == AminoAcid.LPRO || a == AminoAcid.TS ||
                      a == AminoAcid.LYS || a == AminoAcid.CYS  || a == AminoAcid.MET     )
                     continue;
                 int index = ProtoAminoAcidLibrary.KEYS.indexOf(a);
@@ -62,7 +62,7 @@ public class ReferenceEnergyCalculator
                 for (ProtoAminoAcid paa : VALUES)
                     {
                         // reject transition states
-                        // NOT SURE IF THIS IS NECESSARY
+                        // decide upon this
                         if (paa.r.description.toLowerCase().indexOf("hairpin") > -1 )
                             continue;
                         mutationOutcomes.add(paa);
@@ -99,7 +99,9 @@ public class ReferenceEnergyCalculator
     */
     public static List<Peptide> runMonteCarlo(Peptide randomPetptide)
     {
-
+        FixedSequenceMonteCarloJob fixedSequenceMonteCarloJob = new FixedSequenceMonteCarloJob(randomPeptide, .01, 1000, NUMBER_STRUCTURES_TO_MINIMIZE); 
+        MonteCarloResult monteCarloResult = fixedSequenceMonteCarloJob.call();
+        return monteCarloResult.bestPeptides;
     }
 
     /**
@@ -109,8 +111,51 @@ public class ReferenceEnergyCalculator
     */
     public static List<Peptide> minimize(List<Peptide> monteCarloPeptides)
     {
+        // Create hashamp to avoid duplicates
+        Map<PeptideFingerprint, Peptide> peptidesWithoutDuplicates = new HashMap<>();   
 
+        // Only add low energy peptides
+        List<Peptide> lowEnergyPeptides = new ArrayList<>();
+        for (Peptide p : monteCarloPeptides)
+        {
+            // Minimize each peptide on AMOEBA forcefield
+            // Use Tinker approximate solvation for analyze 
+            TinkerJob job = new TinkerJob(peptide, Forcefield.AMOEBA, 2000, false, true, true, false, true);
+            TinkerResult result = job.call();
+            Peptide newPeptide = result.minimizedPeptide; 
+            
+            PepideFingerprint fingerprint = new PeptideFingerprint(newPeptide, newPeptide.energyBreakdown.totalEnergy);
+            
+            // Verify that we are adding new peptide and 
+            if (!peptidesWithoutDuplicates.containsKey(fingerprint))
+            {
+                if (lowEnergyPeptides.size() < NUMBER_LOWEST_ENERGY_STRUCTURES_TO_KEEP)
+                {
+                    lowEnergyPeptides.add(newPeptide);
+                    Collections.sort(lowEnergyPeptides);
+                    peptidesWithoutDuplicates.put(fingerprint, newPeptide);
+                }
+                else
+                {
+                    // if highest energy member in list is lower in energy than current peptide then do not add it to the list
+                    if (lowEnergyPeptides.get(lowEnergyPeptides.size()-1).energyBreakdown.totalEnergy > newPeptide.energyBreakdown.totalEnergy)
+                    {
+                        peptidesWithoutDuplicates.put(fingerprint, newPeptide);
+                    }
+                    else
+                    {
+                        lowEnergyPeptides.add(newPeptide);
+                        Collections.sort(lowEnergyPeptides);
+                        peptidesWithoutDuplicates.put(fingerprint, newPeptide);
+                    }
+                }
+            }
+        }
+
+        return lowEnergyPeptides;
+    
     }
+
 
     /** 
     * This method will calculate the average energy of each amino acid by taking an energy breakdown of each of the provided structures
@@ -119,6 +164,38 @@ public class ReferenceEnergyCalculator
     */
     public static Map<AminoAcid, Double> averageEnergies(List<Peptide> structures)
     {
+        Map<AminoAcid, List<Double>> allEnergiesByAminoAcid = new HashMap<>();
+        for (Peptide p : structures)
+        {
+            for (Residue r : p.sequence)
+            {
+                if (allEnergiesByAminoAcid.containsKey(r.aminoAcid))
+                {
+                    List<Double> energies = allEnergiesByAminoAcid.get(r.aminoAcid);
+                    energies.add(p.energyBreakdown.energyByResidue.get(p.sequence.indexOf(r));
+                    allEnergiesByAminoAcid.put(r.aminoAcid, energies);
+                }
+                else
+                {
+                    List<Double> energies = new LinkedList<>();
+                    energies.add(p.energyBreakdown.energyByResidue.get(p.sequence.indexOf(r));
+                    allEnergiesByAminoAcid.put(r.aminoAcid, energies);
+                }
+            }
+        }
+
+        Map<AminoAcid, Double> averageEnergyByAminoAcid = new HashMap<>();
+        for (AminoAcid aminoAcid : allEnergiesByAminoAcid.keySet())
+        {
+            List<Double> energies = allEnergiesByAminoAcid.get(aminoAcid);
+            double sum = 0.0;  // (could be issues with double overflowing)
+            for (Double d : energies)
+                sum += d;
+            double average = sum / energies.size();
+            averageEnergyByAminoAcid.put(aminoAcid, average);
+        }
+
+        return averageEnergyByAminoAcid;
 
     }
 
@@ -133,7 +210,7 @@ public class ReferenceEnergyCalculator
         
         List<Peptide> sheets = BetaSheetGenerator.generateSheets(5, 1000, 5000, .01);
         Collections.sort(sheets);
-        List<Peptide> lowEnergyBackbones = sheets
+        List<Peptide> lowEnergyBackbones = sheets;
         
         // Pick lowest energy structures
         for (int i = 0; i < 500; i++)
@@ -143,10 +220,18 @@ public class ReferenceEnergyCalculator
         List<Peptide> randomPeptides = generateRandomPeptides(lowEnergyBackbones);
 
         // Launch Monte Carlo jobs
-
-        // Minimize with AMOEBA
+        List<Peptide> minimizedRandomPeptides = new LinkedList<>();
+        for (Peptide p : randomPeptides)
+        {
+            List<Peptide> monteCarloOutput = runMonteCarlo(p);
+            // Minimize with AMOEBA
+            List<Peptide> lowestEnergyMinimizedPeptides = minimize(monteCarloOutput);
+            for (Peptide p : lowestEnergyMinimizedPeptides)
+                minimizedRandomPeptides.add(p);
+        }
 
         // Breakdown energy for each peptide and average energies
+        Map<AminoAcid, Double> referenceEnergies = averageEnergies(minimizedRandomPeptides);
     }
 
 }
