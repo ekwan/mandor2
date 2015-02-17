@@ -287,7 +287,7 @@ public class DEECalculator implements Immutable
     public static void main(String[] args)
     {
         DatabaseLoader.go();
-        List<Peptide> sheets = BetaSheetGenerator.generateSheets(5, 20, 10000, 0.01);
+        /*List<Peptide> sheets = BetaSheetGenerator.generateSheets(5, 20, 10000, 0.01);
         Collections.sort(sheets);
         int numberOfPeptides = 200;
         System.out.printf("%d beta sheets generated\n", sheets.size());
@@ -311,6 +311,9 @@ public class DEECalculator implements Immutable
         Peptide peptide = interestingPeptides.get(0);
         new GaussianInputFile(peptide).write("test_peptides/interesting_peptide.gjf");
         peptide.checkpoint("test_peptides/interesting_peptide.chk");
+        */
+        Peptide peptide = Peptide.load("test_peptides/interesting_peptide.chk");
+        peptide = HydrogenBondMutator.unmutate(peptide);
         CatalystRotamerSpace catalystRotamerSpace = new CatalystRotamerSpace(peptide,true);
         List<Peptide> poses = generatePoses(peptide, catalystRotamerSpace, 100);
         Peptide.writePeptideGJFs(poses, "test_peptides/poses_", 3);

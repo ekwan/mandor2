@@ -71,7 +71,7 @@ public class Rotamer implements Immutable
         
         // adjust chis (even if the chis are identical, we adjust anyways)
         if ( rotamer.chis.size() != residue.chis.size() )
-            throw new IllegalArgumentException("chi size mismatch");
+            throw new IllegalArgumentException("chi size mismatch for " + rotamer.description + " at index " + rotamer.sequenceIndex);
         if (rotamer.chis.size() > 0)
             peptide = RotamerMutator.setChis(peptide, residue, rotamer.chis);
         return peptide;

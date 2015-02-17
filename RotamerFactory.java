@@ -18,11 +18,27 @@ public class RotamerFactory
         throw new IllegalArgumentException("not instantiable");
     }
 
+    /**
+     * Creates a single rotamer using the atoms that are already in the residue.
+     * @return a list that only contains the current rotamer
+     */
     public static List<Rotamer> getOneRotamer(Peptide peptide, Residue residue, boolean includeHN)
     {
         // return one rotamer that is just the current rotamer
         List<Atom> singleRotamerAtoms = new ArrayList<>(getSidechainAtoms(peptide, residue, includeHN));
-        List<Double> singleRotamerChiList = ImmutableList.of();
+        
+        // determine the chis
+        List<Double> singleRotamerChiList = null;
+        if ( residue.chis.size() == 0 )
+            singleRotamerChiList = ImmutableList.of();
+        else
+            {
+                singleRotamerChiList = new ArrayList<>(residue.chis.size());
+                for (ProtoTorsion t : residue.chis)
+                    singleRotamerChiList.add(t.getDihedralAngle());
+                singleRotamerChiList = ImmutableList.copyOf(singleRotamerChiList);
+            }
+
         int sequenceIndex = peptide.sequence.indexOf(residue);
         if ( sequenceIndex == -1 )
             throw new IllegalArgumentException("residue not found in sequence");
@@ -78,11 +94,7 @@ public class RotamerFactory
                 if ( residue.aminoAcid.rotamerType == AminoAcid.RotamerType.HAS_NO_ROTAMERS )
                     {
                         // return one rotamer that is just the current rotamer
-                        List<Atom> singleRotamerAtoms = new ArrayList<>(getSidechainAtoms(peptide, residue, includeHN));
-                        List<Double> singleRotamerChiList = ImmutableList.of();
-                        Rotamer singleRotamer = new Rotamer(singleRotamerAtoms, sequenceIndex, singleRotamerChiList, residue.description);
-                        returnList.add(singleRotamer);
-                        return returnList;
+                        return getOneRotamer(peptide, residue, includeHN);
                     }
                 // D amino acids are not supported 
                 else if ( residue.aminoAcid.chirality == Chirality.D )

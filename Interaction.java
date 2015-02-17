@@ -37,15 +37,15 @@ public class Interaction implements Immutable, Comparable<Interaction>
     {
         // read the OPLS reference energies from a file
         Map<String,Double> tempMap = new HashMap<>();
-/*        OutputFileFormat file = new OutputFileFormat("amino_acids/oplsaa/reference.txt") {};
+        OutputFileFormat file = new OutputFileFormat("amino_acids/OPLS_reference_energies.dat") {};
         for (List<String> line : file.fileContents)
             {
+                if ( line.size() != 2 )
+                    continue;
                 String aaString = line.get(0);
-                AminoAcid aminoAcid = AminoAcid.getAminoAcid(aaString);
-                Double refEnergy = Double.valueOf(line.get(5));
-                //Double refEnergy = 0.0;
-                tempMap.put(aminoAcid, refEnergy);
-            }*/
+                Double refEnergy = Double.valueOf(line.get(1));
+                tempMap.put(aaString, refEnergy);
+            }
         REFERENCE_ENERGIES = ImmutableMap.copyOf(tempMap);
     }
 
@@ -293,11 +293,11 @@ public class Interaction implements Immutable, Comparable<Interaction>
 
     public static double getReferenceEnergy(Rotamer rotamer)
     {
-        /*Double referenceEnergy = REFERENCE_ENERGIES.get(rotamer.description);
+        Double referenceEnergy = REFERENCE_ENERGIES.get(rotamer.description);
         if ( referenceEnergy == null )
-            throw new NullPointerException("null reference energy for " + aminoAcid.toString());
-        return referenceEnergy;*/
-        return 0.0;
+            throw new NullPointerException("null reference energy for " + rotamer.description);
+        return referenceEnergy;
+        //return 0.0;
     }
 
     /**

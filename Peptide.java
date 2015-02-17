@@ -277,8 +277,9 @@ public class Peptide extends Molecule implements Immutable, Serializable, Compar
                 Peptide p = (Peptide)in.readObject();
                 in.close();
                 fileIn.close();
+                return p;
             }
-        catch (IOException e)
+        catch (Exception e)
             {
                 e.printStackTrace();
                 return null;
