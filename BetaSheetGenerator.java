@@ -191,6 +191,12 @@ public class BetaSheetGenerator
                         BackboneFingerprint backboneFingerprint = new BackboneFingerprint(candidatePeptide);
                         resultMap.put(backboneFingerprint, candidatePeptide);
                     }
+                else
+                    {
+                        System.out.printf("[%2d] %d of %d: auto-rejected ( candidateE = %.2f, currentE = %.2f, isSheet = %b )\n", ID,
+                                      iteration, maxIterations, candidatePeptide.energyBreakdown.totalEnergy, currentPeptide.energyBreakdown.totalEnergy, isSheet );
+                        continue;
+                    }
  
                 // accept or reject
                 boolean accept = MonteCarloJob.acceptChange(currentPeptide, candidatePeptide, currentAlpha);
@@ -246,7 +252,7 @@ public class BetaSheetGenerator
                      Molecule.getDistance(residueJ.O, residueI.HN) < 2.5 && Molecule.getAngle(residueJ.O, residueI.HN, residueI.N) > 120.0 )
                     numberOfHydrogenBonds++;
             }
-        if ( numberOfHydrogenBonds < (numberOfResidues / 2) - 1 )
+        if ( numberOfHydrogenBonds < (numberOfResidues / 2) - 2 )
             return false;
         return true;
     }
@@ -312,30 +318,33 @@ public class BetaSheetGenerator
     public static void main(String[] args)
     {
         DatabaseLoader.go();
-        List<Peptide> sheets = generateSheets(8, 10, 10000, 0.01);
-        Collections.sort(sheets);
-        for ( int i=0; i < Math.min(10, sheets.size()); i++ )
+        List<Peptide> polyGlySheets = generateSheets(7, 10, 10000, 0.01);
+        List<Peptide> polyAlaSheets = new ArrayList<>(polyGlySheets.size());
+        ProtoAminoAcid protoAminoAcidTemplate = ProtoAminoAcidDatabase.getTemplate("standard_alanine");
+        for (Peptide p : polyGlySheets)
             {
-                Peptide p = sheets.get(i);
+                Peptide newPeptide = p;
+                for (int i=0; i<newPeptide.sequence.size(); i++)
+                    {
+                        Residue residue = newPeptide.sequence.get(i);
+                        if ( residue.isHairpin )
+                            continue;
+                        newPeptide = SidechainMutator.mutateSidechain(newPeptide, residue, protoAminoAcidTemplate);
+                    }
+                polyAlaSheets.add(newPeptide);
+            }
+        List<Peptide> minimizedSheets = new ArrayList<>(minimizeSheets(polyAlaSheets, 2000, Forcefield.AMOEBA)); 
+        Collections.sort(minimizedSheets);
+        for ( int i=0; i < Math.min(10, minimizedSheets.size()); i++ )
+            {
+                Peptide p = minimizedSheets.get(i);
                 GaussianInputFile f = new GaussianInputFile(p);
                 String filename = String.format("test_peptides/sheet_%02d.gjf", i);
                 f.write(filename);
                 System.out.printf("Sheet %02d: E = %7.2f\n", i, p.energyBreakdown.totalEnergy);
                 
                 filename = String.format("test_peptides/sheet_%02d.chk", i);
-                try
-                    {
-                        FileOutputStream fileOut = new FileOutputStream(filename);
-                        ObjectOutputStream out = new ObjectOutputStream(fileOut);
-                        out.writeObject(p);
-                        out.close();
-                        fileOut.close();
-                    }
-                catch (Exception e)
-                    {
-                        e.printStackTrace();
-                        System.exit(1);
-                    }
+                p.checkpoint(filename);
             }
     }
 }
