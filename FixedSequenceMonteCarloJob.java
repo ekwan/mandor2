@@ -20,6 +20,9 @@ public class FixedSequenceMonteCarloJob extends MonteCarloJob
     
     /** For setting omegas. */
     public static final NormalDistribution CIS_DISTRIBUTION = new NormalDistribution(0.0,5.0);
+
+    /** A list of backbone atom pairs to check for clashes. */
+    public static final List<Pair<Integer, Integer>> backbonePairs;
     
     /**
      * The allowed (phi,psi) angles for the hairpin D-proline and glycine.  Entries 0 and 1 are phi and psi for
@@ -31,6 +34,8 @@ public class FixedSequenceMonteCarloJob extends MonteCarloJob
     {
         super(startingPeptide, deltaAlpha, maxIterations);
         this.maxSize = maxSize;
+        this.backbonePairs = startingPeptide.getBackbonePairs();
+
         List<List<Double>> outcomes = new ArrayList<>();
         List<Double> probabilities = new ArrayList<>();
 
@@ -147,8 +152,46 @@ public class FixedSequenceMonteCarloJob extends MonteCarloJob
                         newPeptide = BackboneMutator.mutatePhiPsi(newPeptide,residue);
                         return newPeptide;
                     }
+        }
+            
+        // Rotamer Packing
+
+        // check peptide for self clashes
+        if ( peptide.hasBackboneClash(backbonePairs) )
+        {
+            System.out.println("backbone clashes -- quitting");
+            System.exit(1);
+        }
+        
+        // create the A* iterator
+        //
+        // we must call this in a try-catch clause because it's possible the peptide could be in a bad conformation
+        // in which it is impossible to place any rotamers
+        FixedSequenceRotamerSpace fixedSequenceRotamerSpace = null;
+        try
+            {
+                // note that the includeHN should be set to false if we want to do A* here
+                fixedSequenceRotamerSpace = new FixedSequenceRotamerSpace(peptide, false);
             }
-            //ROTAMER PACK HERE
+        catch (Exception e)
+            {
+                e.printStackTrace();
+                System.exit(1);
+            }
+
+        
+        // perform A* iteration, checking to see if the predicted and actual energies are the same
+        AStarEnergyCalculator calculator = AStarEnergyCalculator.analyze(fixedSequenceRotamerSpace);
+        RotamerIterator iterator = new RotamerIterator(fixedSequenceRotamerSpace.rotamerSpace, calculator.rotamerSelfEnergies, calculator.rotamerInteractionEnergies, 1000);
+        List<RotamerIterator.Node> solutions = iterator.iterate();
+        for (RotamerIterator.Node node : solutions)
+            {
+                List<Rotamer> rotamers = node.rotamers;
+                Peptide thisPeptide = Rotamer.reconstitute(peptide, rotamers);
+                // Return first peptide in solution set which is the lowest energy peptide
+                return thisPeptide;
+            }
+
     }
 
     /** 
