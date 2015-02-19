@@ -1,3 +1,7 @@
+arginine placement runs into backbone
+check overall charge
+remove duplicate sequences from results
+
 Astar line 689
 incorporate variable positions into backbone detection
 ensure backbone atoms are always the same between runs

@@ -181,6 +181,18 @@ public class DEECalculator implements Immutable
 
         // print out the rotamer space after elimination
         System.out.println("Rotamer space after elimination: ");
+        for (int i=0; i < currentRotamerSpace.size(); i++)
+            {
+                List<Rotamer> list = currentRotamerSpace.get(i);
+                System.out.printf("   [ position %2d, %2d rotamers ]   ", i, list.size());
+                for (Rotamer r : list)
+                    {
+                        String description = r.description;
+                        String[] fields = description.split("_");
+                        System.out.printf("%s ", fields[fields.length-1]);
+                    }
+                System.out.println();
+            }
         /*totalSize = 0;
         int maxSize = currentRotamerSpace.get(0).size();
         rotamerSpace:
@@ -247,7 +259,7 @@ public class DEECalculator implements Immutable
         List<Peptide> poses = Collections.synchronizedList(new ArrayList<Peptide>(maxPoses));
         for (RotamerIterator.Node node : solutions)
             {
-                if ( poses.size() >= maxPoses )
+                if ( futures.size() >= maxPoses )
                     break;
                 List<Rotamer> rotamers = node.rotamers;
                 PeptideJob job = new PeptideJob(rotamers, peptide, poses);
@@ -287,14 +299,37 @@ public class DEECalculator implements Immutable
     public static void main(String[] args)
     {
         DatabaseLoader.go();
-        /*List<Peptide> sheets = BetaSheetGenerator.generateSheets(5, 20, 10000, 0.01);
+        List<Peptide> sheets = BetaSheetGenerator.generateSheets(5, 10, 10000, 0.01);
+        sheets = new ArrayList<>(sheets);
         Collections.sort(sheets);
-        int numberOfPeptides = 200;
-        System.out.printf("%d beta sheets generated\n", sheets.size());
-        List<Peptide> results = new ArrayList<>(numberOfPeptides);
-        for (int i=0; i < Math.min(sheets.size(), numberOfPeptides); i++)
-            results.add(sheets.get(i));
-        
+
+        // remove duplicates
+        int maxResults = 64;
+        double RMSDthreshold = 1.5;
+        List<Peptide> results = new ArrayList<>();
+        results.add(sheets.get(0));
+        for (int i=1; i < sheets.size(); i++)
+            {
+                Peptide candidatePeptide = sheets.get(i);
+                Superposition superposition = Superposition.superimpose(candidatePeptide, results);
+                boolean accept = true;
+                for (Double RMSD : superposition.RMSDs)
+                    {
+                        // reject this candidate if it's too similar to an existing peptide
+                        if ( RMSD <= RMSDthreshold )
+                            {
+                                accept = false;
+                                break;
+                            }
+                    }
+                if ( accept )
+                    results.add(candidatePeptide);
+                if ( results.size() >= maxResults )
+                    break;
+            }
+        Peptide.writePeptideGJFs(results, "test_peptides/sheet_", 3);
+
+        // find interesting tuples
         List<Peptide> interestingPeptides = Collections.synchronizedList(new ArrayList<Peptide>());
         List<Future<Result>> futures = new ArrayList<>();
         for (Peptide peptide : results)
@@ -304,18 +339,22 @@ public class DEECalculator implements Immutable
                 futures.add(f);
             }
         GeneralThreadService.waitForFutures(futures);
+        if ( interestingPeptides.size() == 0 )
+            throw new IllegalArgumentException("no interesting peptides found");
 
+        // write out results
         System.out.printf("\n%d peptides generated\n", interestingPeptides.size());
-        //Peptide.writePeptideGJFs(interestingPeptides, "test_peptides/result_", 3);
+        Peptide.writePeptideGJFs(interestingPeptides, "test_peptides/result_", 3);
+        Peptide.writePeptideCHKs(interestingPeptides, "test_peptides/result_", 3);
 
         Peptide peptide = interestingPeptides.get(0);
         new GaussianInputFile(peptide).write("test_peptides/interesting_peptide.gjf");
         peptide.checkpoint("test_peptides/interesting_peptide.chk");
-        */
-        Peptide peptide = Peptide.load("test_peptides/interesting_peptide.chk");
+        
+        //Peptide peptide = Peptide.load("test_peptides/interesting_peptide.chk");
         peptide = HydrogenBondMutator.unmutate(peptide);
         CatalystRotamerSpace catalystRotamerSpace = new CatalystRotamerSpace(peptide,true);
-        List<Peptide> poses = generatePoses(peptide, catalystRotamerSpace, 100);
+        List<Peptide> poses = generatePoses(peptide, catalystRotamerSpace, 10);
         Peptide.writePeptideGJFs(poses, "test_peptides/poses_", 3);
     }
 }

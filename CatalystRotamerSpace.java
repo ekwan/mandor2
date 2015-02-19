@@ -21,7 +21,7 @@ public class CatalystRotamerSpace extends RotamerSpace
     {
         // populate mutation outcomes
         List<ProtoAminoAcid> tempList = new ArrayList<>();
-        List<AminoAcid> aminoAcids = ImmutableList.of(AminoAcid.ALA, AminoAcid.GLY, AminoAcid.VAL, AminoAcid.LEU, AminoAcid.ILE,
+        List<AminoAcid> aminoAcids = ImmutableList.of(AminoAcid.ALA, AminoAcid.VAL, AminoAcid.LEU, AminoAcid.ILE,
                                                       AminoAcid.PHE, AminoAcid.TYR, AminoAcid.TRP, AminoAcid.SER, AminoAcid.THR,
                                                       AminoAcid.ASN, AminoAcid.GLN, AminoAcid.ASP, AminoAcid.GLU);
         for (AminoAcid a : aminoAcids)

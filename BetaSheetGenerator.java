@@ -184,7 +184,7 @@ public class BetaSheetGenerator
                     }
 
                 // check for hydrogen bonds
-                boolean isSheet = isSheet(candidatePeptide);
+                boolean isSheet = isSheet(candidatePeptide,1);
                 if ( isSheet )
                     {
                         // only add to result map if this is a sheet
@@ -233,9 +233,10 @@ public class BetaSheetGenerator
     /**
      * Determines if the specified peptide is in a beta sheet conformation.
      * @param candidatePeptide the peptide to check
+     * @param offset if the ideal number of interstrand H-bonds is n, then we ensure that there are at least n-offset bonds
      * @return true if this is in a beta sheet conformation
      */
-    public static boolean isSheet(Peptide candidatePeptide)
+    public static boolean isSheet(Peptide candidatePeptide, int offset)
     {
         // check for hydrogen bonds
         int numberOfResidues = candidatePeptide.sequence.size();
@@ -252,7 +253,7 @@ public class BetaSheetGenerator
                      Molecule.getDistance(residueJ.O, residueI.HN) < 2.5 && Molecule.getAngle(residueJ.O, residueI.HN, residueI.N) > 120.0 )
                     numberOfHydrogenBonds++;
             }
-        if ( numberOfHydrogenBonds < (numberOfResidues / 2) - 2 )
+        if ( numberOfHydrogenBonds < (numberOfResidues / 2) - 1 - offset )
             return false;
         return true;
     }
@@ -275,8 +276,8 @@ public class BetaSheetGenerator
                 Future<Result> f = GeneralThreadService.submit(job);
                 futures.add(f);
             }
-        GeneralThreadService.silentWaitForFutures(futures);
-        //GeneralThreadService.waitForFutures(futures);
+        //GeneralThreadService.silentWaitForFutures(futures);
+        GeneralThreadService.waitForFutures(futures);
 
         // retrieve results
         List<Peptide> returnList = new ArrayList<>();
@@ -286,7 +287,7 @@ public class BetaSheetGenerator
                     {
                         TinkerJob.TinkerResult result = (TinkerJob.TinkerResult)f.get();
                         Peptide resultPeptide = result.minimizedPeptide;
-                        if ( isSheet(resultPeptide) )
+                        //if ( isSheet(resultPeptide,0) )
                             returnList.add(resultPeptide);
                     }
                 catch (Exception e) {}
@@ -306,7 +307,7 @@ public class BetaSheetGenerator
                 try
                     {
                         Peptide resultPeptide = job.call().minimizedPeptide;
-                        if ( isSheet(resultPeptide) )
+                        if ( isSheet(resultPeptide, 0) )
                             results.add(resultPeptide);
                     }
                 catch (Exception e) {}
@@ -318,26 +319,41 @@ public class BetaSheetGenerator
     public static void main(String[] args)
     {
         DatabaseLoader.go();
-        List<Peptide> polyGlySheets = generateSheets(7, 10, 10000, 0.01);
-        List<Peptide> polyAlaSheets = new ArrayList<>(polyGlySheets.size());
-        ProtoAminoAcid protoAminoAcidTemplate = ProtoAminoAcidDatabase.getTemplate("standard_alanine");
-        for (Peptide p : polyGlySheets)
+        List<Peptide> sheets = generateSheets(6, 10, 10000, 0.01);
+        sheets = new ArrayList<>(sheets);
+        Collections.sort(sheets);
+
+        // remove duplicates
+        int maxResults = 100;
+        double RMSDthreshold = 2.0;
+        List<Peptide> results = new ArrayList<>();
+        results.add(sheets.get(0));
+        for (int i=1; i < sheets.size(); i++)
             {
-                Peptide newPeptide = p;
-                for (int i=0; i<newPeptide.sequence.size(); i++)
+                System.out.printf("superimposing %d of %d\r", i+1, sheets.size());
+                Peptide candidatePeptide = sheets.get(i);
+                Superposition superposition = Superposition.superimpose(candidatePeptide, results);
+                boolean accept = true;
+                System.out.println(superposition.RMSDs);
+                for (Double RMSD : superposition.RMSDs)
                     {
-                        Residue residue = newPeptide.sequence.get(i);
-                        if ( residue.isHairpin )
-                            continue;
-                        newPeptide = SidechainMutator.mutateSidechain(newPeptide, residue, protoAminoAcidTemplate);
+                        // reject this candidate if it's too similar to an existing peptide
+                        if ( RMSD <= RMSDthreshold )
+                            {
+                                accept = false;
+                                break;
+                            }
                     }
-                polyAlaSheets.add(newPeptide);
+                if ( accept )
+                    results.add(candidatePeptide);
+                if ( results.size() >= maxResults )
+                    break;
             }
-        List<Peptide> minimizedSheets = new ArrayList<>(minimizeSheets(polyAlaSheets, 2000, Forcefield.AMOEBA)); 
-        Collections.sort(minimizedSheets);
-        for ( int i=0; i < Math.min(10, minimizedSheets.size()); i++ )
+        System.out.println("\nfinished superimposing");
+
+        for ( int i=0; i < results.size(); i++ )
             {
-                Peptide p = minimizedSheets.get(i);
+                Peptide p = sheets.get(i);
                 GaussianInputFile f = new GaussianInputFile(p);
                 String filename = String.format("test_peptides/sheet_%02d.gjf", i);
                 f.write(filename);

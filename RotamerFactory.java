@@ -1070,7 +1070,7 @@ public class RotamerFactory
                                 boolean interesting = false;
                                 for (Atom a : rotamer.atoms)
                                     {
-                                        if ( ( a.type1 == 209 || a.type1 == 212 ) && Molecule.getDistance(a, transitionStateOatom) < 3.0 )
+                                        if ( ( a.type1 == 209 || a.type1 == 212 ) && Molecule.getDistance(a, transitionStateOatom) < 2.5 )
                                             {
                                                 interesting = true;
                                                 break;
@@ -1145,10 +1145,15 @@ public class RotamerFactory
                     newPeptide = HydrogenBondMutator.mutate(newPeptide);
                     interestingPairPeptides.add(newPeptide);
                 }
-            List<Peptide> minimizedSheets = BetaSheetGenerator.minimizeSheetsInSerial(interestingPairPeptides, 2000, Forcefield.AMOEBA);
-            List<Peptide> argininePeptides = addArginine(minimizedSheets);
-            minimizedSheets = BetaSheetGenerator.minimizeSheetsInSerial(argininePeptides, 2000, Forcefield.AMOEBA);
-            
+            //System.out.printf("%d interesting pair peptides\n", interestingPairPeptides.size()); 
+            //List<Peptide> minimizedSheets = BetaSheetGenerator.minimizeSheetsInSerial(interestingPairPeptides, 2000, Forcefield.AMOEBA);
+            //System.out.printf("%d minimized interesting pair peptides\n", minimizedSheets.size()); 
+            List<Peptide> results = addArginine(interestingPairPeptides);
+            //List<Peptide> results = BetaSheetGenerator.minimizeSheetsInSerial(argininePeptides, 2000, Forcefield.AMOEBA);
+            //System.out.printf("%d arg peptides peptides\n", minimizedSheets.size()); 
+            //minimizedSheets = BetaSheetGenerator.minimizeSheetsInSerial(argininePeptides, 2000, Forcefield.AMOEBA);
+            //System.out.printf("%d minimized arg peptides\n", minimizedSheets.size()); 
+            /*
             // check for proper arg-TS contact
             List<Peptide> resultSheets = new ArrayList<>();
             for (Peptide peptide : minimizedSheets)
@@ -1189,10 +1194,10 @@ public class RotamerFactory
                     if ( interesting )
                         resultSheets.add(peptide);
                 }
-
-            if ( resultSheets.size() > 0 )
-                System.out.printf("found %d solutions\n", resultSheets.size());
-            interestingPeptides.addAll(resultSheets);
+            */
+            if ( results.size() > 0 )
+                System.out.printf("found %d solutions\n", results.size());
+            interestingPeptides.addAll(results);
             return null;
         }
     }
