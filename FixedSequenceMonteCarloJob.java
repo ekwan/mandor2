@@ -22,7 +22,7 @@ public class FixedSequenceMonteCarloJob extends MonteCarloJob
     public static final NormalDistribution CIS_DISTRIBUTION = new NormalDistribution(0.0,5.0);
 
     /** A list of backbone atom pairs to check for clashes. */
-    public static final List<Pair<Integer, Integer>> backbonePairs;
+    public final List<Pair<Integer, Integer>> backbonePairs;
     
     /**
      * The allowed (phi,psi) angles for the hairpin D-proline and glycine.  Entries 0 and 1 are phi and psi for
@@ -147,9 +147,9 @@ public class FixedSequenceMonteCarloJob extends MonteCarloJob
                 else
                     {
                         // choose a random (phi,psi)
-                        newPeptide = BackboneMutator.mutateOmega(newPeptide,residue);
+                        newPeptide = BackboneMutator.mutateOmega(newPeptide,newPeptide.sequence.indexOf(residue));
                         residue = newPeptide.sequence.get(randomIndex);
-                        newPeptide = BackboneMutator.mutatePhiPsi(newPeptide,residue);
+                        newPeptide = BackboneMutator.mutatePhiPsi(newPeptide, newPeptide.sequence.indexOf(residue));
                         return newPeptide;
                     }
         }
@@ -203,14 +203,14 @@ public class FixedSequenceMonteCarloJob extends MonteCarloJob
     {
         // Minimize each peptide on OPLS forcefield
         TinkerJob job = new TinkerJob(peptide, Forcefield.OPLS, 2000, false, true, false, false, false);
-        TinkerResult result = job.call();
+        TinkerJob.TinkerResult result = job.call();
         return result.minimizedPeptide;
     }
 
     public MonteCarloResult call()
     {
         List<Peptide> bestResults = minimize(maxSize);
-        return MonteCarloResult(bestResults);
+        return new MonteCarloResult(bestResults);
     }
        
 }

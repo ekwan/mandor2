@@ -1,8 +1,8 @@
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.*;
-import com.google.common.collect.*;
 import java.io.*;
+import com.google.common.collect.*;
 
 /**
  * This class calculates reference energies for amino acids in a beta sheet confromation. 
@@ -56,13 +56,13 @@ public class ReferenceEnergyCalculator
                 if ( a == AminoAcid.DPRO || a == AminoAcid.LPRO || a == AminoAcid.TS ||
                      a == AminoAcid.LYS || a == AminoAcid.CYS  || a == AminoAcid.MET     )
                     continue;
-                int index = ProtoAminoAcidLibrary.KEYS.indexOf(a);
+                int index = ProtoAminoAcidDatabase.KEYS.indexOf(a);
                 List<ProtoAminoAcid> VALUES = ProtoAminoAcidDatabase.VALUES.get(index);
                 for (ProtoAminoAcid paa : VALUES)
                     {
                         // reject transition states
                         // decide upon this
-                        if (paa.r.description.toLowerCase().indexOf("hairpin") > -1 )
+                        if (paa.residue.description.toLowerCase().indexOf("hairpin") > -1 )
                             continue;
                         mutationOutcomes.add(paa);
                     }
@@ -80,7 +80,7 @@ public class ReferenceEnergyCalculator
 
                 // Pick random mutation target
                 Collections.shuffle(mutationOutcomes);
-                targetPAA = mutationOutcomes.get(0);
+                ProtoAminoAcid targetPAA = mutationOutcomes.get(0);
                 randomPeptide = SidechainMutator.mutateSidechain(randomPeptide, r, targetPAA);
             }
 
@@ -119,11 +119,11 @@ public class ReferenceEnergyCalculator
         {
             // Minimize each peptide on AMOEBA forcefield
             // Use Tinker approximate solvation for analyze 
-            TinkerJob job = new TinkerJob(peptide, Forcefield.AMOEBA, 2000, false, true, true, false, true);
-            TinkerResult result = job.call();
+            TinkerJob job = new TinkerJob(p, Forcefield.AMOEBA, 2000, false, true, true, false, true);
+            TinkerJob.TinkerResult result = job.call();
             Peptide newPeptide = result.minimizedPeptide; 
             
-            PepideFingerprint fingerprint = new PeptideFingerprint(newPeptide, newPeptide.energyBreakdown.totalEnergy);
+            PeptideFingerprint fingerprint = new PeptideFingerprint(newPeptide, newPeptide.energyBreakdown.totalEnergy);
             
             // Verify that we are adding new peptide and 
             if (!peptidesWithoutDuplicates.containsKey(fingerprint))
@@ -170,13 +170,13 @@ public class ReferenceEnergyCalculator
                 if (allEnergiesByAminoAcid.containsKey(r.aminoAcid))
                 {
                     List<Double> energies = allEnergiesByAminoAcid.get(r.aminoAcid);
-                    energies.add(p.energyBreakdown.energyByResidue.get(p.sequence.indexOf(r));
+                    energies.add(p.energyBreakdown.energyByResidue.get(p.sequence.indexOf(r)));
                     allEnergiesByAminoAcid.put(r.aminoAcid, energies);
                 }
                 else
                 {
                     List<Double> energies = new LinkedList<>();
-                    energies.add(p.energyBreakdown.energyByResidue.get(p.sequence.indexOf(r));
+                    energies.add(p.energyBreakdown.energyByResidue.get(p.sequence.indexOf(r)));
                     allEnergiesByAminoAcid.put(r.aminoAcid, energies);
                 }
             }
@@ -223,8 +223,8 @@ public class ReferenceEnergyCalculator
             List<Peptide> monteCarloOutput = runMonteCarlo(p);
             // Minimize with AMOEBA
             List<Peptide> lowestEnergyMinimizedPeptides = minimize(monteCarloOutput);
-            for (Peptide p : lowestEnergyMinimizedPeptides)
-                minimizedRandomPeptides.add(p);
+            for (Peptide p2 : lowestEnergyMinimizedPeptides)
+                minimizedRandomPeptides.add(p2);
         }
 
         // Breakdown energy for each peptide and average energies
