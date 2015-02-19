@@ -282,4 +282,30 @@ public class HydrogenBondMutator implements Singleton, Mutator
         //adjustedPeptide = adjustedPeptide.setEnergyBreakdown(energyBreakdown);
         return adjustedPeptide;
     }
+
+    /**
+     * Mutate a whole bunch of peptides at once.
+     * @param peptides the peptides to mutate
+     * @param the mutated peptides
+     */
+    public static List<Peptide> mutate(List<Peptide> peptides)
+    {
+        List<Peptide> returnList = new ArrayList<>(peptides.size());
+        for (Peptide p : peptides)
+            returnList.add(mutate(p));
+        return returnList;
+    }
+
+    /**
+     * Mutate a whole bunch of peptides at once.
+     * @param peptides the peptides to mutate
+     * @param the mutated peptides
+     */
+    public static List<Peptide> unmutate(List<Peptide> peptides)
+    {
+        List<Peptide> returnList = new ArrayList<>(peptides.size());
+        for (Peptide p : peptides)
+            returnList.add(unmutate(p));
+        return returnList;
+    }
 }

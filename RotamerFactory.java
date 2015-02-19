@@ -808,27 +808,8 @@ public class RotamerFactory
             }
 
         // get the transition state hydroxyl atoms
-        Atom atomH = null;
-        Atom atomO = null;
-        for (Atom a : transitionStateRotamer.atoms)
-            {
-                if ( a.type1 == 401 )
-                    {
-                        if ( atomH == null )
-                            atomH = a;
-                        else
-                            throw new IllegalArgumentException("duplicate hydroxyl H found");
-                    }
-                else if ( a.type1 == 402 )
-                    {
-                        if ( atomO == null )
-                            atomO = a;
-                        else
-                            throw new IllegalArgumentException("duplicate hydroxyl O found");
-                    }
-            }
-        if ( atomH == null || atomO == null )
-            throw new NullPointerException("hydroxyl atom not found");
+        Atom atomH = locateSingleAtom(ImmutableSet.of(401), transitionStateRotamer.atoms);
+        Atom atomO = locateSingleAtom(ImmutableSet.of(402), transitionStateRotamer.atoms);
 
         // for each peptide, rotate the sidechain on a grid and see if it gets close to the transition state hydroxyl
         List<Pair<Rotamer,Rotamer>> returnList = new ArrayList<>();
@@ -886,18 +867,9 @@ public class RotamerFactory
                 chi2torsionIndices.add(allAtoms.indexOf(chi2torsion.atom3));
                 chi2torsionIndices.add(allAtoms.indexOf(chi2torsion.atom4));
 
-                // get the index of the histidine pi nitrogen 
-                Integer histidinePiNitrogenIndex = null;
-                for (Atom a : allAtoms)
-                    {
-                        if ( a.type1 == 130 || a.type1 == 126 )
-                            {
-                                if ( histidinePiNitrogenIndex == null )
-                                    histidinePiNitrogenIndex = allAtoms.indexOf(a);
-                                else
-                                    throw new IllegalArgumentException("duplicate histidine pi nitrogen found");
-                            }
-                    }
+                // get the index of the histidine pi nitrogen
+                Atom histidinePiNitrogen = locateSingleAtom(ImmutableSet.of(130,126), allAtoms); 
+                Integer histidinePiNitrogenIndex = allAtoms.indexOf(histidinePiNitrogen);
 
                 // rotate chi1 and chi2 on a grid and check for the desired contact
                 double stepSize = 360.0 / (HISTIDINE_GRID_SIZE-1.0);
@@ -1099,7 +1071,6 @@ public class RotamerFactory
                                             }
                                     }
 
-
                                 // add the rotamer if it's interesting
                                 if ( !clashes )
                                     interestingRotamers.add(rotamer);
@@ -1202,6 +1173,59 @@ public class RotamerFactory
         }
     }
 
+    /**
+     * Searches through a list of atoms and returns the one
+     * Throws an exception if the number of matches is not exactly one.
+     * @param types the AMOEBA types of the atom we're looking for
+     * @param atoms the atoms to search through
+     * @return the matching atom
+     */
+    public static Atom locateSingleAtom(Set<Integer> types, List<Atom> atoms)
+    {
+        if ( types == null || atoms == null )
+            throw new NullPointerException("nulls not allowed");
+        Atom resultAtom = null;
+        for (Atom a : atoms)
+            {
+                if ( types.contains(a.type1) )
+                    {
+                        if ( resultAtom == null )
+                            resultAtom = a;
+                        else
+                            {
+                                List<Integer> allTypes = new ArrayList<>();
+                                for ( Atom a2 : atoms )
+                                    allTypes.add(a2.type1);
+                                System.out.println(allTypes);
+                                throw new IllegalArgumentException("multiple matches found for " + types.toString());
+                            }
+                    }
+            }
+        if ( resultAtom == null )
+            throw new NullPointerException("atom not found");
+        return resultAtom;
+    }
+
+    /**
+     * Searches through a list of atoms and returns any that match the specified types.
+     * No exceptions are thrown and duplicates are all returned.
+     * @param types the AMOEBA types of the atoms we're looking for
+     * @param atoms the atoms to search through
+     * @return the matching atoms
+     */
+    public static List<Atom> locateAtoms(Set<Integer> types, List<Atom> atoms)
+    {
+        if ( types == null || atoms == null )
+            throw new NullPointerException("nulls not allowed");
+        List<Atom> resultAtoms = new ArrayList<>();;
+        for (Atom a : atoms)
+            {
+                if ( types.contains(a.type1) )
+                    resultAtoms.add(a);
+            }
+        return resultAtoms;
+    }
+
     /** For testing. */
     public static void main(String[] args)
     {
@@ -1225,6 +1249,6 @@ public class RotamerFactory
         GeneralThreadService.waitForFutures(futures);
 
         System.out.printf("\n%d peptides generated\n", interestingPeptides.size());
-        Peptide.writePeptideGJFs(interestingPeptides, "test_peptides/result_", 3);
+        Peptide.writeGJFs(interestingPeptides, "test_peptides/result_", 3, 100);
     }
 }

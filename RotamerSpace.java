@@ -74,11 +74,9 @@ public abstract class RotamerSpace implements Immutable
         List<List<Atom>> backboneAtoms = getBackboneAtoms(tempPeptide, variablePositions, includeHN);
 
         // prune rotamers that clash with the backbone
-        System.out.println("before pruning 1");
-        printRotamerSizes(tempRotamerSpace);
+        printRotamerSizes("before pruning", tempRotamerSpace);
         tempRotamerSpace = pruneRotamerSpace(tempPeptide, backboneAtoms, tempRotamerSpace);
-        System.out.println("after pruning 1");
-        printRotamerSizes(tempRotamerSpace);
+        printRotamerSizes("after pruning clashes", tempRotamerSpace);
         // check if any solutions are possible
         for (Integer i : variablePositions)
             {
@@ -115,12 +113,11 @@ public abstract class RotamerSpace implements Immutable
         pruneIncompatibleRotamers(tempRotamerSpace, tempIncompatiblePairs);
    
         // check if any solutions are possible
-        printRotamerSizes(tempRotamerSpace);
+        printRotamerSizes("after pruning incompatibles", tempRotamerSpace);
         //checkRotamerSpace(tempRotamerSpace, tempPeptide, tempIncompatiblePairs, emptyPositions);
         checkRotamerSpace(tempRotamerSpace, tempPeptide, tempIncompatiblePairs);
 
         // return result
-        printRotamerSizes(tempRotamerSpace);
         System.out.printf("%d incompatible pairs found\n", tempIncompatiblePairs.size());
         peptide = tempPeptide;
         rotamerSpace = tempRotamerSpace;
@@ -328,10 +325,12 @@ public abstract class RotamerSpace implements Immutable
 
     /**
      * Prints out how many rotamers there are at each position on one line
+     * @param prefix gets printed out before result
      * @param rotamerSpace the rotamer space to print out
      */
-    public static void printRotamerSizes(List<List<Rotamer>> rotamerSpace)
+    public static void printRotamerSizes(String prefix, List<List<Rotamer>> rotamerSpace)
     {
+        System.out.print(prefix + " ");
         for (List<Rotamer> list : rotamerSpace)
             System.out.print(list.size() + " ");
         System.out.println(" / " + countRotamers(rotamerSpace) + " total");
