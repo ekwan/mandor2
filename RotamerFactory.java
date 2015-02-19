@@ -899,7 +899,6 @@ public class RotamerFactory
                             }
                     }
 
-
                 // rotate chi1 and chi2 on a grid and check for the desired contact
                 double stepSize = 360.0 / (HISTIDINE_GRID_SIZE-1.0);
                 double chi1 = -180.0;
@@ -1028,6 +1027,7 @@ public class RotamerFactory
                     throw new NullPointerException("TS O atom not found");
                 
                 // whether the arginine should be up or down
+                // ensures that the arginine will be on the same face as the TS/his pair
                 boolean shouldBeUp = isUp(sequenceLength, TSindex);
 
                 for (int i=0; i < sequenceLength; i++)
@@ -1054,7 +1054,7 @@ public class RotamerFactory
                         List<Rotamer> rotamers = generateRotamers(candidatePeptide, residue, true, null);
                         //System.out.println(rotamers.size() + " rotamers generated");
 
-                        // get the atoms at al the other positions
+                        // get the atoms at all the other positions
                         List<Atom> otherAtoms = new ArrayList<>();
                         for (int i=0; i < sequenceLength; i++)
                             {
@@ -1089,7 +1089,8 @@ public class RotamerFactory
                                     {
                                         for (Atom a2 : otherAtoms)
                                             {
-                                                if ( Molecule.getDistance(a1,a2) < Settings.MINIMUM_INTERATOMIC_DISTANCE )
+                                                //if ( Molecule.getDistance(a1,a2) < Settings.MINIMUM_INTERATOMIC_DISTANCE )
+                                                if ( Molecule.getDistance(a1,a2) < 1.50 )
                                                     {
                                                         clashes = true;
                                                         //System.out.printf("clash found between %d and %s\n", a1.type1, a2.type1);
@@ -1099,8 +1100,7 @@ public class RotamerFactory
                                     }
 
 
-                                // check TS oxygen/HN atom distance
-
+                                // add the rotamer if it's interesting
                                 if ( !clashes )
                                     interestingRotamers.add(rotamer);
                             }

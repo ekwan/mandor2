@@ -355,6 +355,13 @@ public class DEECalculator implements Immutable
         peptide = HydrogenBondMutator.unmutate(peptide);
         CatalystRotamerSpace catalystRotamerSpace = new CatalystRotamerSpace(peptide,true);
         List<Peptide> poses = generatePoses(peptide, catalystRotamerSpace, 10);
-        Peptide.writePeptideGJFs(poses, "test_peptides/poses_", 3);
+        Peptide.writePeptideGJFs(poses, "test_peptides/original_poses_", 3);
+    
+        // minimize poses
+        List<Peptide> minimizedPoses = BetaSheetGenerator.minimizeSheets(poses, Forcefield.AMOEBA, 2000);
+        Peptide.writePeptideGJFs(minimizedPoses, "test_peptides/minimized_poses_", 3);
+
+        // check poses for proper contacts
+
     }
 }
