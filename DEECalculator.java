@@ -290,16 +290,58 @@ public class DEECalculator implements Immutable
         return false;
     }
 
+    /**
+     * Returns a string of the form 0_2_4 where the numbers are the indices of the
+     * TS, histidine, and arginine, respectively.  If something is not found or found twice
+     * an exception is thrown.
+     * @param peptide the peptide to analyze
+     * @return the index string
+     */
+    public static String getSignature(Peptide peptide)
+    {
+        String returnString = "";
+        int TSindex = -1;
+        int histidineIndex = -1;
+        int arginineIndex = -1;
+        for (int i=0; i < peptide.sequence.size(); i++)
+            {
+                Residue residue = peptide.sequence.get(i);
+                String description = residue.description;
+                if ( description.indexOf("transition_state") > -1 )
+                    {
+                        if ( TSindex == -1 )
+                            TSindex = i;
+                        else throw new IllegalArgumentException("duplicate TS");
+                    }
+                else if ( description.indexOf("histidine") > -1 )
+                    {
+                        if ( histidineIndex == -1 )
+                            histidineIndex = i;
+                        else throw new IllegalArgumentException("duplicate histidine");
+                    }
+                else if ( description.indexOf("arginine") > -1 )
+                    {
+                        if ( arginineIndex == -1 )
+                            arginineIndex = i;
+                        else throw new IllegalArgumentException("duplicate arginine");
+                    }
+            }
+        if ( TSindex == -1 || histidineIndex == -1 || arginineIndex == -1 )
+            throw new IllegalArgumentException(String.format("Indices not found: TS %d, histidine %d, arginine %d", TSindex, histidineIndex, arginineIndex));
+        returnString = String.format("%d_%d_%d", TSindex, histidineIndex, arginineIndex);
+        return returnString;
+    }
+
     /** for testing */
     public static void main(String[] args)
     {
         DatabaseLoader.go();
-        List<Peptide> sheets = BetaSheetGenerator.generateSheets(6, 1000, 100000, 0.001);
+        List<Peptide> sheets = BetaSheetGenerator.generateSheets(5, 1000, 100000, 0.001);
         Collections.sort(sheets);
 
         // remove duplicates
         int maxResults = 1000;
-        double RMSDthreshold = 1.5;
+        double RMSDthreshold = 0.5;
         List<Peptide> results = new ArrayList<>();
         results.add(sheets.get(0));
         for (int i=1; i < sheets.size(); i++)
@@ -322,7 +364,7 @@ public class DEECalculator implements Immutable
                     break;
             }
         System.out.printf("%d unique sheets generated\n", results.size());
-        Peptide.writeGJFs(results, "test_peptides/sheet_", 3, maxResults);
+        //Peptide.writeGJFs(results, "test_peptides/sheet_", 3, maxResults);
 
         // find interesting tuples
         List<Peptide> interestingPeptides = Collections.synchronizedList(new ArrayList<Peptide>());
@@ -339,11 +381,9 @@ public class DEECalculator implements Immutable
 
         // write out results
         System.out.printf("\n%d peptides generated\n", interestingPeptides.size());
-        Peptide.writeGJFs(interestingPeptides, "test_peptides/result_", 3, 10);
-        Peptide.writeCHKs(interestingPeptides, "test_peptides/result_", 3, 10);
+        //Peptide.writeGJFs(interestingPeptides, "test_peptides/result_", 3, 10);
+        //Peptide.writeCHKs(interestingPeptides, "test_peptides/result_", 3, 10);
 
-        // check peptide for self-clashes
-        
         // rotamer pack
         List<Peptide> poses = new ArrayList<>();
         int maxPoses = 10000;
@@ -360,7 +400,7 @@ public class DEECalculator implements Immutable
                 try
                     {
                         CatalystRotamerSpace catalystRotamerSpace = new CatalystRotamerSpace(peptide,true);
-                        List<Peptide> thisPoses = generatePoses(peptide, catalystRotamerSpace, 5);
+                        List<Peptide> thisPoses = generatePoses(peptide, catalystRotamerSpace, 10);
                         poses.addAll(thisPoses);
                     }
                 catch (Exception e)
@@ -371,33 +411,51 @@ public class DEECalculator implements Immutable
                             e.printStackTrace();
                     }
             }
-        Peptide.writeGJFs(poses, "test_peptides/original_poses_", 5, maxPoses);
+        //Peptide.writeGJFs(poses, "test_peptides/original_poses_", 5, maxPoses);
     
         // mutate back to close contact forcefield
         poses = HydrogenBondMutator.mutate(poses);
 
         // minimize poses
+        System.out.println("Minimizing all poses:");
         List<Peptide> minimizedPoses = BetaSheetGenerator.minimizeSheets(poses, 2000, Forcefield.AMOEBA);
-        Peptide.writeGJFs(minimizedPoses, "test_peptides/minimized_poses_", 5, maxPoses);
+        System.out.println("\nDone minimizing.");
+        //Peptide.writeGJFs(minimizedPoses, "test_peptides/minimized_poses_", 5, maxPoses);
 
         // check the poses are actually sheets
-        List<Peptide> goodPoses = new ArrayList<>();
+        Map<String,List<Peptide>> resultMap = new HashMap<>(); // map from indices of TS,his,arg to peptides
         for (Peptide p : minimizedPoses)
             {
                 boolean isSheet = BetaSheetGenerator.isSheet(p,1);
                 boolean hasBackboneContact = hasBackboneContact(p);
                 boolean hasArgContact = hasArgContact(p);
-                System.out.printf("sheet: %5b   backbone: %5b   arg: %5b\n", isSheet, hasBackboneContact, hasArgContact);
-                if ( isSheet && hasBackboneContact && hasArgContact )
-                    goodPoses.add(p);
+                String signature = getSignature(p);
+                boolean pass = isSheet && hasBackboneContact && hasArgContact;
+                System.out.printf("%10s sheet: %5b   backbone: %5b   arg: %5b  pass: %5b\n", signature, isSheet, hasBackboneContact, hasArgContact, pass);
+                if ( !pass )
+                    continue;
+                
+                // adjust peptide energy by reference energy
+                double referenceEnergy = Interaction.getAMOEBAReferenceEnergy(p);
+                EnergyBreakdown energyBreakdown = p.energyBreakdown.addReferenceEnergy(referenceEnergy);
+                Peptide adjustedPeptide = p.setEnergyBreakdown(energyBreakdown);
+
+                // place in result map
+                List<Peptide> list = resultMap.get(signature);
+                if ( list == null )
+                    {
+                        list = new ArrayList<>();
+                        resultMap.put(signature,list);
+                    }
+                list.add(adjustedPeptide);
             }
-        Peptide.writeGJFs(goodPoses, "test_peptides/good_", 5, maxPoses);
 
-
-        // create map of sequences to designs to remove duplicates
-
-        // need to get reference energy corrected energies
-
-        
+        // write out the results
+        for (String signature : resultMap.keySet())
+            {
+                List<Peptide> list = resultMap.get(signature);
+                Collections.sort(list); // sort by energy
+                Peptide.writeGJFs(list, "test_peptides/good_" + signature + "_", 3, maxPoses);
+            }
     }
 }

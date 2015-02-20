@@ -6,6 +6,8 @@ import com.google.common.collect.*;
 
 /**
  * This class calculates reference energies for amino acids in a beta sheet confromation. 
+ * Reference energies are collected for both OPLS (calculated internally) and AMOEBA (calculated
+ * externally by TINKER).  These energies do not include solvation energies.
  * 
  * The procedure is:
  * 
@@ -13,17 +15,19 @@ import com.google.common.collect.*;
  *
  * 2. Perform mutations to generate random beta sheet peptides using SidechainMutator
  *
- * 3. Perform a Monte Carlo minimization on each randomly generated peptide
+ * 3. Perform a Monte Carlo minimization on each randomly generated peptide.  These minimizations
+ *    are performed with OPLS in the gas phase.
  *
- * 4. For lowest energy structures, minimize using AMOEBA and then perform an energy breakdown
+ * 4. Perform approximate solvation on the structures from step (3) to select the best structures.
  *
- * 5. Average across all amino acid occurences, for reference energy for each amino acid
+ * 5. Minimize the best structures with AMOEBA in the gas phase.  Add a single point solvation correction
+ *    with GK at the end.  Take the lowest energy structure for each peptide and put it in a pile.
+ *
+ * 6. For all the structures in the pile, compute the gas phase AMOEBA energy breakdown and use that for the
+ *    AMOEBA reference energies.  Also compute the OPLS interactions and use those for the OPLS energies.
  */
-
 public class ReferenceEnergyCalculator
 {
-    /** Define constants */
-
     /** The number of poly-gly beta sheets to generate as a starting point */
     public static final int NUMBER_BETA_SHEETS = 500;
 
@@ -41,73 +45,29 @@ public class ReferenceEnergyCalculator
 
     /**
     * This method will perform mutations to a list of beta sheet peptides to randomly generate a list of peptides. 
-    * This method does not permit mutations to cysteine, proline, and methionine. 
+    * We don't bother mutating to 
     * It will also save these peptides to disk.
     * @param betaSheets the initial beta sheets to be mutated
     * @return a list of random sequence peptides still in the beta sheet secondary structure
     */
     public static List<Peptide> generateRandomPeptides(List<Peptide> betaSheets)
     {
-        // Create list of possible mutations
-        List<ProtoAminoAcid> mutationOutcomes = new ArrayList<>();
-        for (AminoAcid a : ProtoAminoAcidDatabase.KEYS)
-            {
-                // reject unusual amino acids
-                if ( a == AminoAcid.DPRO || a == AminoAcid.LPRO || a == AminoAcid.TS ||
-                     a == AminoAcid.LYS || a == AminoAcid.CYS  || a == AminoAcid.MET     )
-                    continue;
-                int index = ProtoAminoAcidDatabase.KEYS.indexOf(a);
-                List<ProtoAminoAcid> VALUES = ProtoAminoAcidDatabase.VALUES.get(index);
-                for (ProtoAminoAcid paa : VALUES)
-                    {
-                        // reject transition states
-                        // decide upon this
-                        if (paa.residue.description.toLowerCase().indexOf("hairpin") > -1 )
-                            continue;
-                        mutationOutcomes.add(paa);
-                    }
-            }
-
-        // Generate random peptides
+        List<ProtoAminoAcid> mutationOutcomes = CatalystRotamerSpace.MUTATION_OUTCOMES;
         List<Peptide> randomPeptides = new LinkedList<>();
         for (Peptide p : betaSheets)
-        {
-            Peptide randomPeptide = p;
-            for (Residue r : p.sequence)
             {
-                if (r.description.toLowerCase().indexOf("hairpin") > -1)
-                    continue;
+                // place arg, his, and ser on the same side of the hairpin
 
-                // Pick random mutation target
-                Collections.shuffle(mutationOutcomes);
-                ProtoAminoAcid targetPAA = mutationOutcomes.get(0);
-                randomPeptide = SidechainMutator.mutateSidechain(randomPeptide, r, targetPAA);
+                // mutate all the other positions at random
             }
-
-            randomPeptides.add(randomPeptide);
-        }
-        
         return randomPeptides;
     }
 
-    
-    /** 
-    * This method will run the fixed sequence Monte Carlo process.
-    * @param randomPeptide a randomly generated peptide from performMutations
-    * @return a list of size NUMBER_STRUCTURES_TO_MINIMIZE that will contain the lowest energy peptides from a fixed sequence simulation
-    */
-    public static List<Peptide> runMonteCarlo(Peptide randomPeptide)
-    {
-        FixedSequenceMonteCarloJob fixedSequenceMonteCarloJob = new FixedSequenceMonteCarloJob(randomPeptide, .01, 1000, NUMBER_STRUCTURES_TO_MINIMIZE); 
-        MonteCarloResult monteCarloResult = fixedSequenceMonteCarloJob.call();
-        return monteCarloResult.bestPeptides;
-    }
-
     /**
-    * A method for performing AMOEBA minimizations that also removes duplicates and returns the lowest energy structures only
-    * @param monteCarloPeptides the peptides generated from the Monte Carlo process which includes NUMBER_STRUCTURES_TO_MINIMIZE peptides
-    * @return the NUMBER_LOWEST_ENERGY_STRUCTURES_TO_KEEP peptides that will be used to find the average amino acid reference energy 
-    */
+     * A method for performing AMOEBA minimizations that also removes duplicates and returns the lowest energy structures only
+     * @param monteCarloPeptides the peptides generated from the Monte Carlo process which includes NUMBER_STRUCTURES_TO_MINIMIZE peptides
+     * @return the NUMBER_LOWEST_ENERGY_STRUCTURES_TO_KEEP peptides that will be used to find the average amino acid reference energy 
+     */
     public static List<Peptide> minimize(List<Peptide> monteCarloPeptides)
     {
         // Create hashamp to avoid duplicates

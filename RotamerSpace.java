@@ -74,9 +74,9 @@ public abstract class RotamerSpace implements Immutable
         List<List<Atom>> backboneAtoms = getBackboneAtoms(tempPeptide, variablePositions, includeHN);
 
         // prune rotamers that clash with the backbone
-        printRotamerSizes("before pruning", tempRotamerSpace);
+        printRotamerSizes("before pruning clashes", tempRotamerSpace);
         tempRotamerSpace = pruneRotamerSpace(tempPeptide, backboneAtoms, tempRotamerSpace);
-        printRotamerSizes("after pruning clashes", tempRotamerSpace);
+        printRotamerSizes("after pruning clashes ", tempRotamerSpace);
         // check if any solutions are possible
         for (Integer i : variablePositions)
             {
@@ -452,6 +452,8 @@ public abstract class RotamerSpace implements Immutable
 
     /**
      * Checks a batch of rotamer pairs and figures out which ones are incompatible.
+     * TS/his and TS/arg pairs are not considered for incompatibility here because they should
+     * have been checked when they were made.
      */
     public static class IncompatibleWorkUnit implements WorkUnit
     {
@@ -483,6 +485,19 @@ public abstract class RotamerSpace implements Immutable
             HashSet<RotamerPair> thisIncompatible = new HashSet<>();
             for (RotamerPair pair : work)
                 {
+                    // skip TS/his and TS/arg pairs
+                    Rotamer rotamer1 = pair.rotamer1;
+                    Rotamer rotamer2 = pair.rotamer2;
+                    if ( rotamer1.description.indexOf("transition_state") > -1 ||
+                         rotamer2.description.indexOf("transition_state") > -1    )
+                        {
+                            if ( rotamer1.description.indexOf("histidine") > -1 ||
+                                 rotamer2.description.indexOf("histidine") > -1 ||
+                                 rotamer1.description.indexOf("arginine") > -1  ||
+                                 rotamer2.description.indexOf("arginine") > -1     )
+                                continue;
+                        }
+
                     if ( isIncompatible(pair) ) 
                         thisIncompatible.add(pair);
                 }

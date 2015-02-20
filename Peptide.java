@@ -71,7 +71,8 @@ public class Peptide extends Molecule implements Immutable, Serializable, Compar
     {
         //if ( energyBreakdown != null && energyBreakdown != EnergyBreakdown.BLANK )
         //    System.out.println("warning: set energy breakdown when not null");
-        return new Peptide(name, contents, connectivity, sequence, newEnergyBreakdown);
+        String newName = name.split("@")[0] + String.format(" @ %.2f kcal", newEnergyBreakdown.totalEnergy);
+        return new Peptide(newName, contents, connectivity, sequence, newEnergyBreakdown);
     }
 
     /**
