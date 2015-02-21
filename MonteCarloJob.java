@@ -135,13 +135,14 @@ public abstract class MonteCarloJob implements WorkUnit
     /** Runs the minimization. */
     public abstract MonteCarloResult call();
 
-    /** Performs minimization of candidate structures */
-
     /**
      * Represents a list of peptides with a maximum size.  This object is not thread safe.
      */
-    public class PeptideList
+    public static class PeptideList implements Serializable
     {
+        /** for serialization */
+        public static final long serialVersionUID = 1L;
+
         /** Maximum size of the peptide list. */
         private final int maxSize;
 
@@ -164,6 +165,8 @@ public abstract class MonteCarloJob implements WorkUnit
          */
         public void add(Peptide peptide)
         {
+            if ( peptide == null )
+                throw new NullPointerException("nulls not supported");
             if ( peptide.energyBreakdown == null || peptide.energyBreakdown == EnergyBreakdown.BLANK )
                 throw new IllegalArgumentException("peptide EnergyBreakdown not set!");
             
@@ -188,8 +191,8 @@ public abstract class MonteCarloJob implements WorkUnit
                         }
                 }
             
-            if ( peptide == list.get(0) )
-                System.out.printf("*** New Best: %.2f, dropped by %.2f ***", thisEnergy, thisEnergy - list.get(1).energyBreakdown.totalEnergy );
+            //if ( peptide == list.get(0) )
+            //    System.out.printf("*** New Best: %.2f, dropped by %.2f ***", thisEnergy, thisEnergy - list.get(1).energyBreakdown.totalEnergy );
         }
 
         public List<Peptide> getList()
@@ -206,10 +209,5 @@ public abstract class MonteCarloJob implements WorkUnit
         {
             return list.get(i);
         }
-    }
-
-    /** For testing. */
-    public static void main(String[] args)
-    {
     }
 }

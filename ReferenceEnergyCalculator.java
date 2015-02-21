@@ -308,6 +308,9 @@ public class ReferenceEnergyCalculator
            }
         System.out.printf("\nDone.  %d peptides passed the clash check.\n", startingPeptides.size());
 
+        FixedSequenceMonteCarloJob job = new FixedSequenceMonteCarloJob(startingPeptides.get(0), 0.01, 10, 2000, 4);
+        job.call();
+
 /*
         // run the monte carlo jobs
         List<Future<Result>> futures = new ArrayList<>(startingPeptides.size());
