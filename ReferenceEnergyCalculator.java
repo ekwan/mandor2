@@ -52,13 +52,60 @@ public class ReferenceEnergyCalculator
     */
     public static List<Peptide> generateRandomPeptides(List<Peptide> betaSheets)
     {
+        // get templates
         List<ProtoAminoAcid> mutationOutcomes = CatalystRotamerSpace.MUTATION_OUTCOMES;
-        List<Peptide> randomPeptides = new LinkedList<>();
+        ProtoAminoAcid arginine = ProtoAminoAcidDatabase.getTemplate("arginine");
+        ProtoAminoAcid histidineHD = ProtoAminoAcidDatabase.getTemplate("histidine_hd");
+        ProtoAminoAcid histidineHE = ProtoAminoAcidDatabase.getTemplate("histidine_he");
+        ProtoAminoAcid serine = ProtoAminoAcidDatabase.getTemplate("serine");
+
+        // perform mutations
+        List<Peptide> randomPeptides = new ArrayList<>(betaSheets.size());
         for (Peptide p : betaSheets)
             {
-                // place arg, his, and ser on the same side of the hairpin
+                // determine where mutations can be made
+                LinkedList<Integer> allowedPositions = new LinkedList<>();
+                for (int i=0; i < p.sequence.size(); i++)
+                    {
+                        if ( p.sequence.get(i).isHairpin )
+                            continue;
+                        allowedPositions.add(i);
+                    }
+
+                // place arginine
+                Peptide peptide = p;
+                Collections.shuffle(allowedPositions);
+                int randomIndex = allowedPositions.remove();
+                Residue residue = peptide.sequence.get(randomIndex);
+                peptide = SidechainMutator.mutateSidechain(peptide, arginine, residue);
+                
+                // place histidine and serine on the same side
+                boolean isUp = RotamerFactory.isUp(p.sequence.size(), randomIndex);
+                List<Integer> toBeRemoved = new ArrayList<>(2);
+                for (Integer i : allowedPositions)
+                    {
+                        boolean thisIsUp = RotamerFactory.isUp(p.sequence.size(), i);
+                        if ( isUp == thisIsUp )
+                            {
+                                toBeRemoved.add(i);
+                                residue = peptide.sequence.get(i);
+                                // mutate to histidine
+                                peptide = SidechainMutator.mutateSidechain(peptide, 
+                            }
+                    }
+                allowedPositions.removeAll(toBeRemoved);
 
                 // mutate all the other positions at random
+                for (Integer i : allowedPositions)
+                    {
+                        randomIndex = ThreadLocalRandom.current().nextInt(mutationOutcomes.size());
+                        ProtoAminoAcid randomTemplate = mutationOutcomes.get(randomIndex);
+                        residue = peptide.sequence.get(i);
+                        peptide = SidechainMutator.mutateSidechain(peptide, randomTemplate, residue);
+                    }
+
+                // add to result
+                randomPeptides.add(peptide);
             }
         return randomPeptides;
     }
