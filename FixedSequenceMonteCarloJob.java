@@ -50,7 +50,7 @@ public class FixedSequenceMonteCarloJob extends MonteCarloJob implements Seriali
 
         HAIRPIN_DISTRIBUTION = new DiscreteProbabilityDistribution<List<Double>>(outcomes,probabilities);
     }
-
+    
     /** A list of backbone atom pairs to check for clashes. */
     public final List<Pair<Integer, Integer>> backbonePairs;
 
