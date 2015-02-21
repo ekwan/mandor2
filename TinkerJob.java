@@ -270,7 +270,45 @@ public class TinkerJob implements WorkUnit
                         //e.printStackTrace();
                     }
             }
-        return ImmutableList.copyOf(results);
+        Collections.sort(results);
+        return results;
+    }
+
+    /**
+     * Performs an analysis and energy breakdown on all the specified peptides.
+     * Analyses will be done in the gas phase
+     * @param peptides the peptides to analyze
+     * @param forcefield the forcefield to use
+     * @return the analyzed peptides
+     */
+    public static List<Peptide> analyze(List<Peptide> peptides, Forcefield forcefield)
+    {
+        Map<Future<Result>,Peptide> futureMap = new HashMap<>();
+        List<Future<Result>> futures = new ArrayList<>(peptides.size());
+        for (Peptide p : peptides)
+            {
+                TinkerAnalysisJob job = new TinkerAnalysisJob(p, forcefield, "\n\n");
+                Future<Result> f = GeneralThreadService.submit(job);
+                futures.add(f);
+                futureMap.put(f, p);
+            }
+        GeneralThreadService.silentWaitForFutures(futures);
+        List<Peptide> results = new ArrayList<>(peptides.size());
+        for (Future<Result> f : futures)
+            {
+                try
+                    {
+                        TinkerAnalysisJob.TinkerAnalysisResult result = (TinkerAnalysisJob.TinkerAnalysisResult)f.get();
+                        TinkerAnalyzeOutputFile outputFile = result.tinkerAnalysisFile;
+                        EnergyBreakdown energyBreakdown = new EnergyBreakdown(outputFile.energyByResidue, outputFile.totalEnergy,
+                                                                              0.0, outputFile.totalEnergy, null, forcefield);
+                        Peptide oldPeptide = futureMap.get(f);
+                        Peptide newPeptide = oldPeptide.setEnergyBreakdown(energyBreakdown);
+                        results.add(newPeptide);                    
+                    }
+                catch (Exception e) {}
+            }
+        return results;
     }
 
     /** For testing. */

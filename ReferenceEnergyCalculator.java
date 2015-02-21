@@ -28,14 +28,11 @@ import com.google.common.collect.*;
  */
 public class ReferenceEnergyCalculator
 {
-    /** The number of poly-gly beta sheets to generate as a starting point */
-    public static final int NUMBER_BETA_SHEETS = 500;
+    /** The number of reference peptides to minimize. */
+    public static final int NUMBER_OF_REFERENCE_PEPTIDES = 1;
 
-    /** The number of lowest energy structures to keep for each starting random peptide following fixed sequence Monte Carlo */
-    public static final int NUMBER_LOWEST_ENERGY_STRUCTURES_TO_KEEP = 10;
-
-    /** The number of structures to minimize using AMOEBA following the fixed sequence Monte Carlo */
-    public static final int NUMBER_STRUCTURES_TO_MINIMIZE = 1000;
+    /** The number of poses per reference peptide to minimize. */
+    public static final int NUMBER_OF_STRUCTURES_TO_MINIMIZE = 500;
 
     /** not instantiable */
     private ReferenceEnergyCalculator()
@@ -144,99 +141,36 @@ public class ReferenceEnergyCalculator
             }
         return randomPeptides;
     }
-//
-//    /**
-//     * A method for performing AMOEBA minimizations that also removes duplicates and returns the lowest energy structures only
-//     * @param monteCarloPeptides the peptides generated from the Monte Carlo process which includes NUMBER_STRUCTURES_TO_MINIMIZE peptides
-//     * @return the NUMBER_LOWEST_ENERGY_STRUCTURES_TO_KEEP peptides that will be used to find the average amino acid reference energy 
-//     */
-//    public static List<Peptide> minimize(List<Peptide> monteCarloPeptides)
-//    {
-//        // Create hashamp to avoid duplicates
-//        Map<PeptideFingerprint, Peptide> peptidesWithoutDuplicates = new HashMap<>();   
-//
-//        // Only add low energy peptides
-//        List<Peptide> lowEnergyPeptides = new ArrayList<>();
-//        for (Peptide p : monteCarloPeptides)
-//        {
-//            // Minimize each peptide on AMOEBA forcefield
-//            // Use Tinker approximate solvation for analyze 
-//            TinkerJob job = new TinkerJob(p, Forcefield.AMOEBA, 2000, false, true, true, false, true);
-//            TinkerJob.TinkerResult result = job.call();
-//            Peptide newPeptide = result.minimizedPeptide; 
-//            
-//            PeptideFingerprint fingerprint = new PeptideFingerprint(newPeptide, newPeptide.energyBreakdown.totalEnergy);
-//            
-//            // Verify that we are adding new peptide and 
-//            if (!peptidesWithoutDuplicates.containsKey(fingerprint))
-//            {
-//                if (lowEnergyPeptides.size() < NUMBER_LOWEST_ENERGY_STRUCTURES_TO_KEEP)
-//                {
-//                    lowEnergyPeptides.add(newPeptide);
-//                    Collections.sort(lowEnergyPeptides);
-//                    peptidesWithoutDuplicates.put(fingerprint, newPeptide);
-//                }
-//                else
-//                {
-//                    // if highest energy member in list is lower in energy than current peptide then do not add it to the list
-//                    if (lowEnergyPeptides.get(lowEnergyPeptides.size()-1).energyBreakdown.totalEnergy > newPeptide.energyBreakdown.totalEnergy)
-//                    {
-//                        peptidesWithoutDuplicates.put(fingerprint, newPeptide);
-//                    }
-//                    else
-//                    {
-//                        lowEnergyPeptides.add(newPeptide);
-//                        Collections.sort(lowEnergyPeptides);
-//                        peptidesWithoutDuplicates.put(fingerprint, newPeptide);
-//                    }
-//                }
-//            }
-//        }
-//
-//        return lowEnergyPeptides;
-//    }
-//
-//    /** 
-//    * This method will calculate the average energy of each amino acid by taking an energy breakdown of each of the provided structures
-//    * @param structures a random set of low-energy structures 
-//    * @return a map from amino acids to average energies
-//    */
-//    public static Map<AminoAcid, Double> averageEnergies(List<Peptide> structures)
-//    {
-//        Map<AminoAcid, List<Double>> allEnergiesByAminoAcid = new HashMap<>();
-//        for (Peptide p : structures)
-//        {
-//            for (Residue r : p.sequence)
-//            {
-//                if (allEnergiesByAminoAcid.containsKey(r.aminoAcid))
-//                {
-//                    List<Double> energies = allEnergiesByAminoAcid.get(r.aminoAcid);
-//                    energies.add(p.energyBreakdown.energyByResidue.get(p.sequence.indexOf(r)));
-//                    allEnergiesByAminoAcid.put(r.aminoAcid, energies);
-//                }
-//                else
-//                {
-//                    List<Double> energies = new LinkedList<>();
-//                    energies.add(p.energyBreakdown.energyByResidue.get(p.sequence.indexOf(r)));
-//                    allEnergiesByAminoAcid.put(r.aminoAcid, energies);
-//                }
-//            }
-//        }
-//
-//        Map<AminoAcid, Double> averageEnergyByAminoAcid = new HashMap<>();
-//        for (AminoAcid aminoAcid : allEnergiesByAminoAcid.keySet())
-//        {
-//            List<Double> energies = allEnergiesByAminoAcid.get(aminoAcid);
-//            double sum = 0.0;  // (could be issues with double overflowing)
-//            for (Double d : energies)
-//                sum += d;
-//            double average = sum / energies.size();
-//            averageEnergyByAminoAcid.put(aminoAcid, average);
-//        }
-//
-//        return averageEnergyByAminoAcid;
-//    }
-//
+
+    /** 
+     * Sorts the energies by residue from a bunch of peptides by amino acid description.
+     */
+    public static Map<String,List<Double>> getEnergies(List<Peptide> peptides)
+    {
+        Map<String,List<Double>> returnMap = new HashMap<>();
+        for (Peptide p : peptides)
+            {
+                int sequenceLength = p.sequence.size();
+                List<Double> energiesByResidue = p.energyBreakdown.energyByResidue;
+                for (int i=0; i < sequenceLength; i++)
+                    {
+                        Residue residue = p.sequence.get(i);
+                        if ( residue.isHairpin )
+                            continue;
+                        String description = residue.description;
+                        double energy = energiesByResidue.get(i);
+                        List<Double> list = returnMap.get(description);
+                        if ( list == null )
+                            {
+                                list = new ArrayList<Double>();
+                                returnMap.put(description, list);
+                            }
+                        list.add(energy);
+                    }
+            }
+        return returnMap;
+    }
+
 //    /** 
 //    * A method to make the individual calls needed to run the process of finding reference energies
 //    * @return a map from amino acids to reference energies
@@ -287,7 +221,7 @@ public class ReferenceEnergyCalculator
         System.out.printf("%d beta sheets have been generated.\n", sheets.size());
 
         // randomly mutate
-        List<Peptide> initialRandomPeptides = generateRandomPeptides(sheets, 20);
+        List<Peptide> initialRandomPeptides = generateRandomPeptides(sheets, NUMBER_OF_REFERENCE_PEPTIDES);
         //for (Peptide p : initialRandomPeptides)
         //    System.out.println(p.name);
 
@@ -308,15 +242,12 @@ public class ReferenceEnergyCalculator
            }
         System.out.printf("\nDone.  %d peptides passed the clash check.\n", startingPeptides.size());
 
-        FixedSequenceMonteCarloJob job = new FixedSequenceMonteCarloJob(startingPeptides.get(0), 0.01, 10, 2000, 4);
-        job.call();
-
-/*
         // run the monte carlo jobs
+        // --->>>>>>>> add checkpoint filenames
         List<Future<Result>> futures = new ArrayList<>(startingPeptides.size());
         for (Peptide p : startingPeptides)
             {
-                FixedSequenceMonteCarloJob job = new FixedSequenceMonteCarloJob(p, 0.01, 100, 2000, 4);
+                FixedSequenceMonteCarloJob job = new FixedSequenceMonteCarloJob(p, 0.001, 1000, NUMBER_OF_STRUCTURES_TO_MINIMIZE, 4, null);
                 Future<Result> f = GeneralThreadService.submit(job);
             }
         GeneralThreadService.silentWaitForFutures(futures);
@@ -326,23 +257,39 @@ public class ReferenceEnergyCalculator
         for (Future<Result> f : futures)
             {
                 MonteCarloResult result = null;
-                try { result = f.get() }
+                try { result = (MonteCarloResult)f.get(); }
                 catch (Exception e) { e.printStackTrace(); continue; }
                 bestPoses.add(result.bestPeptides);
             }
 
         // minimize all poses with AMOEBA with single point GK solvation
+        List<List<Peptide>> bestPoses2 = new ArrayList<>(futures.size());
         for (List<Peptide> list : bestPoses)
             {
+                List<Peptide> list2 = TinkerJob.minimize(list, Forcefield.AMOEBA, 2000, false, false, true, true, false); 
+                bestPoses2.add(list2);
             }
 
-        // take the best poses for each peptide and perform a gas phase AMOEBA energy breakdown
-
+        // take the best pose for each peptide and perform a gas phase AMOEBA energy breakdown
+        List<Peptide> bestPoses3 = new ArrayList<>(bestPoses2.size());
+        for (List<Peptide> list : bestPoses2)
+            {
+                if ( list.size() > 0 )
+                    bestPoses3.add(list.get(0));
+            }
+        List<Peptide> bestPoses4 = TinkerJob.analyze(bestPoses3, Forcefield.AMOEBA);
+        
         // get AMOEBA reference energies
+        Map<String,List<Double>> AMOEBAreferenceEnergies = getEnergies(bestPoses4);
+        for (String description : AMOEBAreferenceEnergies.keySet())
+            {
+                List<Double> energies = AMOEBAreferenceEnergies.get(description);
+                System.out.printf("%s (%d energies)\n", description, energies.size());
+                System.out.println(energies);
+            }
 
         // take the best poses for each peptide and perform a gas phase OPLS interaction calculation
 
         // get OPLS reference energies
-*/
     }
 }
