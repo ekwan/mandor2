@@ -808,27 +808,8 @@ public class RotamerFactory
             }
 
         // get the transition state hydroxyl atoms
-        Atom atomH = null;
-        Atom atomO = null;
-        for (Atom a : transitionStateRotamer.atoms)
-            {
-                if ( a.type1 == 401 )
-                    {
-                        if ( atomH == null )
-                            atomH = a;
-                        else
-                            throw new IllegalArgumentException("duplicate hydroxyl H found");
-                    }
-                else if ( a.type1 == 402 )
-                    {
-                        if ( atomO == null )
-                            atomO = a;
-                        else
-                            throw new IllegalArgumentException("duplicate hydroxyl O found");
-                    }
-            }
-        if ( atomH == null || atomO == null )
-            throw new NullPointerException("hydroxyl atom not found");
+        Atom atomH = locateSingleAtom(ImmutableSet.of(401), transitionStateRotamer.atoms);
+        Atom atomO = locateSingleAtom(ImmutableSet.of(402), transitionStateRotamer.atoms);
 
         // for each peptide, rotate the sidechain on a grid and see if it gets close to the transition state hydroxyl
         List<Pair<Rotamer,Rotamer>> returnList = new ArrayList<>();
@@ -886,19 +867,9 @@ public class RotamerFactory
                 chi2torsionIndices.add(allAtoms.indexOf(chi2torsion.atom3));
                 chi2torsionIndices.add(allAtoms.indexOf(chi2torsion.atom4));
 
-                // get the index of the histidine pi nitrogen 
-                Integer histidinePiNitrogenIndex = null;
-                for (Atom a : allAtoms)
-                    {
-                        if ( a.type1 == 130 || a.type1 == 126 )
-                            {
-                                if ( histidinePiNitrogenIndex == null )
-                                    histidinePiNitrogenIndex = allAtoms.indexOf(a);
-                                else
-                                    throw new IllegalArgumentException("duplicate histidine pi nitrogen found");
-                            }
-                    }
-
+                // get the index of the histidine pi nitrogen
+                Atom histidinePiNitrogen = locateSingleAtom(ImmutableSet.of(130,126), allAtoms); 
+                Integer histidinePiNitrogenIndex = allAtoms.indexOf(histidinePiNitrogen);
 
                 // rotate chi1 and chi2 on a grid and check for the desired contact
                 double stepSize = 360.0 / (HISTIDINE_GRID_SIZE-1.0);
@@ -1028,6 +999,7 @@ public class RotamerFactory
                     throw new NullPointerException("TS O atom not found");
                 
                 // whether the arginine should be up or down
+                // ensures that the arginine will be on the same face as the TS/his pair
                 boolean shouldBeUp = isUp(sequenceLength, TSindex);
 
                 for (int i=0; i < sequenceLength; i++)
@@ -1054,7 +1026,7 @@ public class RotamerFactory
                         List<Rotamer> rotamers = generateRotamers(candidatePeptide, residue, true, null);
                         //System.out.println(rotamers.size() + " rotamers generated");
 
-                        // get the atoms at al the other positions
+                        // get the atoms at all the other positions
                         List<Atom> otherAtoms = new ArrayList<>();
                         for (int i=0; i < sequenceLength; i++)
                             {
@@ -1070,7 +1042,7 @@ public class RotamerFactory
                                 boolean interesting = false;
                                 for (Atom a : rotamer.atoms)
                                     {
-                                        if ( ( a.type1 == 209 || a.type1 == 212 ) && Molecule.getDistance(a, transitionStateOatom) < 3.0 )
+                                        if ( ( a.type1 == 209 || a.type1 == 212 ) && Molecule.getDistance(a, transitionStateOatom) < 2.5 )
                                             {
                                                 interesting = true;
                                                 break;
@@ -1089,7 +1061,8 @@ public class RotamerFactory
                                     {
                                         for (Atom a2 : otherAtoms)
                                             {
-                                                if ( Molecule.getDistance(a1,a2) < Settings.MINIMUM_INTERATOMIC_DISTANCE )
+                                                //if ( Molecule.getDistance(a1,a2) < Settings.MINIMUM_INTERATOMIC_DISTANCE )
+                                                if ( Molecule.getDistance(a1,a2) < 1.50 )
                                                     {
                                                         clashes = true;
                                                         //System.out.printf("clash found between %d and %s\n", a1.type1, a2.type1);
@@ -1098,9 +1071,7 @@ public class RotamerFactory
                                             }
                                     }
 
-
-                                // check TS oxygen/HN atom distance
-
+                                // add the rotamer if it's interesting
                                 if ( !clashes )
                                     interestingRotamers.add(rotamer);
                             }
@@ -1145,10 +1116,15 @@ public class RotamerFactory
                     newPeptide = HydrogenBondMutator.mutate(newPeptide);
                     interestingPairPeptides.add(newPeptide);
                 }
-            List<Peptide> minimizedSheets = BetaSheetGenerator.minimizeSheetsInSerial(interestingPairPeptides, 2000, Forcefield.AMOEBA);
-            List<Peptide> argininePeptides = addArginine(minimizedSheets);
-            minimizedSheets = BetaSheetGenerator.minimizeSheetsInSerial(argininePeptides, 2000, Forcefield.AMOEBA);
-            
+            //System.out.printf("%d interesting pair peptides\n", interestingPairPeptides.size()); 
+            //List<Peptide> minimizedSheets = BetaSheetGenerator.minimizeSheetsInSerial(interestingPairPeptides, 2000, Forcefield.AMOEBA);
+            //System.out.printf("%d minimized interesting pair peptides\n", minimizedSheets.size()); 
+            List<Peptide> results = addArginine(interestingPairPeptides);
+            //List<Peptide> results = BetaSheetGenerator.minimizeSheetsInSerial(argininePeptides, 2000, Forcefield.AMOEBA);
+            //System.out.printf("%d arg peptides peptides\n", minimizedSheets.size()); 
+            //minimizedSheets = BetaSheetGenerator.minimizeSheetsInSerial(argininePeptides, 2000, Forcefield.AMOEBA);
+            //System.out.printf("%d minimized arg peptides\n", minimizedSheets.size()); 
+            /*
             // check for proper arg-TS contact
             List<Peptide> resultSheets = new ArrayList<>();
             for (Peptide peptide : minimizedSheets)
@@ -1189,12 +1165,65 @@ public class RotamerFactory
                     if ( interesting )
                         resultSheets.add(peptide);
                 }
-
-            if ( resultSheets.size() > 0 )
-                System.out.printf("found %d solutions\n", resultSheets.size());
-            interestingPeptides.addAll(resultSheets);
+            */
+            if ( results.size() > 0 )
+                System.out.printf("found %d solutions\n", results.size());
+            interestingPeptides.addAll(results);
             return null;
         }
+    }
+
+    /**
+     * Searches through a list of atoms and returns the one
+     * Throws an exception if the number of matches is not exactly one.
+     * @param types the AMOEBA types of the atom we're looking for
+     * @param atoms the atoms to search through
+     * @return the matching atom
+     */
+    public static Atom locateSingleAtom(Set<Integer> types, List<Atom> atoms)
+    {
+        if ( types == null || atoms == null )
+            throw new NullPointerException("nulls not allowed");
+        Atom resultAtom = null;
+        for (Atom a : atoms)
+            {
+                if ( types.contains(a.type1) )
+                    {
+                        if ( resultAtom == null )
+                            resultAtom = a;
+                        else
+                            {
+                                List<Integer> allTypes = new ArrayList<>();
+                                for ( Atom a2 : atoms )
+                                    allTypes.add(a2.type1);
+                                System.out.println(allTypes);
+                                throw new IllegalArgumentException("multiple matches found for " + types.toString());
+                            }
+                    }
+            }
+        if ( resultAtom == null )
+            throw new NullPointerException("atom not found");
+        return resultAtom;
+    }
+
+    /**
+     * Searches through a list of atoms and returns any that match the specified types.
+     * No exceptions are thrown and duplicates are all returned.
+     * @param types the AMOEBA types of the atoms we're looking for
+     * @param atoms the atoms to search through
+     * @return the matching atoms
+     */
+    public static List<Atom> locateAtoms(Set<Integer> types, List<Atom> atoms)
+    {
+        if ( types == null || atoms == null )
+            throw new NullPointerException("nulls not allowed");
+        List<Atom> resultAtoms = new ArrayList<>();;
+        for (Atom a : atoms)
+            {
+                if ( types.contains(a.type1) )
+                    resultAtoms.add(a);
+            }
+        return resultAtoms;
     }
 
     /** For testing. */
@@ -1220,6 +1249,6 @@ public class RotamerFactory
         GeneralThreadService.waitForFutures(futures);
 
         System.out.printf("\n%d peptides generated\n", interestingPeptides.size());
-        Peptide.writePeptideGJFs(interestingPeptides, "test_peptides/result_", 3);
+        Peptide.writeGJFs(interestingPeptides, "test_peptides/result_", 3, 100);
     }
 }

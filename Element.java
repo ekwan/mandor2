@@ -12,7 +12,7 @@ public enum Element
     OXYGEN  ("O"),
     SULFUR  ("S");
 
-    public static final Set<String> CARBON_STRINGS   = ImmutableSet.of("C", "CA", "CT", "CM", "CO", "C*", "CP", "CV", "CW");
+    public static final Set<String> CARBON_STRINGS   = ImmutableSet.of("C", "CA", "CB", "CT", "CM", "CN", "CO", "C*", "CP", "CV", "CW");
     public static final Set<String> HYDROGEN_STRINGS = ImmutableSet.of("H", "HA", "HN", "HS", "HO", "HC", "H2", "H3");
     public static final Set<String> NITROGEN_STRINGS = ImmutableSet.of("N", "N2", "N3", "NB", "NA");
     public static final Set<String> OXYGEN_STRINGS   = ImmutableSet.of("O", "O-", "OH", "OS", "O2");

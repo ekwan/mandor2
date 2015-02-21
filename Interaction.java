@@ -29,8 +29,11 @@ public class Interaction implements Immutable, Comparable<Interaction>
     /** the interaction energy */
     public final double interactionEnergy;
 
-    /** the reference energies */
-    public static final Map<String,Double> REFERENCE_ENERGIES;
+    /** the reference OPLS energies */
+    public static final Map<String,Double> OPLS_REFERENCE_ENERGIES;
+
+    /** the reference AMOEBA energies */
+    public static final Map<String,Double> AMOEBA_REFERENCE_ENERGIES;
 
     /** static initializer */
     static
@@ -46,7 +49,20 @@ public class Interaction implements Immutable, Comparable<Interaction>
                 Double refEnergy = Double.valueOf(line.get(1));
                 tempMap.put(aaString, refEnergy);
             }
-        REFERENCE_ENERGIES = ImmutableMap.copyOf(tempMap);
+        OPLS_REFERENCE_ENERGIES = ImmutableMap.copyOf(tempMap);
+    
+        // read the AMOEBA reference energies from a file
+        tempMap = new HashMap<>();
+        file = new OutputFileFormat("amino_acids/AMOEBA_reference_energies.dat") {};
+        for (List<String> line : file.fileContents)
+            {
+                if ( line.size() != 2 )
+                    continue;
+                String aaString = line.get(0);
+                Double refEnergy = Double.valueOf(line.get(1));
+                tempMap.put(aaString, refEnergy);
+            }
+        AMOEBA_REFERENCE_ENERGIES = ImmutableMap.copyOf(tempMap);
     }
 
     //public String description;
@@ -291,13 +307,34 @@ public class Interaction implements Immutable, Comparable<Interaction>
         return resultMatrix;
     }
 
+    /** Returns the OPLS reference energy of this rotamer. */
     public static double getReferenceEnergy(Rotamer rotamer)
     {
-        Double referenceEnergy = REFERENCE_ENERGIES.get(rotamer.description);
+        /*Double referenceEnergy = OPLS_REFERENCE_ENERGIES.get(rotamer.description);
         if ( referenceEnergy == null )
             throw new NullPointerException("null reference energy for " + rotamer.description);
-        return referenceEnergy;
-        //return 0.0;
+        return referenceEnergy;*/
+        return 0.0;
+    }
+
+    /** Returns the AMOEBA reference energy of a given peptide. */
+    public static double getAMOEBAReferenceEnergy(Peptide peptide)
+    {
+        double referenceEnergyTotal = 0.0;
+        for (Residue r : peptide.sequence)
+            {
+                if ( r.isHairpin )
+                    continue;
+                Double referenceEnergy = AMOEBA_REFERENCE_ENERGIES.get(r.description);
+                if ( referenceEnergy == null )
+                    {
+                        System.out.printf("Couldn't find AMOEBA reference energy for %s.\n", r.description);
+                        continue;
+                    }
+                else
+                    referenceEnergyTotal += referenceEnergy;
+            }
+        return referenceEnergyTotal;
     }
 
     /**

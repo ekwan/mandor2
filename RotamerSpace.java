@@ -74,11 +74,9 @@ public abstract class RotamerSpace implements Immutable
         List<List<Atom>> backboneAtoms = getBackboneAtoms(tempPeptide, variablePositions, includeHN);
 
         // prune rotamers that clash with the backbone
-        System.out.println("before pruning 1");
-        printRotamerSizes(tempRotamerSpace);
+        printRotamerSizes("before pruning clashes     ", tempRotamerSpace);
         tempRotamerSpace = pruneRotamerSpace(tempPeptide, backboneAtoms, tempRotamerSpace);
-        System.out.println("after pruning 1");
-        printRotamerSizes(tempRotamerSpace);
+        printRotamerSizes("after pruning clashes      ", tempRotamerSpace);
         // check if any solutions are possible
         for (Integer i : variablePositions)
             {
@@ -115,12 +113,11 @@ public abstract class RotamerSpace implements Immutable
         pruneIncompatibleRotamers(tempRotamerSpace, tempIncompatiblePairs);
    
         // check if any solutions are possible
-        printRotamerSizes(tempRotamerSpace);
+        printRotamerSizes("after pruning incompatibles", tempRotamerSpace);
         //checkRotamerSpace(tempRotamerSpace, tempPeptide, tempIncompatiblePairs, emptyPositions);
         checkRotamerSpace(tempRotamerSpace, tempPeptide, tempIncompatiblePairs);
 
         // return result
-        printRotamerSizes(tempRotamerSpace);
         System.out.printf("%d incompatible pairs found\n", tempIncompatiblePairs.size());
         peptide = tempPeptide;
         rotamerSpace = tempRotamerSpace;
@@ -328,10 +325,12 @@ public abstract class RotamerSpace implements Immutable
 
     /**
      * Prints out how many rotamers there are at each position on one line
+     * @param prefix gets printed out before result
      * @param rotamerSpace the rotamer space to print out
      */
-    public static void printRotamerSizes(List<List<Rotamer>> rotamerSpace)
+    public static void printRotamerSizes(String prefix, List<List<Rotamer>> rotamerSpace)
     {
+        System.out.print(prefix + " ");
         for (List<Rotamer> list : rotamerSpace)
             System.out.print(list.size() + " ");
         System.out.println(" / " + countRotamers(rotamerSpace) + " total");
@@ -453,6 +452,8 @@ public abstract class RotamerSpace implements Immutable
 
     /**
      * Checks a batch of rotamer pairs and figures out which ones are incompatible.
+     * TS/his and TS/arg pairs are not considered for incompatibility here because they should
+     * have been checked when they were made.
      */
     public static class IncompatibleWorkUnit implements WorkUnit
     {
@@ -484,6 +485,19 @@ public abstract class RotamerSpace implements Immutable
             HashSet<RotamerPair> thisIncompatible = new HashSet<>();
             for (RotamerPair pair : work)
                 {
+                    // skip TS/his and TS/arg pairs
+                    Rotamer rotamer1 = pair.rotamer1;
+                    Rotamer rotamer2 = pair.rotamer2;
+                    if ( rotamer1.description.indexOf("transition_state") > -1 ||
+                         rotamer2.description.indexOf("transition_state") > -1    )
+                        {
+                            if ( rotamer1.description.indexOf("histidine") > -1 ||
+                                 rotamer2.description.indexOf("histidine") > -1 ||
+                                 rotamer1.description.indexOf("arginine") > -1  ||
+                                 rotamer2.description.indexOf("arginine") > -1     )
+                                continue;
+                        }
+
                     if ( isIncompatible(pair) ) 
                         thisIncompatible.add(pair);
                 }

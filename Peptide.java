@@ -71,7 +71,8 @@ public class Peptide extends Molecule implements Immutable, Serializable, Compar
     {
         //if ( energyBreakdown != null && energyBreakdown != EnergyBreakdown.BLANK )
         //    System.out.println("warning: set energy breakdown when not null");
-        return new Peptide(name, contents, connectivity, sequence, newEnergyBreakdown);
+        String newName = name.split("@")[0] + String.format(" @ %.2f kcal", newEnergyBreakdown.totalEnergy);
+        return new Peptide(newName, contents, connectivity, sequence, newEnergyBreakdown);
     }
 
     /**
@@ -154,17 +155,37 @@ public class Peptide extends Molecule implements Immutable, Serializable, Compar
      * @param peptides the peptides to write to disk
      * @param prefix the location and prefix to send the peptides to (e.g., "test_peptides/prefix_")
      * @param digits how many digits to use in the filename
+     * @param maxNumber the maximum number of files to write
      */
-    public static void writePeptideGJFs(List<Peptide> peptides, String prefix, int digits)
+    public static void writeGJFs(List<Peptide> peptides, String prefix, int digits, int maxNumber)
     {
         if ( digits < 1 )
             throw new IllegalArgumentException("must use at least one digit");
-        for (int i=0; i < peptides.size(); i++)
+        for (int i=0; i < Math.min(maxNumber,peptides.size()); i++)
             {
                 Peptide peptide = peptides.get(i);
                 String filename = String.format("%s%0" + digits + "d.gjf", prefix, i);
                 GaussianInputFile f = new GaussianInputFile(peptide);
                 f.write(filename);
+            }
+    }
+
+    /**
+     * Writes the specified peptides to disk in gjf format.
+     * @param peptides the peptides to write to disk
+     * @param prefix the location and prefix to send the peptides to (e.g., "test_peptides/prefix_")
+     * @param digits how many digits to use in the filename
+     * @param digits how many digits to use in the filename
+     */
+    public static void writeCHKs(List<Peptide> peptides, String prefix, int digits, int maxNumber)
+    {
+        if ( digits < 1 )
+            throw new IllegalArgumentException("must use at least one digit");
+        for (int i=0; i < Math.min(maxNumber,peptides.size()); i++)
+            {
+                Peptide peptide = peptides.get(i);
+                String filename = String.format("%s%0" + digits + "d.chk", prefix, i);
+                peptide.checkpoint(filename);
             }
     }
 

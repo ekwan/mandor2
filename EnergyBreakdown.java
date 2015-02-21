@@ -58,6 +58,11 @@ public class EnergyBreakdown implements Immutable, Serializable, Result
         return reportString;
     }
 
+    public EnergyBreakdown addReferenceEnergy(double referenceEnergy)
+    {
+        return new EnergyBreakdown(null, totalEnergy-referenceEnergy, 0.0, totalEnergy-referenceEnergy, null, type);
+    }
+
     @Override
     public int hashCode()
     {
