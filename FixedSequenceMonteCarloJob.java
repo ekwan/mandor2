@@ -30,12 +30,9 @@ public class FixedSequenceMonteCarloJob extends MonteCarloJob
      */
     public static final DiscreteProbabilityDistribution<List<Double>> HAIRPIN_DISTRIBUTION;
 
-    public FixedSequenceMonteCarloJob(Peptide startingPeptide, double deltaAlpha, int maxIterations, int maxSize)
+    /** Static initializer. */
+    static
     {
-        super(startingPeptide, deltaAlpha, maxIterations);
-        this.maxSize = maxSize;
-        this.backbonePairs = startingPeptide.getBackbonePairs();
-
         List<List<Double>> outcomes = new ArrayList<>();
         List<Double> probabilities = new ArrayList<>();
 
@@ -52,6 +49,15 @@ public class FixedSequenceMonteCarloJob extends MonteCarloJob
         probabilities.add(0.15);
 
         HAIRPIN_DISTRIBUTION = new DiscreteProbabilityDistribution<List<Double>>(outcomes,probabilities);
+
+    }
+
+    public FixedSequenceMonteCarloJob(Peptide startingPeptide, double deltaAlpha, int maxIterations, int maxSize)
+    {
+        super(startingPeptide, deltaAlpha, maxIterations);
+        this.maxSize = maxSize;
+        this.backbonePairs = startingPeptide.getBackbonePairs();
+
     }
 
     /**
@@ -101,7 +107,7 @@ public class FixedSequenceMonteCarloJob extends MonteCarloJob
                 double glycinePhiAngle = hairpinAngles.get(2);
                 double glycinePsiAngle = hairpinAngles.get(3);
 
-                System.out.printf("[ %d ] Set hairpin backbone to: %.0f, %.0f, %.0f, %.0f.\n", serverID, prolinePhiAngle, prolinePsiAngle, glycinePhiAngle, glycinePsiAngle);
+                System.out.printf("Set hairpin backbone to: %.0f, %.0f, %.0f, %.0f.\n", prolinePhiAngle, prolinePsiAngle, glycinePhiAngle, glycinePsiAngle);
 
                 // choose the omega angles
                 double prolineOmegaAngle = BetaSheetGenerator.angleModulus(TRANS_DISTRIBUTION.sample());
@@ -109,22 +115,20 @@ public class FixedSequenceMonteCarloJob extends MonteCarloJob
 
                 // apply the changes
                 Residue proline = newPeptide.sequence.get(5);
-                newPeptide = BackboneMutator.mutatePhiPsi(newPeptide, proline, prolinePhiAngle, prolinePsiAngle);
+                newPeptide = BackboneMutator.setPhiPsi(newPeptide, proline, prolinePhiAngle, prolinePsiAngle);
                 proline = newPeptide.sequence.get(5);
-                newPeptide = BackboneMutator.mutateOmega(newPeptide, proline, prolineOmegaAngle);
+                newPeptide = BackboneMutator.setOmega(newPeptide, newPeptide.sequence.indexOf(proline), prolineOmegaAngle);
 
                 Residue glycine = newPeptide.sequence.get(6);
-                newPeptide = BackboneMutator.mutatePhiPsi(newPeptide, glycine, glycinePhiAngle, glycinePsiAngle);
+                newPeptide = BackboneMutator.setPhiPsi(newPeptide, glycine, glycinePhiAngle, glycinePsiAngle);
                 glycine = newPeptide.sequence.get(6);
-                newPeptide = BackboneMutator.mutateOmega(newPeptide, glycine, glycineOmegaAngle);
+                newPeptide = BackboneMutator.setOmega(newPeptide, newPeptide.sequence.indexOf(glycine), glycineOmegaAngle);
                 
-                // return the result
-                return newPeptide;
             }
         else
             {
                 // otherwise, choose a random (omega,phi,psi)
-                System.out.printf("[ %d ] Setting backbone angles for residue %d (%s).\n", serverID, randomIndex, residue.aminoAcid.shortName);
+                System.out.printf("Setting backbone angles for residue %d (%s).\n", randomIndex, residue.aminoAcid.shortName);
                 if ( residue.aminoAcid.isProline() )
                     {
                         // decide whether we should set this to cis
@@ -136,13 +140,10 @@ public class FixedSequenceMonteCarloJob extends MonteCarloJob
                             omegaAngle = BetaSheetGenerator.angleModulus(TRANS_DISTRIBUTION.sample());
 
                         // apply the change
-                        newPeptide = BackboneMutator.mutateOmega(newPeptide, residue, omegaAngle);
+                        newPeptide = BackboneMutator.setOmega(newPeptide, residue, omegaAngle);
 
                         // choose a random (phi,psi)
                         newPeptide = BackboneMutator.mutatePhiPsi(newPeptide,randomIndex+1);
-                    
-                        // return the result
-                        return newPeptide;
                     }
                 else
                     {
@@ -150,14 +151,13 @@ public class FixedSequenceMonteCarloJob extends MonteCarloJob
                         newPeptide = BackboneMutator.mutateOmega(newPeptide,newPeptide.sequence.indexOf(residue));
                         residue = newPeptide.sequence.get(randomIndex);
                         newPeptide = BackboneMutator.mutatePhiPsi(newPeptide, newPeptide.sequence.indexOf(residue));
-                        return newPeptide;
                     }
         }
             
         // Rotamer Packing
 
         // check peptide for self clashes
-        if ( peptide.hasBackboneClash(backbonePairs) )
+        if ( newPeptide.hasBackboneClash(backbonePairs) )
         {
             System.out.println("backbone clashes -- quitting");
             System.exit(1);
@@ -171,7 +171,7 @@ public class FixedSequenceMonteCarloJob extends MonteCarloJob
         try
             {
                 // note that the includeHN should be set to false if we want to do A* here
-                fixedSequenceRotamerSpace = new FixedSequenceRotamerSpace(peptide, false);
+                fixedSequenceRotamerSpace = new FixedSequenceRotamerSpace(newPeptide, false);
             }
         catch (Exception e)
             {
@@ -184,13 +184,17 @@ public class FixedSequenceMonteCarloJob extends MonteCarloJob
         AStarEnergyCalculator calculator = AStarEnergyCalculator.analyze(fixedSequenceRotamerSpace);
         RotamerIterator iterator = new RotamerIterator(fixedSequenceRotamerSpace.rotamerSpace, calculator.rotamerSelfEnergies, calculator.rotamerInteractionEnergies, 1000);
         List<RotamerIterator.Node> solutions = iterator.iterate();
+        Peptide lowestEnergyPeptide = newPeptide;
         for (RotamerIterator.Node node : solutions)
             {
                 List<Rotamer> rotamers = node.rotamers;
-                Peptide thisPeptide = Rotamer.reconstitute(peptide, rotamers);
+                lowestEnergyPeptide = Rotamer.reconstitute(newPeptide, rotamers);
                 // Return first peptide in solution set which is the lowest energy peptide
-                return thisPeptide;
+                break;
             }
+
+        // this return statement will only be reached in the absence of solutions
+        return lowestEnergyPeptide;
 
     }
 
