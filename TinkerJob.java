@@ -256,7 +256,7 @@ public class TinkerJob implements WorkUnit
                 Future<Result> f = GeneralThreadService.submit(job);
                 futures.add(f);
             }
-        GeneralThreadService.silentWaitForFutures(futures);
+        GeneralThreadService.waitForFutures(futures);
         List<Peptide> results = new ArrayList<>(peptides.size());
         for (Future<Result> f : futures)
             {

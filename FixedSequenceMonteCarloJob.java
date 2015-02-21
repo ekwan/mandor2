@@ -7,11 +7,11 @@ import org.apache.commons.math3.geometry.euclidean.threed.Vector3D;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.math3.distribution.NormalDistribution;
 
+/**
+ * This minimizes the conformation of one peptide in serial.
+ */
 public class FixedSequenceMonteCarloJob extends MonteCarloJob
 {
-    /** The number of lowest energy peptides to keep */ 
-    public final int maxSize;
-
     /** If a non-hairpin proline is selected for mutation, the chance of rotating it to the cis conformation. */
     public static final double CIS_PROLINE_PROBABILITY = 0.10;
 
@@ -20,17 +20,31 @@ public class FixedSequenceMonteCarloJob extends MonteCarloJob
     
     /** For setting omegas. */
     public static final NormalDistribution CIS_DISTRIBUTION = new NormalDistribution(0.0,5.0);
-
-    /** A list of backbone atom pairs to check for clashes. */
-    public final List<Pair<Integer, Integer>> backbonePairs;
-    
+   
     /**
      * The allowed (phi,psi) angles for the hairpin D-proline and glycine.  Entries 0 and 1 are phi and psi for
      * the proline, respectively.  Entries 2 and 3 are phi and psi for the glycine, respectively.
      */
     public static final DiscreteProbabilityDistribution<List<Double>> HAIRPIN_DISTRIBUTION;
 
-    public FixedSequenceMonteCarloJob(Peptide startingPeptide, double deltaAlpha, int maxIterations, int maxSize)
+    /** A list of backbone atom pairs to check for clashes. */
+    public final List<Pair<Integer, Integer>> backbonePairs;
+
+    /** The number of lowest energy peptides to keep. */ 
+    public final int maxSize;
+
+    /** How many rotamers should be minimized on each iteration. */
+    public final int rotamerPerIteration;
+
+    /**
+     * Sets up job but doesn't run it.
+     * @param startingPeptide the starting structure
+     * @param deltaAlpha the cooling rate
+     * @param maxIterations how many MC iterations to perform
+     * @param maxSize the number of peptides to keep
+     * @param how many rotamers should be minimized on each iteration
+     */
+    public FixedSequenceMonteCarloJob(Peptide startingPeptide, double deltaAlpha, int maxIterations, int maxSize, int rotamersPerIteration)
     {
         super(startingPeptide, deltaAlpha, maxIterations);
         this.maxSize = maxSize;
