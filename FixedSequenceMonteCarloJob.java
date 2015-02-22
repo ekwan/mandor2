@@ -182,9 +182,8 @@ public class FixedSequenceMonteCarloJob extends MonteCarloJob implements Seriali
                         else
                             {
                                 // choose a random (omega,phi,psi)
-                                newPeptide = BackboneMutator.mutateOmega(newPeptide,newPeptide.sequence.indexOf(residue));
-                                residue = newPeptide.sequence.get(randomIndex);
-                                newPeptide = BackboneMutator.mutatePhiPsi(newPeptide, newPeptide.sequence.indexOf(residue));
+                                newPeptide = BackboneMutator.mutateOmega(newPeptide,randomIndex);
+                                newPeptide = BackboneMutator.mutatePhiPsi(newPeptide,randomIndex);
                             }
                     }
                     
@@ -207,7 +206,7 @@ public class FixedSequenceMonteCarloJob extends MonteCarloJob implements Seriali
                 catch (Exception e)
                     {
                         if ( e instanceof IllegalArgumentException )
-                            System.out.printf("[%3d] rejected (rotamer packing failure %s) on microiteration %d\n", serverID, e.getMessage(), microiteration);
+                            System.out.printf("[%3d] rejected (rotamer packing / failure %s) on microiteration %d\n", serverID, e.getMessage(), microiteration);
                         else
                             {
                                 System.out.printf("[%3d] rejected (rotamer packing unknown error) on microiteration %d\n", serverID, microiteration);

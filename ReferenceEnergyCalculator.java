@@ -30,7 +30,7 @@ import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 public class ReferenceEnergyCalculator
 {
     /** The number of reference peptides to minimize. */
-    public static final int NUMBER_OF_REFERENCE_PEPTIDES = 1;
+    public static final int NUMBER_OF_REFERENCE_PEPTIDES = 500;
 
     /** The number of poses per reference peptide to minimize. */
     public static final int NUMBER_OF_STRUCTURES_TO_MINIMIZE = 500;
@@ -219,9 +219,9 @@ public class ReferenceEnergyCalculator
         // create some beta sheets
         DatabaseLoader.go();
         List<Peptide> sheets = BetaSheetGenerator.generateSheets(5,     // arm length 
-                                                                 10,    // max iterations
-                                                                 100,   // max results
-                                                                 0.01); // cooling rate
+                                                                 100,   // max iterations
+                                                                 1000,  // max results
+                                                                 0.05); // cooling rate
         System.out.printf("%d beta sheets have been generated.\n", sheets.size());
 
         // randomly mutate
@@ -230,6 +230,7 @@ public class ReferenceEnergyCalculator
         //    System.out.println(p.name);
 
         // minimize with OPLS
+        System.out.println("Minimizing intial peptides...");
         List<Peptide> minimizedRandomPeptides = TinkerJob.minimize(initialRandomPeptides, Forcefield.OPLS, 3000, false, false, false, false, false);
         System.out.printf("\n%d initial structues generated.\n", minimizedRandomPeptides.size());
         //Peptide.writeGJFs(minimizedRandomPeptides, "test_peptides/random_", 3, 10);
@@ -238,7 +239,7 @@ public class ReferenceEnergyCalculator
         List<Peptide> startingPeptides = new ArrayList<>();
         for (int i=0; i < minimizedRandomPeptides.size(); i++)
             {
-                System.out.printf("Checking clashes %d of %d...\r", i+1, startingPeptides.size());
+                System.out.printf("Checking clashes %d of %d...\r", i+1, minimizedRandomPeptides.size());
                 Peptide p = minimizedRandomPeptides.get(i);
                 List<Pair<Integer,Integer>> backbonePairs = p.getBackbonePairs();
                 if (!p.hasBackboneClash(backbonePairs))
@@ -255,7 +256,7 @@ public class ReferenceEnergyCalculator
             {
                 String filename = String.format("checkpoints/fsmcjob_%05d.chk", peptideCount);
                 peptideCount++;
-                FixedSequenceMonteCarloJob job = new FixedSequenceMonteCarloJob(p, 0.01, 10, NUMBER_OF_STRUCTURES_TO_MINIMIZE, 4, filename);
+                FixedSequenceMonteCarloJob job = new FixedSequenceMonteCarloJob(p, 0.0002, 5000, NUMBER_OF_STRUCTURES_TO_MINIMIZE, 4, filename);
                 Future<Result> f = GeneralThreadService.submit(job);
                 futures.add(f);
             }
