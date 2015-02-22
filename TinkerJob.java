@@ -51,8 +51,6 @@ public class TinkerJob implements WorkUnit
             throw new IllegalArgumentException("must have at least one iteration");
         this.maxIterations = maxIterations;
 
-        if ( peptide.energyBreakdown != null && peptide.energyBreakdown != EnergyBreakdown.BLANK )
-            throw new IllegalArgumentException("energybreakdown already set");
         if ( solvateDuringMinimization && approximateSolvationSinglePoint)
             throw new IllegalArgumentException("approximate solvation single point is redundant");
         if ( doAnalysis && approximateSolvationSinglePoint )

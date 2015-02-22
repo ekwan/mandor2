@@ -3,6 +3,7 @@ import java.util.concurrent.*;
 import java.util.concurrent.atomic.*;
 import java.io.*;
 import com.google.common.collect.*;
+import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 
 /**
  * This class calculates reference energies for amino acids in a beta sheet confromation. 
@@ -145,7 +146,7 @@ public class ReferenceEnergyCalculator
     /** 
      * Sorts the energies by residue from a bunch of peptides by amino acid description.
      */
-    public static Map<String,List<Double>> getEnergies(List<Peptide> peptides)
+    public static Map<String,List<Double>> getAMOEBAEnergies(List<Peptide> peptides)
     {
         Map<String,List<Double>> returnMap = new HashMap<>();
         for (Peptide p : peptides)
@@ -171,42 +172,45 @@ public class ReferenceEnergyCalculator
         return returnMap;
     }
 
-//    /** 
-//    * A method to make the individual calls needed to run the process of finding reference energies
-//    * @return a map from amino acids to reference energies
-//    */
-//    public static Map<AminoAcid, Double> calculateReferenceEnergies()
-//    {
-//        // Draw random beta sheet backbones
-//        // Generate 5000 backbones and pick 500 lowest energy ones
-//        
-//        List<Peptide> sheets = BetaSheetGenerator.generateSheets(5, 1000, 5000, .01);
-//        Collections.sort(sheets);
-//        List<Peptide> lowEnergyBackbones = sheets;
-//        
-//        // Pick lowest energy structures
-//        for (int i = 0; i < 500; i++)
-//            lowEnergyBackbones.add(sheets.get(i));
-//        
-//        // Perform mutations
-//        List<Peptide> randomPeptides = generateRandomPeptides(lowEnergyBackbones);
-//
-//        // Launch Monte Carlo jobs
-//        List<Peptide> minimizedRandomPeptides = new LinkedList<>();
-//        for (Peptide p : randomPeptides)
-//        {
-//            List<Peptide> monteCarloOutput = runMonteCarlo(p);
-//            // Minimize with AMOEBA
-//            List<Peptide> lowestEnergyMinimizedPeptides = minimize(monteCarloOutput);
-//            for (Peptide p2 : lowestEnergyMinimizedPeptides)
-//                minimizedRandomPeptides.add(p2);
-//        }
-//
-//        // Breakdown energy for each peptide and average energies
-//        Map<AminoAcid, Double> referenceEnergies = averageEnergies(minimizedRandomPeptides);
-//        return referenceEnergies;
-//    }
-//
+    /**
+     * Computes one-center OPLS energies for DEE.
+     */
+    public static Map<String,List<Double>> getOPLSEnergies(List<Peptide> peptides)
+    {
+        Map<String,List<Double>> returnMap = new HashMap<>();
+        for (Peptide p : peptides)
+            {
+                int sequenceLength = p.sequence.size();
+
+                // compute OPLS energies
+                List<Interaction> interactions = new ArrayList<>(OPLScalculator.getInteractions(p));
+                Double[][] energyMatrix = Interaction.getRotamerEnergyMatrix(p, interactions, true);
+                List<Double> energiesByResidue = new ArrayList<>(sequenceLength);
+                for (int i=0; i < sequenceLength; i++)
+                    {
+                        double thisEnergy = energyMatrix[i][i] + energyMatrix[i][energyMatrix.length-1]; // rotamer self energy + rotamer/backbone energy
+                        energiesByResidue.add(thisEnergy);
+                    }
+
+                for (int i=0; i < sequenceLength; i++)
+                    {
+                        Residue residue = p.sequence.get(i);
+                        if ( residue.isHairpin )
+                            continue;
+                        String description = residue.description;
+                        double energy = energiesByResidue.get(i);
+                        List<Double> list = returnMap.get(description);
+                        if ( list == null )
+                            {
+                                list = new ArrayList<Double>();
+                                returnMap.put(description, list);
+                            }
+                        list.add(energy);
+                    }
+            }
+        return returnMap;
+    }
+
     /**
      * Performs the reference energy generation procedure in parallel on one node.
      */
@@ -240,19 +244,25 @@ public class ReferenceEnergyCalculator
                 if (!p.hasBackboneClash(backbonePairs))
                     startingPeptides.add(p);
            }
+        if ( startingPeptides.size() == 0 )
+            throw new IllegalArgumentException("no peptides to start with");
         System.out.printf("\nDone.  %d peptides passed the clash check.\n", startingPeptides.size());
 
         // run the monte carlo jobs
-        // --->>>>>>>> add checkpoint filenames
         List<Future<Result>> futures = new ArrayList<>(startingPeptides.size());
+        int peptideCount = 0;
         for (Peptide p : startingPeptides)
             {
-                FixedSequenceMonteCarloJob job = new FixedSequenceMonteCarloJob(p, 0.001, 1000, NUMBER_OF_STRUCTURES_TO_MINIMIZE, 4, null);
+                String filename = String.format("checkpoints/fsmcjob_%05d.chk", peptideCount);
+                peptideCount++;
+                FixedSequenceMonteCarloJob job = new FixedSequenceMonteCarloJob(p, 0.01, 10, NUMBER_OF_STRUCTURES_TO_MINIMIZE, 4, filename);
                 Future<Result> f = GeneralThreadService.submit(job);
+                futures.add(f);
             }
         GeneralThreadService.silentWaitForFutures(futures);
 
         // get the results
+        System.out.println("All MC jobs are complete.");
         List<List<Peptide>> bestPoses = new ArrayList<>(futures.size()); // outer list is indexed by starting peptide, inner list by pose
         for (Future<Result> f : futures)
             {
@@ -262,15 +272,19 @@ public class ReferenceEnergyCalculator
                 bestPoses.add(result.bestPeptides);
             }
 
-        // minimize all poses with AMOEBA with single point GK solvation
+        // minimize all poses with AMOEBA with approximate single point solvation
+        System.out.println("Minimizing all poses with AMOEBA...");
         List<List<Peptide>> bestPoses2 = new ArrayList<>(futures.size());
-        for (List<Peptide> list : bestPoses)
+        for (int i=0; i < bestPoses.size(); i++)
             {
-                List<Peptide> list2 = TinkerJob.minimize(list, Forcefield.AMOEBA, 2000, false, false, true, true, false); 
+                System.out.printf("Reference peptide %d of %d:\n", i+1, bestPoses.size());
+                List<Peptide> list = bestPoses.get(i);
+                List<Peptide> list2 = TinkerJob.minimize(list, Forcefield.AMOEBA, 2000, false, true, false, false, false); 
                 bestPoses2.add(list2);
             }
 
         // take the best pose for each peptide and perform a gas phase AMOEBA energy breakdown
+        System.out.println("Getting gas phase AMOEBA breakdowns...");
         List<Peptide> bestPoses3 = new ArrayList<>(bestPoses2.size());
         for (List<Peptide> list : bestPoses2)
             {
@@ -280,16 +294,39 @@ public class ReferenceEnergyCalculator
         List<Peptide> bestPoses4 = TinkerJob.analyze(bestPoses3, Forcefield.AMOEBA);
         
         // get AMOEBA reference energies
-        Map<String,List<Double>> AMOEBAreferenceEnergies = getEnergies(bestPoses4);
+        System.out.println("Getting AMOEBA reference energies...");
+        Map<String,List<Double>> AMOEBAreferenceEnergies = getAMOEBAEnergies(bestPoses4);
+        String AMOEBAstring = "";
         for (String description : AMOEBAreferenceEnergies.keySet())
             {
                 List<Double> energies = AMOEBAreferenceEnergies.get(description);
-                System.out.printf("%s (%d energies)\n", description, energies.size());
-                System.out.println(energies);
+                DescriptiveStatistics stats = new DescriptiveStatistics();
+                for (Double d : energies)
+                    stats.addValue(d);
+                double stderr = stats.getStandardDeviation() / Math.sqrt(stats.getN());
+                String thisSummary = String.format("%30s : mean = %8.2f   stdev = %8.2f   err = %8.2f   n = %4d\n", description,
+                                                   stats.getMean(), stats.getStandardDeviation(), stderr, stats.getN());
+                System.out.print(thisSummary);
+                AMOEBAstring += String.format("%30s %.2f\n", description, stats.getMean());
             }
+        InputFileFormat.writeStringToDisk(AMOEBAstring, "AMOEBA.txt");
 
         // take the best poses for each peptide and perform a gas phase OPLS interaction calculation
-
-        // get OPLS reference energies
+        System.out.println("Getting OPLS reference energies...");
+        Map<String,List<Double>> OPLSreferenceEnergies = getOPLSEnergies(bestPoses4);
+        String OPLSstring = "";
+        for (String description : OPLSreferenceEnergies.keySet())
+            {
+                List<Double> energies = OPLSreferenceEnergies.get(description);
+                DescriptiveStatistics stats = new DescriptiveStatistics();
+                for (Double d : energies)
+                    stats.addValue(d);
+                double stderr = stats.getStandardDeviation() / Math.sqrt(stats.getN());
+                String thisSummary = String.format("%30s : mean = %8.2f   stdev = %8.2f   err = %8.2f   n = %4d\n", description,
+                                                   stats.getMean(), stats.getStandardDeviation(), stderr, stats.getN());
+                System.out.print(thisSummary);
+                OPLSstring += String.format("%30s %.2f\n", description, stats.getMean());
+            }
+        InputFileFormat.writeStringToDisk(OPLSstring, "OPLS.txt");
     }
 }

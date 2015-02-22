@@ -252,7 +252,11 @@ public class FixedSequenceMonteCarloJob extends MonteCarloJob implements Seriali
                     }
                 
                 // add all the results to the list of best results if applicable
-                System.out.printf("[%3d] %d structures generated on microiteration %d\n", serverID, results.size(), microiteration);
+                String energyString = "[";
+                for (Peptide p : results)
+                    energyString += String.format("%.2f, ", p.energyBreakdown.totalEnergy);
+                energyString = energyString.substring(0, energyString.length()-2) + "]";
+                System.out.printf("[%3d] %d structures generated on microiteration %d %s\n", serverID, results.size(), microiteration, energyString);
                 
                 // return the best result
                 Collections.sort(results);
