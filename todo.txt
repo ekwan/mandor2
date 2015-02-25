@@ -1,3 +1,6 @@
+check  best energy comparison in FSMCJob
+A* deadlock problem --use sync
+
 arginine placement runs into backbone
 check overall charge
 remove duplicate sequences from results

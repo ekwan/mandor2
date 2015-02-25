@@ -52,27 +52,40 @@ public class RotamerIterator
     /** where the answers are kept */
     public final List<Node> solutions;
 
+    /** whether to do things in parallel */
+    public final boolean parallelize;
+
+    /** parallelization is turned on by default */
+    public RotamerIterator(List<List<Rotamer>> rotamerSpace, Map<Rotamer,Double> rotamerSelfEnergies,
+                           Map<RotamerPair,Double> rotamerInteractionEnergies, int MAX_POSES)
+    {
+        this(rotamerSpace, rotamerSelfEnergies, rotamerInteractionEnergies, MAX_POSES, true);
+    }
+
     /**
      * Public constructor.
      * @param rotamerSpace the pruned rotamer space to iterate over
      * @param rotamerSelfEnergies the energies of the individual rotamers, including rotamer-backbone interactions
      * @param rotamerInteractionEnergies the interaction energies (it is assumed that the interaction energies will be null if incompatible)
      * @param MAX_POSES the maximum number of poses to return
+     * @param parallelize whether to parallelize the calculations
      */
     public RotamerIterator(List<List<Rotamer>> rotamerSpace, Map<Rotamer,Double> rotamerSelfEnergies,
-                           Map<RotamerPair,Double> rotamerInteractionEnergies, int MAX_POSES)
+                           Map<RotamerPair,Double> rotamerInteractionEnergies, int MAX_POSES, boolean parallelize)
     {
         // copy fields
         this.rotamerSpace = rotamerSpace;
         this.rotamerSelfEnergies = rotamerSelfEnergies;
         this.rotamerInteractionEnergies = rotamerInteractionEnergies;
         this.MAX_POSES = MAX_POSES;
+        this.parallelize = parallelize;
 
         // make a common set of newly explored nodes to be distributed
         newNodes = Collections.newSetFromMap(new ConcurrentHashMap<Node,Boolean>());
 
         // precompute some needed energies
         //System.out.println("Precomputing energy minima...");
+        //RotamerSpace.printRotamerSizes("debug", rotamerSpace);
         computeEnergyMinima();
         //System.out.println("\nPrecomputation is complete.");
 
@@ -104,20 +117,26 @@ public class RotamerIterator
             if ( rotamerSpace.get(i).size() == 1 )
                 continue;
             for (Rotamer r : rotamerSpace.get(i)) {
-                futures.add(GeneralThreadService.submit(new MinJob(r)));
+                if ( parallelize )
+                    futures.add(GeneralThreadService.submit(new MinJob(r)));
+                else
+                    new MinJob(r).call();
             }
         }
         GeneralThreadService.silentWaitForFutures(futures);
     }
 
     /**
-     * Produces the lowest energy poses, if any.  Executes in parallel.
+     * Produces the lowest energy poses, if any.  Executes in parallel.  Nothing else should be running in parallel.
      */
     public List<Node> iterate()
     {
         // create the queues
         List<PriorityQueue<Node>> queues = new ArrayList<>(NUMBER_OF_QUEUES);
-        for (int i=0; i < NUMBER_OF_QUEUES; i++)
+        int numberOfQueues = NUMBER_OF_QUEUES;
+        if ( !parallelize )
+            numberOfQueues = 1;
+        for (int i=0; i < numberOfQueues; i++)
             queues.add( new PriorityQueue<Node>() );
 
         // load the root node into one queue
@@ -127,7 +146,7 @@ public class RotamerIterator
         // solutions or exceeded the maximum amount of time
         //System.out.println("Starting graph search.");
         List<List<Node>> batches = new ArrayList<>();
-        for (int i=0; i < NUMBER_OF_QUEUES; i++)
+        for (int i=0; i < numberOfQueues; i++)
             batches.add(new ArrayList<Node>());
         Date start = new Date();
         
@@ -138,14 +157,17 @@ public class RotamerIterator
             iteration++;
 
             // create the latch
-            CountDownLatch latch = new CountDownLatch(NUMBER_OF_QUEUES);
+            CountDownLatch latch = new CountDownLatch(numberOfQueues);
 
             // submit all jobs
-            for (int i=0; i < NUMBER_OF_QUEUES; i++)
+            for (int i=0; i < numberOfQueues; i++)
                 {
                     PriorityQueue<Node> queue = queues.get(i);
                     SearchUnit job = new SearchUnit(queue, latch, batches.get(i));
-                    GeneralThreadService.submit(job);
+                    if ( parallelize )
+                        GeneralThreadService.submit(job);
+                    else
+                        job.call();
                 }
 
             // await the latch

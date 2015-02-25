@@ -37,11 +37,20 @@ public class AStarEnergyCalculator
         this.backboneEnergy = backboneEnergy;
     }
 
+    /** parallelization is turned on by default */
+    public static AStarEnergyCalculator analyze(FixedSequenceRotamerSpace fixedSequenceRotamerSpace)
+    {
+        return analyze(fixedSequenceRotamerSpace, true);
+    }
+
     /**
      * Factory method to create a AStarEnergyCalculator.  Calculates the single and pairwise energies of all the rotamers
      * in the RotamerPacker.  Energies on a truncated OPLS forcefield containing only charge and vdw interactions.
+     * @param fixedSequenceRotamerSpace the rotamer space to analyze
+     * @param parallelize whether to parallelize the calculation
+     * @return the calculator
      */
-    public static AStarEnergyCalculator analyze(FixedSequenceRotamerSpace fixedSequenceRotamerSpace)
+    public static AStarEnergyCalculator analyze(FixedSequenceRotamerSpace fixedSequenceRotamerSpace, boolean parallelize)
     {
         // get some information
         Peptide peptide = fixedSequenceRotamerSpace.peptide;
@@ -58,9 +67,7 @@ public class AStarEnergyCalculator
         AtomicDouble backboneEnergy = new AtomicDouble();
         
         // create energy jobs
-        List<Future<Result>> futures = createEnergyJobs(rotamerSpace, peptide, incompatiblePairs, selfEnergiesMap, interactionEnergiesMap, backboneEnergy);
-
-        // wait for jobs to finish
+        List<Future<Result>> futures = createEnergyJobs(rotamerSpace, peptide, incompatiblePairs, selfEnergiesMap, interactionEnergiesMap, backboneEnergy, parallelize);
         GeneralThreadService.silentWaitForFutures(futures);
 
         // return the object
@@ -275,11 +282,12 @@ public class AStarEnergyCalculator
      * @param selfEnergiesMap the map to concurrently update for rotamer single energies
      * @param interactionEnergiesMap the map to concurrently update for rotamer pair energies
      * @param backboneEnergy the backbone energy
+     * @param parallelize whether to do things in parallel
      * @return the results of all the calculations (dummy objects in this case)
      */
     public static List<Future<Result>> createEnergyJobs(List<List<Rotamer>> rotamerSpace, Peptide startingPeptide, Set<RotamerPair> incompatiblePairs,
                                                         ConcurrentHashMap<Rotamer,Double> selfEnergiesMap, ConcurrentHashMap<RotamerPair,Double> interactionEnergiesMap,
-                                                        AtomicDouble backboneEnergy)
+                                                        AtomicDouble backboneEnergy, boolean parallelize)
     {
         // create rotamer jobs
         // we minimize the amount of work by going across each row of rotamers
@@ -303,8 +311,14 @@ public class AStarEnergyCalculator
                             rotamers.add( list.get(i) );
                     }
                 RotamerEnergyJob job = new RotamerEnergyJob(startingPeptide, rotamers, selfEnergiesMap, backboneEnergy);
-                Future<Result> f = GeneralThreadService.submit(job);
-                futures.add(f);
+                if ( parallelize )
+                    {
+                        //System.out.println("submit 2");
+                        Future<Result> f = GeneralThreadService.submit(job);
+                        futures.add(f);
+                    }
+                else
+                    job.call();
             }
 
         // create rotamer pair jobs
@@ -314,8 +328,14 @@ public class AStarEnergyCalculator
             {
                 LinkedListMultimap<Rotamer,Rotamer> thisBatch = iterator.next();
                 RotamerPairEnergyJob job = new RotamerPairEnergyJob(startingPeptide, incompatiblePairs, thisBatch, interactionEnergiesMap);
-                Future<Result> f = GeneralThreadService.submit(job);
-                futures.add(f);
+                if ( parallelize )
+                    {
+                        //System.out.println("submit 3");
+                        Future<Result> f = GeneralThreadService.submit(job);
+                        futures.add(f);
+                    }
+                else
+                    job.call();
             }
         return futures;
     }

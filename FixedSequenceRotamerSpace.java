@@ -26,7 +26,12 @@ public class FixedSequenceRotamerSpace extends RotamerSpace
 
     public FixedSequenceRotamerSpace(Peptide peptide, boolean includeHN)
     {
-        super(peptide, includeHN);
+        super(peptide, includeHN, true);
+    }
+
+    public FixedSequenceRotamerSpace(Peptide peptide, boolean includeHN, boolean parallelize)
+    {
+        super(peptide, includeHN, parallelize);
     }
 
     /**
@@ -82,6 +87,6 @@ public class FixedSequenceRotamerSpace extends RotamerSpace
                 j++; 
             }
 
-        FixedSequenceRotamerSpace catalystRotamerSpace = new FixedSequenceRotamerSpace(peptide, true);
+        FixedSequenceRotamerSpace catalystRotamerSpace = new FixedSequenceRotamerSpace(peptide, true, true);
     }
 }

@@ -17,6 +17,8 @@ public class GeneralThreadService implements Singleton
 
     private static final CustomThreadPoolExecutor EXECUTOR_SERVICE;
 
+    public static final AtomicInteger numberRunning = new AtomicInteger();
+
     /** Not instantiable. */
     private GeneralThreadService()
     {
@@ -89,11 +91,13 @@ public class GeneralThreadService implements Singleton
         protected void beforeExecute(Thread t, Runnable r)
         {
             super.beforeExecute(t,r);
+            numberRunning.getAndIncrement();
         }
 
         protected void afterExecute(Runnable r, Throwable t)
         {
             super.afterExecute(r,t);
+            numberRunning.getAndDecrement();
 
             // print exceptions if any
             try
@@ -173,6 +177,8 @@ public class GeneralThreadService implements Singleton
     public static void silentWaitForFutures(List<Future<Result>> futures)
     {
         int totalJobs = futures.size();
+        if ( totalJobs == 0 )
+            return;
         while (true)
             {
                 int numberDone = 0;
@@ -191,6 +197,8 @@ public class GeneralThreadService implements Singleton
     public static void waitForFutures(List<Future<Result>> futures)
     {
         int totalJobs = futures.size();
+        if ( totalJobs == 0 )
+            return;
         while (true)
             {
                 int numberDone = 0;

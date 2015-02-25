@@ -30,7 +30,7 @@ import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 public class ReferenceEnergyCalculator
 {
     /** The number of reference peptides to minimize. */
-    public static final int NUMBER_OF_REFERENCE_PEPTIDES = 500;
+    public static final int NUMBER_OF_REFERENCE_PEPTIDES = 64;
 
     /** The number of poses per reference peptide to minimize. */
     public static final int NUMBER_OF_STRUCTURES_TO_MINIMIZE = 500;
@@ -52,7 +52,7 @@ public class ReferenceEnergyCalculator
      */
     public static List<Peptide> generateRandomPeptides(List<Peptide> betaSheets, int targetNumberOfResults)
     {
-        // verify invariatns
+        // verify invariants
         if ( betaSheets == null || betaSheets.size() < 1 )
             throw new IllegalArgumentException("check beta sheets");
         if ( targetNumberOfResults < 1 )
@@ -219,7 +219,7 @@ public class ReferenceEnergyCalculator
         // create some beta sheets
         DatabaseLoader.go();
         List<Peptide> sheets = BetaSheetGenerator.generateSheets(5,     // arm length 
-                                                                 100,   // max iterations
+                                                                 10,   // max iterations
                                                                  1000,  // max results
                                                                  0.05); // cooling rate
         System.out.printf("%d beta sheets have been generated.\n", sheets.size());
@@ -249,14 +249,58 @@ public class ReferenceEnergyCalculator
             throw new IllegalArgumentException("no peptides to start with");
         System.out.printf("\nDone.  %d peptides passed the clash check.\n", startingPeptides.size());
 
+        // rotamer pack all of the starting structures
+        // make a list of initial rotamers of the starting structure and use the best structure as the Monte Carlo seed
+        List<List<Peptide>> startingPeptides2 = new ArrayList<>(startingPeptides.size());
+        for (Peptide p : startingPeptides)
+            {
+                // perform A* iteration
+                try
+                    {
+                        FixedSequenceRotamerSpace fixedSequenceRotamerSpace = new FixedSequenceRotamerSpace(p, false);
+                        AStarEnergyCalculator calculator = AStarEnergyCalculator.analyze(fixedSequenceRotamerSpace);
+                        RotamerIterator iterator = new RotamerIterator(fixedSequenceRotamerSpace.rotamerSpace, calculator.rotamerSelfEnergies, calculator.rotamerInteractionEnergies, 100);
+                        List<RotamerIterator.Node> solutions = iterator.iterate();
+                        solutions = iterator.iterate();
+                        if ( solutions.size() == 0 )
+                                continue;
+
+                        // reconstitute
+                        List<Peptide> results = new ArrayList<>(100);
+                        for (RotamerIterator.Node node : solutions)
+                            {
+                                if (results.size() >= 100)
+                                    break;
+                                results.add(Rotamer.reconstitute(p, node.rotamers));
+                           }
+                        
+                        // minimize peptides in parallel
+                        List<Peptide> results2 = TinkerJob.minimize(results, Forcefield.OPLS, 2000, false, false, true, true, false);
+                        startingPeptides2.add(results2);
+                        double bestEnergy = results2.get(0).energyBreakdown.totalEnergy;
+                        System.out.printf("Initial rotamer packing done for peptide %d of %d.  %d structures added (bestE = %.2f).\n", startingPeptides2.size(), startingPeptides.size(), results2.size(), bestEnergy);
+                    }
+                catch (Exception e)
+                    {
+                        e.printStackTrace();
+                        continue;
+                    }
+                /*// use this to skip the initial rotamer packing
+                List<Peptide> results2 = new ArrayList<>();
+                results2.add(p);
+                startingPeptides2.add(results2);
+                */
+            }
+
         // run the monte carlo jobs
         List<Future<Result>> futures = new ArrayList<>(startingPeptides.size());
         int peptideCount = 0;
-        for (Peptide p : startingPeptides)
+        for (List<Peptide> list : startingPeptides2)
             {
+                Peptide p = list.get(0);
                 String filename = String.format("checkpoints/fsmcjob_%05d.chk", peptideCount);
                 peptideCount++;
-                FixedSequenceMonteCarloJob job = new FixedSequenceMonteCarloJob(p, 0.0002, 5000, NUMBER_OF_STRUCTURES_TO_MINIMIZE, 4, filename);
+                FixedSequenceMonteCarloJob job = new FixedSequenceMonteCarloJob(p, 0.001, 1000, NUMBER_OF_STRUCTURES_TO_MINIMIZE, 4, filename, list);
                 Future<Result> f = GeneralThreadService.submit(job);
                 futures.add(f);
             }

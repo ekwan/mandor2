@@ -40,13 +40,20 @@ public abstract class RotamerSpace implements Immutable
         this.incompatiblePairs = incompatiblePairs;
     }
 
+    /** Parallelization is turned on by default. */
+    public RotamerSpace(Peptide inputPeptide, boolean includeHN)
+    {
+        this(inputPeptide, includeHN, true);
+    }
+
     /**
      * Creates a RotamerSpace.  Assumes the inputPeptide is clash-free.  Throws an exception if no solutions are possible.
      * The input peptide will be mutated if there are any variable positions with only one possible rotamer.
      * @param inputPeptide the peptide to pack the rotamers of
      * @param includeHN whether HNs should be considered part of the rotamers
+     * @param parallelize if true, will work in parallel
      */
-    public RotamerSpace(Peptide inputPeptide, boolean includeHN)
+    public RotamerSpace(Peptide inputPeptide, boolean includeHN, boolean parallelize)
     {
         // get rotamer space, which may or may not span different amino acids
         List<List<Rotamer>> tempRotamerSpace = getRotamerSpace(inputPeptide, includeHN);
@@ -93,8 +100,14 @@ public abstract class RotamerSpace implements Immutable
             {
                 List<RotamerPair> thisBatch = iterator.next();
                 IncompatibleWorkUnit unit = new IncompatibleWorkUnit(tempRotamerSpace,thisBatch,tempIncompatiblePairs);
-                Future<Result> f = GeneralThreadService.submit(unit);
-                futures.add(f);
+                if ( parallelize )
+                    {
+                        //System.out.println("submit");
+                        Future<Result> f = GeneralThreadService.submit(unit);
+                        futures.add(f);
+                    }
+                else
+                    unit.call();
             }
 
         GeneralThreadService.silentWaitForFutures(futures);

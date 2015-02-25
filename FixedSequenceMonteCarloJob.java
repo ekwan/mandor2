@@ -23,7 +23,10 @@ public class FixedSequenceMonteCarloJob extends MonteCarloJob implements Seriali
     
     /** For setting omegas. */
     public static final NormalDistribution CIS_DISTRIBUTION = new NormalDistribution(0.0,5.0);
-   
+  
+    /** Prevents deadlocks. */
+    private static final Object ASTAR_LOCK = new Object();
+
     /**
      * The allowed (phi,psi) angles for the hairpin D-proline and glycine.  Entries 0 and 1 are phi and psi for
      * the proline, respectively.  Entries 2 and 3 are phi and psi for the glycine, respectively.
@@ -73,13 +76,19 @@ public class FixedSequenceMonteCarloJob extends MonteCarloJob implements Seriali
      * @param maxIterations how many MC iterations to perform
      * @param maxSize the number of peptides to keep
      * @param how many rotamers should be minimized on each iteration
-     * @param checkpointFilename
+     * @param checkpointFilename job will be serialized here when done
      */
-    public FixedSequenceMonteCarloJob(Peptide startingPeptide, double deltaAlpha, int maxIterations, int maxSize, int rotamersPerIteration, String checkpointFilename)
+    public FixedSequenceMonteCarloJob(Peptide startingPeptide, double deltaAlpha, int maxIterations, int maxSize,
+                                      int rotamersPerIteration, String checkpointFilename, List<Peptide> seedPeptides)
     {
         super(startingPeptide, deltaAlpha, maxIterations);
         this.backbonePairs = startingPeptide.getBackbonePairs();
         this.bestPeptides = new MonteCarloJob.PeptideList(maxSize);
+        if ( seedPeptides != null )
+            {
+                for (Peptide p : seedPeptides)
+                    bestPeptides.add(p);
+            }
         this.rotamersPerIteration = rotamersPerIteration;
         this.checkpointFilename = checkpointFilename;
         this.serverID = RemoteWorkUnit.ID_GENERATOR.incrementAndGet();
@@ -101,32 +110,27 @@ public class FixedSequenceMonteCarloJob extends MonteCarloJob implements Seriali
         // random number generator
         ThreadLocalRandom random = ThreadLocalRandom.current();
 
-        // the new peptide
-        Peptide newPeptide = peptide;
-        FixedSequenceRotamerSpace fixedSequenceRotamerSpace = null;
-        
-        // choose a residue at random
-        int randomIndex = -1;
-        Residue residue = null;
-
-        while (true)
-            {
-                randomIndex = random.nextInt(peptide.sequence.size());
-                residue = peptide.sequence.get(randomIndex);
-                
-                // if this is a hairpin residue, give a high chance of rolling again
-                if ( residue.isHairpin && random.nextDouble() > 0.10 )
-                    continue;
-                break;
-            }
-
         // perturb the backbone until there's no backbone clash
         int microiteration = 0;
         while (true)
             {
-                // reset
-                newPeptide = peptide;
                 microiteration++;
+                Peptide newPeptide = peptide;
+                FixedSequenceRotamerSpace fixedSequenceRotamerSpace = null;
+                
+                // choose a residue at random
+                int randomIndex = -1;
+                Residue residue = null;
+                while (true)
+                    {
+                        randomIndex = random.nextInt(peptide.sequence.size());
+                        residue = peptide.sequence.get(randomIndex);
+                        
+                        // if this is a hairpin residue, give a high chance of rolling again
+                        if ( residue.isHairpin && random.nextDouble() > 0.10 )
+                            continue;
+                        break;
+                    }
 
                 // make the mutation
                 if ( residue.isHairpin )
@@ -188,7 +192,7 @@ public class FixedSequenceMonteCarloJob extends MonteCarloJob implements Seriali
                     }
                     
                 // check peptide for self clashes
-                if ( peptide.hasBackboneClash(backbonePairs) )
+                if ( newPeptide.hasBackboneClash(backbonePairs) )
                     {
                         System.out.printf("[%3d] rejected (backbone clash) on microiteration %d\n", serverID, microiteration);
                         continue;
@@ -201,12 +205,12 @@ public class FixedSequenceMonteCarloJob extends MonteCarloJob implements Seriali
                 try
                     {
                         // note that the includeHN should be set to false if we want to do A* here
-                        fixedSequenceRotamerSpace = new FixedSequenceRotamerSpace(peptide, false);
+                        fixedSequenceRotamerSpace = new FixedSequenceRotamerSpace(newPeptide, false, false);
                     }
                 catch (Exception e)
                     {
                         if ( e instanceof IllegalArgumentException )
-                            System.out.printf("[%3d] rejected (rotamer packing / failure %s) on microiteration %d\n", serverID, e.getMessage(), microiteration);
+                            System.out.printf("[%3d] rejected (packing failure: %s) on microiteration %d\n", serverID, e.getMessage(), microiteration);
                         else
                             {
                                 System.out.printf("[%3d] rejected (rotamer packing unknown error) on microiteration %d\n", serverID, microiteration);
@@ -215,10 +219,11 @@ public class FixedSequenceMonteCarloJob extends MonteCarloJob implements Seriali
                         continue;
                     }
 
-                // perform A* iteration, checking to see if the predicted and actual energies are the same
-                AStarEnergyCalculator calculator = AStarEnergyCalculator.analyze(fixedSequenceRotamerSpace);
-                RotamerIterator iterator = new RotamerIterator(fixedSequenceRotamerSpace.rotamerSpace, calculator.rotamerSelfEnergies, calculator.rotamerInteractionEnergies, rotamersPerIteration);
-                List<Peptide> results = new ArrayList<>(rotamersPerIteration+100);
+                // perform A* iteration
+                AStarEnergyCalculator calculator = AStarEnergyCalculator.analyze(fixedSequenceRotamerSpace, false);
+                //System.out.printf("[%3d] Finished A* analysis.  %d jobs are runnning and %d jobs are queued.\n", serverID, GeneralThreadService.numberRunning.get(), GeneralThreadService.queueSize());
+                RotamerIterator iterator = new RotamerIterator(fixedSequenceRotamerSpace.rotamerSpace, calculator.rotamerSelfEnergies, calculator.rotamerInteractionEnergies, rotamersPerIteration, false);
+                //System.out.printf("[%3d] Created RotamerIterator.\n", serverID);
                 List<RotamerIterator.Node> solutions = iterator.iterate();
                 if ( solutions.size() == 0 )
                     {
@@ -227,11 +232,15 @@ public class FixedSequenceMonteCarloJob extends MonteCarloJob implements Seriali
                     }
 
                 // minimize peptides in serial
+                List<Peptide> results = new ArrayList<>(rotamersPerIteration+100);
                 for (RotamerIterator.Node node : solutions)
                     {
+                        if ( results.size() >= rotamersPerIteration )
+                            break;
+
                         // solutions come out lowest energy first
                         List<Rotamer> rotamers = node.rotamers;
-                        Peptide thisPeptide = Rotamer.reconstitute(peptide, rotamers);
+                        Peptide thisPeptide = Rotamer.reconstitute(newPeptide, rotamers);
 
                         // minimize with OPLS with single point GB solvation, throw out peptides that error
                         Peptide minimizedPeptide = null;
@@ -239,9 +248,8 @@ public class FixedSequenceMonteCarloJob extends MonteCarloJob implements Seriali
                         catch (Exception e) { continue; }
                         results.add(minimizedPeptide);
                         bestPeptides.add(minimizedPeptide);
-                        if ( results.size() >= rotamersPerIteration )
-                            break;
-                    }
+                   }
+                //System.out.printf("[%3d] %d peptides have been minimized.\n", serverID, results.size());
 
                 // check that we have enough results
                 if ( results.size() == 0 )
@@ -288,7 +296,8 @@ public class FixedSequenceMonteCarloJob extends MonteCarloJob implements Seriali
         
         // perform the Metropolis Monte Carlo
         double currentAlpha = 0.0;
-        Double lastBestEnergy = null;
+        double firstEnergy = bestPeptides.getBestEnergy();
+        double lastBestEnergy = firstEnergy;
         for (int i=0; i < maxIterations; i++)
             {
                 // abort if kill file found
@@ -303,22 +312,22 @@ public class FixedSequenceMonteCarloJob extends MonteCarloJob implements Seriali
 
                 // apply modified Metropolis criterion
                 boolean isAccepted = MonteCarloJob.acceptChange(currentPeptide, candidate, currentAlpha);
+                double thisEnergy = candidate.energyBreakdown.totalEnergy;
                 double bestEnergy = bestPeptides.getBestEnergy();
-                if ( i==0 )
-                    lastBestEnergy = bestEnergy;
                 if ( isAccepted )
                     {
                         currentPeptide = candidate;
                         if ( bestEnergy < lastBestEnergy )
-                            System.out.printf("[%3d] Iter %d of %d (new best, alpha = %.6f, E = %.2f, bestE = %.2f)\n", serverID, i+1, maxIterations, currentAlpha, candidate.energyBreakdown.totalEnergy, bestEnergy);
+                            System.out.printf("[%3d] Iter %d of %d (***new best***, alpha = %.6f, E = %.2f, bestE = %.2f, initialE = %.2f)\n", serverID, i+1, maxIterations, currentAlpha, thisEnergy, bestEnergy, firstEnergy);
                         else
-                            System.out.printf("[%3d] Iter %d of %d (accepted, alpha = %.6f, E = %.2f, bestE = %.2f)\n", serverID, i+1, maxIterations, currentAlpha, candidate.energyBreakdown.totalEnergy, bestEnergy);
+                            System.out.printf("[%3d] Iter %d of %d (accepted, alpha = %.6f, E = %.2f, bestE = %.2f, initialE = %.2f)\n", serverID, i+1, maxIterations, currentAlpha, thisEnergy, bestEnergy, firstEnergy);
                     }
                 else
-                    System.out.printf("[%3d] Iter %d of %d (rejected, alpha = %.6f, E = %.2f, bestE = %.2f)\n", serverID, i+1, maxIterations, currentAlpha, candidate.energyBreakdown.totalEnergy, bestEnergy);
+                    System.out.printf("[%3d] Iter %d of %d (rejected, alpha = %.6f, E = %.2f, bestE = %.2f, initialE = %.2f)\n", serverID, i+1, maxIterations, currentAlpha, thisEnergy, bestEnergy, firstEnergy);
 
                 // update alpha
                 currentAlpha = currentAlpha + deltaAlpha;
+                lastBestEnergy = bestEnergy;
             }
         
         // save this result to disk if requested
