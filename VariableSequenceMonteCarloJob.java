@@ -65,7 +65,7 @@ public class VariableSequenceMonteCarloJob extends MonteCarloJob implements Seri
             {
                 Residue residue = peptide.sequence.get(i);
                 if ( residue.isHairpin || residue.aminoAcid == AminoAcid.TS ||
-                     residue.aminoAcid == AminoAcid.HIS || residue.aminoAcid == AminoAcid.ARG )i 
+                     residue.aminoAcid == AminoAcid.HIS || residue.aminoAcid == AminoAcid.ARG ) 
                     continue;
                 validPositions.add(i);
             }
@@ -83,16 +83,10 @@ public class VariableSequenceMonteCarloJob extends MonteCarloJob implements Seri
 
                 // choose an amino acid to mutate to, it's always a different one than the one we have now
                 AminoAcid currentAminoAcid = residue.aminoAcid;
-                List<AminoAcid> mutationOutcomes = new ArrayList<>(CatalystRotamerSpace.MUTATION_OUTCOMES);
-                mutationOutcomes.remove(currentAminoAcid);
-                AminoAcid randomAminoAcid = mutationOutcomes.get(random.nextInt(mutationOutcomes.size()));
+                List<ProtoAminoAcid> mutationOutcomes = new ArrayList<>(CatalystRotamerSpace.MUTATION_OUTCOMES);
+                ProtoAminoAcid protoAminoAcid = mutationOutcomes.get(random.nextInt(mutationOutcomes.size()));
                 
                 // mutate at random
-                int paaIndex = ProtoAminoAcidDatabase.KEYS.indexOf(randomAminoAcid);
-                if ( paaIndex == -1 )
-                    throw new IllegalArgumentException("no protoaminoacid templates found for " + randomAminoAcid.shortName);
-                List<ProtoAminoAcid> paaList = ProtoAminoAcidDatabase.VALUES.get(paaIndex);
-                ProtoAminoAcid protoAminoAcid = paaList.get(random.nextInt(paaList.size()));
                 Peptide newPeptide = SidechainMutator.mutateSidechain(peptide, residue, protoAminoAcid);
 
                 // compute the reference energy for this peptide
@@ -102,10 +96,11 @@ public class VariableSequenceMonteCarloJob extends MonteCarloJob implements Seri
                 //
                 // we must call this in a try-catch clause because it's possible the peptide could be in a bad conformation
                 // in which it is impossible to place any rotamers
+                VariableSequenceRotamerSpace variableSequenceRotamerSpace = null;
                 try
                     {
                         // note that the includeHN should be set to false if we want to do A* here
-                        varaibleSequenceRotamerSpace = new VariableSequenceSequenceRotamerSpace(newPeptide, false, false);
+                        variableSequenceRotamerSpace = new VariableSequenceRotamerSpace(newPeptide, false, false);
                     }
                 catch (Exception e)
                     {
@@ -146,6 +141,8 @@ public class VariableSequenceMonteCarloJob extends MonteCarloJob implements Seri
                         catch (Exception e) { continue; }
 
                         // adjust total energy for reference energy
+                        double referencedEnergy = minimizedPeptide.energyBreakdown.totalEnergy - referenceEnergy;
+                        EnergyBreakdown energyBreakdown = new EnergyBreakdown(null, referencedEnergy, 0.0, referencedEnergy, null, Forcefield.AMOEBA);
                         minimizedPeptide = minimizedPeptide.setEnergyBreakdown(energyBreakdown);         
 
                         results.add(minimizedPeptide);

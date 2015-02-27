@@ -21,15 +21,26 @@ import org.apache.commons.math3.distribution.NormalDistribution;
  */
 public class CatalystDesigner implements Immutable
 {
+    public static boolean isCatalytic(Peptide p)
+    {
+        boolean isSheet = BetaSheetGenerator.isSheet(p,1);
+        boolean hasBackboneContact = DEECalculator.hasBackboneContact(p);
+        boolean hasArgContact = DEECalculator.hasArgContact(p);
+        String signature = DEECalculator.getSignature(p);
+        boolean pass = isSheet && hasBackboneContact && hasArgContact;
+        System.out.printf("%10s sheet: %5b   backbone: %5b   arg: %5b  pass: %5b\n", signature, isSheet, hasBackboneContact, hasArgContact, pass);
+        return pass;    
+    }
+
     /** for testing */
     public static void main(String[] args)
     {
         // make some beta sheet templates
         DatabaseLoader.go();
-        List<Peptide> sheets = BetaSheetGenerator.generateSheets(5, 1000, 100000, 0.001);
+        List<Peptide> sheets = BetaSheetGenerator.generateSheets(5, 50, 100000, 0.001);
         Collections.sort(sheets);
 
-        // remove duplicates
+        /*// remove duplicates
         int maxResults = 10000;
         double RMSDthreshold = 0.50;
         List<Peptide> results = new ArrayList<>();
@@ -55,11 +66,12 @@ public class CatalystDesigner implements Immutable
             }
         System.out.printf("%d unique sheets generated\n", results.size());
         //Peptide.writeGJFs(results, "test_peptides/sheet_", 3, maxResults);
+        */
 
         // find interesting tuples
         List<Peptide> interestingPeptides = Collections.synchronizedList(new ArrayList<Peptide>());
         List<Future<Result>> futures = new ArrayList<>();
-        for (Peptide peptide : results)
+        for (Peptide peptide : sheets)
             {
                 RotamerFactory.InterestingJob job = new RotamerFactory.InterestingJob(peptide, interestingPeptides);
                 Future<Result> f = GeneralThreadService.submit(job);
@@ -99,16 +111,12 @@ public class CatalystDesigner implements Immutable
 
         // check the poses are actually sheets
         Map<String,List<Peptide>> resultMap = new HashMap<>(); // map from indices of TS,his,arg to peptides
+        Peptide singlePeptide = null;
         for (Peptide p : minimizedPoses)
             {
-                boolean isSheet = BetaSheetGenerator.isSheet(p,1);
-                boolean hasBackboneContact = DEECalculator.hasBackboneContact(p);
-                boolean hasArgContact = DEECalculator.hasArgContact(p);
-                String signature = DEECalculator.getSignature(p);
-                boolean pass = isSheet && hasBackboneContact && hasArgContact;
-                System.out.printf("%10s sheet: %5b   backbone: %5b   arg: %5b  pass: %5b\n", signature, isSheet, hasBackboneContact, hasArgContact, pass);
-                if ( !pass )
-                    continue;
+                // check to see if the structure still looks catalytic
+                if ( ! isCatalytic(p) )
+                   continue;
                 
                 // adjust peptide energy by reference energy
                 double referenceEnergy = Interaction.getAMOEBAReferenceEnergy(p);
@@ -123,8 +131,22 @@ public class CatalystDesigner implements Immutable
                         resultMap.put(signature,list);
                     }
                 list.add(adjustedPeptide);
+                singlePeptide = adjustedPeptide;
+                break;
             }
 
+        // sort by design type
+        
+        // do MC packing
+        if ( singlePeptide == null )
+            throw new IllegalArgumentException("nothing to do");
+        VariableSequenceMonteCarloJob job = new VariableSequenceMonteCarloJob(singlePeptide, 0.001, 10, 100, 4, "test_peptides/test.chk");
+        job.call();
+        Peptide.writeGJFs(job.bestPeptides.getList(), "test_peptides/vsmcjob_", 2, 100);
+
+        // remove duplicates
+
+/*
         // write out the results
         for (String signature : resultMap.keySet())
             {
@@ -133,5 +155,6 @@ public class CatalystDesigner implements Immutable
                 Peptide.writeGJFs(list, "test_peptides/good_" + signature + "_", 3, 1000);
                 Peptide.writeCHKs(list, "test_peptides/good_" + signature + "_", 3, 1000);
             }
+*/
     }
 }

@@ -50,15 +50,15 @@ public class AStarEnergyCalculator
      * @param parallelize whether to parallelize the calculation
      * @return the calculator
      */
-    public static AStarEnergyCalculator analyze(FixedSequenceRotamerSpace fixedSequenceRotamerSpace, boolean parallelize)
+    public static AStarEnergyCalculator analyze(RotamerSpace inputRotamerSpace, boolean parallelize)
     {
         // get some information
-        Peptide peptide = fixedSequenceRotamerSpace.peptide;
-        List<List<Rotamer>> rotamerSpace = fixedSequenceRotamerSpace.rotamerSpace;
-        Set<RotamerPair> incompatiblePairs = fixedSequenceRotamerSpace.incompatiblePairs;
+        Peptide peptide = inputRotamerSpace.peptide;
+        List<List<Rotamer>> rotamerSpace = inputRotamerSpace.rotamerSpace;
+        Set<RotamerPair> incompatiblePairs = inputRotamerSpace.incompatiblePairs;
 
         // estimate the number of rotamers and rotamer pairs
-        int totalRotamers = RotamerSpace.countRotamers(rotamerSpace);;
+        int totalRotamers = RotamerSpace.countRotamers(rotamerSpace);
         int estimated = ( ( totalRotamers * (totalRotamers - 1) ) / 2 ) - incompatiblePairs.size();
 
         // populate fields
