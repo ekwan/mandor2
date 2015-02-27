@@ -133,6 +133,7 @@ public class OPLScalculator implements Singleton
                         if ( distance < MIN_DISTANCE )
                             distance = MIN_DISTANCE;
                         double electrostatic = (charge1 * charge2 * COULOMB_CONSTANT) / (distance * distance);
+                        //double electrostatic = (charge1 * charge2 * COULOMB_CONSTANT) / distance;
 
                         // apply the combining rules for epsilon and sigma if necessary
                         double sigma = vdw_distance1;

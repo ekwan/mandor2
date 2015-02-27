@@ -138,7 +138,9 @@ public class ReferenceEnergyCalculator
                     }
 
                 // add to result
-                randomPeptides.add(peptide);
+                int charge = PeptideChargeCalculator.getCharge(peptide);
+                if ( charge == 0 || charge == 1 )
+                    randomPeptides.add(peptide);
             }
         return randomPeptides;
     }
@@ -336,6 +338,7 @@ public class ReferenceEnergyCalculator
                 if ( list.size() > 0 )
                     bestPoses3.add(list.get(0));
             }
+        Peptide.writeGJFs(bestPoses3, "test_peptides/reference_", 3, 1000);
         List<Peptide> bestPoses4 = TinkerJob.analyze(bestPoses3, Forcefield.AMOEBA);
         
         // get AMOEBA reference energies

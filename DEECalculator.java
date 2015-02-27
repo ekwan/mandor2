@@ -235,6 +235,8 @@ public class DEECalculator implements Immutable
         // make the peptides in parallel
         GeneralThreadService.silentWaitForFutures(futures);
         System.out.printf("%d poses generated.\n", poses.size());
+        for (Peptide p : poses)
+            System.out.println(p.name);
         return poses;
     }
 
@@ -335,8 +337,9 @@ public class DEECalculator implements Immutable
     /** for testing */
     public static void main(String[] args)
     {
+        // make some beta sheet templates
         DatabaseLoader.go();
-        List<Peptide> sheets = BetaSheetGenerator.generateSheets(5, 1000, 100000, 0.001);
+        List<Peptide> sheets = BetaSheetGenerator.generateSheets(5, 100, 100000, 0.001);
         Collections.sort(sheets);
 
         // remove duplicates
@@ -456,6 +459,7 @@ public class DEECalculator implements Immutable
                 List<Peptide> list = resultMap.get(signature);
                 Collections.sort(list); // sort by energy
                 Peptide.writeGJFs(list, "test_peptides/good_" + signature + "_", 3, maxPoses);
+                Peptide.writeCHKs(list, "test_peptides/good_" + signature + "_", 3, maxPoses);
             }
     }
 }
