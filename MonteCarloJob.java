@@ -19,6 +19,13 @@ public abstract class MonteCarloJob implements WorkUnit
     /** How many iterations to perform. */
     public final int maxIterations;
 
+    public MonteCarloJob()
+    {
+        startingPeptide = null;
+        deltaAlpha = 0.0;
+        maxIterations = 0;
+    }
+
     /** Constructs a generic MonteCarloJob. */
     public MonteCarloJob(Peptide startingPeptide, double deltaAlpha, int maxIterations)
     {
