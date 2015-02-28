@@ -209,6 +209,8 @@ public abstract class MonteCarloJob implements WorkUnit
 
         public double getBestEnergy()
         {
+            if ( list == null || list.size() == 0 )
+                return 0.0;
             return list.get(0).energyBreakdown.totalEnergy;
         }
 

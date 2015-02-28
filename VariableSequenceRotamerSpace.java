@@ -46,13 +46,10 @@ public class VariableSequenceRotamerSpace extends RotamerSpace
         List<List<Rotamer>> rotamerSpace = new ArrayList<>(inputPeptide.sequence.size());
         for (Residue residue : inputPeptide.sequence)
             {
-                if ( residue.isHairpin || residue.aminoAcid == AminoAcid.TS ||
-                     residue.aminoAcid == AminoAcid.HIS || residue.aminoAcid == AminoAcid.ARG )
-                    {
-                        // place blank lists at positions with no rotamers
-                        rotamerSpace.add(new ArrayList<Rotamer>());
-                        //System.out.printf("Placed 0 rotamers at position %d (%s)\n", i, residue.description);
-                    }
+                if ( residue.isHairpin )
+                    rotamerSpace.add(new ArrayList<Rotamer>());
+                else if ( residue.aminoAcid == AminoAcid.TS || residue.aminoAcid == AminoAcid.HIS || residue.aminoAcid == AminoAcid.ARG )
+                    rotamerSpace.add(RotamerFactory.getOneRotamer(inputPeptide, residue, includeHN));
                 else
                     {
                         // include only rotamers for the current residue

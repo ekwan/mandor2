@@ -65,9 +65,22 @@ public class PeptideChargeCalculator implements Immutable
      */
     public static int getCharge(Peptide peptide)
     {
+        return getCharge(peptide, -1);
+    }
+
+    /**
+     * Calculates the formal charge of a peptide, excluding some position.
+     */
+    public static int getCharge(Peptide peptide, int ignoreIndex)
+    {
         List<String> descriptions = new ArrayList<>(peptide.sequence.size());
-        for (Residue r : peptide.sequence)
-            descriptions.add(r.description);
+        for (int i=0; i < peptide.sequence.size(); i++)
+            {
+                if ( i == ignoreIndex )
+                    continue;
+                Residue r = peptide.sequence.get(i);
+                descriptions.add(r.description);
+            }
         return getCharge(descriptions);
     }
 }

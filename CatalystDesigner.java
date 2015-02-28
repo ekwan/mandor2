@@ -124,6 +124,7 @@ public class CatalystDesigner implements Immutable
                 Peptide adjustedPeptide = p.setEnergyBreakdown(energyBreakdown);
 
                 // place in result map
+                String signature = DEECalculator.getSignature(p);
                 List<Peptide> list = resultMap.get(signature);
                 if ( list == null )
                     {
@@ -138,6 +139,7 @@ public class CatalystDesigner implements Immutable
         // sort by design type
         
         // do MC packing
+        
         if ( singlePeptide == null )
             throw new IllegalArgumentException("nothing to do");
         VariableSequenceMonteCarloJob job = new VariableSequenceMonteCarloJob(singlePeptide, 0.001, 10, 100, 4, "test_peptides/test.chk");

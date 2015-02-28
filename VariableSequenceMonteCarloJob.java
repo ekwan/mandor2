@@ -51,13 +51,19 @@ public class VariableSequenceMonteCarloJob extends MonteCarloJob implements Seri
      * (1) Select a non-active-site residue at random.<p>
      * (2) Mutate to a different amino acid.<p>
      * (3) Rotamer pack, minimize, and retain only catalytic results.<p>
+     * Expects and outputs close contact peptides.
      * @param peptide the peptide whose backbone we should perturb
      * @return the perturbed peptide
      */
-    public Peptide mutate(Peptide peptide)
+    public Peptide mutate(Peptide inputPeptide)
     {
+        Peptide.writeGJFs(bestPeptides.getList(), "test_peptides/best_", 2, 10);
+        Peptide.writeCHKs(bestPeptides.getList(), "test_peptides/best_", 2, 10);
+
         // random number generator
+        System.out.println(inputPeptide.name);
         ThreadLocalRandom random = ThreadLocalRandom.current();
+        Peptide peptide = HydrogenBondMutator.unmutate(inputPeptide);
 
         // figure out which positions can be mutated
         List<Integer> validPositions = new ArrayList<>(peptide.sequence.size());
@@ -70,32 +76,46 @@ public class VariableSequenceMonteCarloJob extends MonteCarloJob implements Seri
                 validPositions.add(i);
             }
  
-        // mutate until valid A* poses can be generated
-        int microiteration = 0;
-        while (true)
+        // create a list of positions in the peptide sequence that can be mutated and what they can be mutated to
+        List<Pair<Integer,ProtoAminoAcid>> mutationOutcomes = new ArrayList<>();
+        for (Integer i : validPositions)
             {
-                microiteration++;
-                FixedSequenceRotamerSpace fixedSequenceRotamerSpace = null;
-                
-                // choose a random position
-                int randomIndex = validPositions.get(random.nextInt(validPositions.size()));
-                Residue residue = peptide.sequence.get(randomIndex);
-
-                // choose an amino acid to mutate to, it's always a different one than the one we have now
+                // make a list of all the amino acids that we can mutate to at this position
+                Residue residue = peptide.sequence.get(i);
                 AminoAcid currentAminoAcid = residue.aminoAcid;
-                List<ProtoAminoAcid> mutationOutcomes = new ArrayList<>(CatalystRotamerSpace.MUTATION_OUTCOMES);
-                ProtoAminoAcid protoAminoAcid = mutationOutcomes.get(random.nextInt(mutationOutcomes.size()));
-                
-                // mutate at random
-                Peptide newPeptide = SidechainMutator.mutateSidechain(peptide, residue, protoAminoAcid);
+                List<AminoAcid> excludeAminoAcids = new ArrayList<>();
+                excludeAminoAcids.add(currentAminoAcid);
+                int charge = PeptideChargeCalculator.getCharge(peptide, i);
+                if ( charge == 0 )
+                    {
+                        excludeAminoAcids.add(AminoAcid.ASP);
+                        excludeAminoAcids.add(AminoAcid.GLU);
+                    }
+                for (ProtoAminoAcid paa : CatalystRotamerSpace.MUTATION_OUTCOMES)
+                    {
+                        AminoAcid aa = paa.residue.aminoAcid;
+                        if ( excludeAminoAcids.contains(aa) )
+                            continue;
+                        Pair<Integer,ProtoAminoAcid> pair = new Pair<>(i, paa);
+                        mutationOutcomes.add(pair);
+                    }
+            }
+        Collections.shuffle(mutationOutcomes);
 
-                // compute the reference energy for this peptide
-                double referenceEnergy = Interaction.getAMOEBAReferenceEnergy(newPeptide);
+        // run through the first structure in each possibility
+        List<Pair<Peptide,RotamerIterator.Node>> otherSolutionsToTry = new ArrayList<>();
+        for (int mutationCount=0; mutationCount < mutationOutcomes.size(); mutationCount++)
+            {
+                Pair<Integer,ProtoAminoAcid> mutationOutcome = mutationOutcomes.get(mutationCount);
+                int i = mutationOutcome.getFirst();
+                ProtoAminoAcid paa = mutationOutcome.getSecond();
+                System.out.printf("Mutating position %d to %s (%d of %d possibilities).\n", i, paa.residue.description, mutationCount+1, mutationOutcomes.size());
 
-                // rotamer pack with an A* iteration
-                //
-                // we must call this in a try-catch clause because it's possible the peptide could be in a bad conformation
-                // in which it is impossible to place any rotamers
+                // make the mutation
+                Residue residue = peptide.sequence.get(i);
+                Peptide newPeptide = SidechainMutator.mutateSidechain(peptide, residue, paa);
+
+                // pack the peptide
                 VariableSequenceRotamerSpace variableSequenceRotamerSpace = null;
                 try
                     {
@@ -105,69 +125,115 @@ public class VariableSequenceMonteCarloJob extends MonteCarloJob implements Seri
                 catch (Exception e)
                     {
                         if ( e instanceof IllegalArgumentException )
-                            System.out.printf("[%3d] rejected (packing failure: %s) on microiteration %d\n", serverID, e.getMessage(), microiteration);
+                            System.out.printf("[%3d] microiteration rejected (packing failure: %s)\n", serverID, e.getMessage());
                         else
                             {
-                                System.out.printf("[%3d] rejected (rotamer packing unknown error) on microiteration %d\n", serverID, microiteration);
+                                System.out.printf("[%3d] microiteration rejected (rotamer packing unknown error)\n", serverID);
                                 e.printStackTrace();
                             }
                         continue;
                     }
 
-                // perform A* iteration
+                // check for empty nodes
+                boolean empty = true;
+                for (List<Rotamer> list : variableSequenceRotamerSpace.rotamerSpace)
+                    {
+                        if ( list.size() > 1 )
+                            {
+                                empty = false;
+                                break;
+                            }
+                    }
+                if ( empty )
+                    {
+                        System.out.printf("[%3d] microiteration rejected (empty node)\n", serverID);
+                        continue;
+                    }
+
+                // rotamer pack
                 AStarEnergyCalculator calculator = AStarEnergyCalculator.analyze(variableSequenceRotamerSpace, false);
                 RotamerIterator iterator = new RotamerIterator(variableSequenceRotamerSpace.rotamerSpace, calculator.rotamerSelfEnergies, calculator.rotamerInteractionEnergies, rotamersPerIteration, false);
                 List<RotamerIterator.Node> solutions = iterator.iterate();
                 if ( solutions.size() == 0 )
                     {
-                        System.out.printf("[%3d] rejected (no A* solutions) on microiteration %d\n", serverID, microiteration);
+                        System.out.printf("[%3d] microiteration rejected (no A* solutions)\n", serverID);
                         continue;
                     }
-
-                // minimize peptides in serial
-                List<Peptide> results = new ArrayList<>(rotamersPerIteration+100);
-                for (RotamerIterator.Node node : solutions)
+  
+                // keep the other solutions, up to rotamersPerIteration
+                List<RotamerIterator.Node> otherSolutions = new ArrayList<>();
+                for (int solutionCount=1; solutionCount < Math.min(solutions.size(), rotamersPerIteration); solutionCount++)
+                    otherSolutions.add(solutions.get(solutionCount));
+                for (RotamerIterator.Node node : otherSolutions)
                     {
-                        if ( results.size() >= rotamersPerIteration )
-                            break;
-
-                        // solutions come out lowest energy first
-                        List<Rotamer> rotamers = node.rotamers;
-                        Peptide thisPeptide = Rotamer.reconstitute(newPeptide, rotamers);
-
-                        // minimize with gas phase AMOEBA with approximate solvation, throw out peptides that error
-                        Peptide minimizedPeptide = null;
-                        try { minimizedPeptide = TinkerJob.minimize(thisPeptide, Forcefield.AMOEBA, 2000, false, false, true, true, false); }
-                        catch (Exception e) { continue; }
-
-                        // adjust total energy for reference energy
-                        double referencedEnergy = minimizedPeptide.energyBreakdown.totalEnergy - referenceEnergy;
-                        EnergyBreakdown energyBreakdown = new EnergyBreakdown(null, referencedEnergy, 0.0, referencedEnergy, null, Forcefield.AMOEBA);
-                        minimizedPeptide = minimizedPeptide.setEnergyBreakdown(energyBreakdown);         
-
-                        results.add(minimizedPeptide);
-                        bestPeptides.add(minimizedPeptide);
-                   }
-                //System.out.printf("[%3d] %d peptides have been minimized.\n", serverID, results.size());
-
-                // check that we have enough results
-                if ( results.size() == 0 )
-                    {
-                        System.out.printf("[%3d] rejected (all minimization failed) on microiteration %d\n", serverID, microiteration);
-                        continue;
+                        Pair<Peptide,RotamerIterator.Node> pair = new Pair<>(newPeptide, node);
+                        otherSolutionsToTry.add(pair);
                     }
-                
-                // add all the results to the list of best results if applicable
-                String energyString = "[";
-                for (Peptide p : results)
-                    energyString += String.format("%.2f, ", p.energyBreakdown.totalEnergy);
-                energyString = energyString.substring(0, energyString.length()-2) + "]";
-                System.out.printf("[%3d] %d structures generated on microiteration %d %s\n", serverID, results.size(), microiteration, energyString);
-                
-                // return the best result
-                Collections.sort(results);
-                return results.get(0);
-        }
+               
+                // reconstitute the first pose
+                RotamerIterator.Node firstNode = solutions.get(0);
+                List<Rotamer> rotamers = firstNode.rotamers;
+                Peptide thisPeptide = Rotamer.reconstitute(newPeptide, rotamers);
+                thisPeptide = HydrogenBondMutator.mutate(thisPeptide);
+
+                // minimize with AMOEBA with analysis (approximate OMNISOL solvation)
+                Peptide minimizedPeptide = null;
+                try { minimizedPeptide = TinkerJob.minimize(thisPeptide, Forcefield.AMOEBA, 250, false, false, true, false, true); }
+                catch (Exception e) { e.printStackTrace(); continue; }
+
+                // check that the geometry is still catalytic
+                if ( !CatalystDesigner.isCatalytic(minimizedPeptide) )
+                    continue;
+
+                // get the reference energy
+                double referenceEnergy = Interaction.getAMOEBAReferenceEnergy(minimizedPeptide);
+           
+                // adjust total energy for reference energy
+                double referencedEnergy = minimizedPeptide.energyBreakdown.totalEnergy - referenceEnergy;
+                System.out.printf("referenced energy is %.2f\n", referencedEnergy);
+                EnergyBreakdown energyBreakdown = new EnergyBreakdown(null, referencedEnergy, 0.0, referencedEnergy, null, Forcefield.AMOEBA);
+                minimizedPeptide = minimizedPeptide.setEnergyBreakdown(energyBreakdown);         
+                bestPeptides.add(minimizedPeptide);
+                return minimizedPeptide; 
+            }
+
+        // run randomly through the remaining
+        Collections.shuffle(otherSolutionsToTry);
+        for (int i=0; i < otherSolutionsToTry.size(); i++)
+            {
+                Pair<Peptide,RotamerIterator.Node> pair = otherSolutionsToTry.get(i);
+                Peptide newPeptide = pair.getFirst();
+                System.out.printf("Trying remaining pose %d of %d (%s).\n", i+1, otherSolutionsToTry.size(), newPeptide.name.split("@")[0]);
+                RotamerIterator.Node node = pair.getSecond();
+                List<Rotamer> rotamers = node.rotamers;
+                Peptide thisPeptide = Rotamer.reconstitute(newPeptide, rotamers);
+                thisPeptide = HydrogenBondMutator.mutate(thisPeptide);
+
+                // minimize with AMOEBA with analysis (approximate OMNISOL solvation)
+                Peptide minimizedPeptide = null;
+                try { minimizedPeptide = TinkerJob.minimize(thisPeptide, Forcefield.AMOEBA, 250, false, false, true, false, true); }
+                catch (Exception e) { e.printStackTrace(); continue; }
+
+                // check that the geometry is still catalytic
+                if ( !CatalystDesigner.isCatalytic(minimizedPeptide) )
+                    continue;
+
+                // get the reference energy
+                double referenceEnergy = Interaction.getAMOEBAReferenceEnergy(minimizedPeptide);
+           
+                // adjust total energy for reference energy
+                double referencedEnergy = minimizedPeptide.energyBreakdown.totalEnergy - referenceEnergy;
+                System.out.printf("referenced energy is %.2f\n", referencedEnergy);
+                EnergyBreakdown energyBreakdown = new EnergyBreakdown(null, referencedEnergy, 0.0, referencedEnergy, null, Forcefield.AMOEBA);
+                minimizedPeptide = minimizedPeptide.setEnergyBreakdown(energyBreakdown);         
+                bestPeptides.add(minimizedPeptide);
+                return minimizedPeptide; 
+            }
+
+        // repack the peptide
+
+        // we've run out of things to do, so throw an exception
+        throw new IllegalArgumentException("nothing left to do");
     }
 
     /** Writes the job to disk. */
@@ -210,7 +276,9 @@ public class VariableSequenceMonteCarloJob extends MonteCarloJob implements Seri
                 Peptide candidate = mutate(currentPeptide);
 
                 // apply modified Metropolis criterion
-                boolean isAccepted = MonteCarloJob.acceptChange(currentPeptide, candidate, currentAlpha);
+                boolean isAccepted = true;
+                if ( i > 0 ) // auto-accept first iteration
+                    isAccepted = MonteCarloJob.acceptChange(currentPeptide, candidate, currentAlpha);
                 double thisEnergy = candidate.energyBreakdown.totalEnergy;
                 double bestEnergy = bestPeptides.getBestEnergy();
                 if ( isAccepted )
@@ -236,5 +304,13 @@ public class VariableSequenceMonteCarloJob extends MonteCarloJob implements Seri
 
         // return result
         return new MonteCarloResult(bestPeptides.getList());
+    }
+
+    public static void main(String[] args)
+    {
+        Peptide peptide = Peptide.load("test_peptides/singlePeptide.chk");
+        VariableSequenceMonteCarloJob job = new VariableSequenceMonteCarloJob(peptide, 0.001, 1000, 100, 4, "test_peptides/test.chk");
+        job.call();
+        Peptide.writeGJFs(job.bestPeptides.getList(), "test_peptides/vsmcjob_", 2, 100);
     }
 }

@@ -159,6 +159,8 @@ public class Peptide extends Molecule implements Immutable, Serializable, Compar
      */
     public static void writeGJFs(List<Peptide> peptides, String prefix, int digits, int maxNumber)
     {
+        if ( peptides == null )
+            return;
         if ( digits < 1 )
             throw new IllegalArgumentException("must use at least one digit");
         for (int i=0; i < Math.min(maxNumber,peptides.size()); i++)
@@ -179,6 +181,8 @@ public class Peptide extends Molecule implements Immutable, Serializable, Compar
      */
     public static void writeCHKs(List<Peptide> peptides, String prefix, int digits, int maxNumber)
     {
+        if ( peptides == null )
+            return;
         if ( digits < 1 )
             throw new IllegalArgumentException("must use at least one digit");
         for (int i=0; i < Math.min(maxNumber,peptides.size()); i++)
