@@ -1,0 +1,14 @@
+             standard_arginine -67.47
+           standard_asparagine -34.00
+              standard_leucine -18.03
+            standard_glutamate 0.58
+        standard_phenylalanine -16.51
+             standard_tyrosine -20.35
+           standard_isoleucine -16.92
+              standard_alanine -18.49
+            standard_glutamine -31.47
+               standard_serine -18.20
+            standard_aspartate 0.33
+           standard_tryptophan -17.75
+            standard_threonine -19.65
+               standard_valine -16.73

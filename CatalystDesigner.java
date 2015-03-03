@@ -37,10 +37,29 @@ public class CatalystDesigner implements Immutable
     {
         // make some beta sheet templates
         DatabaseLoader.go();
-        List<Peptide> sheets = BetaSheetGenerator.generateSheets(5, 50, 100000, 0.001);
-        Collections.sort(sheets);
+        Map<BackboneFingerprint,Peptide> sheetMap = new HashMap<>();
+        int numberOfSheetIterations = 10;
+        for (int i=0; i < numberOfSheetIterations; i++)
+            {
+                System.out.printf("=== Beta Sheet MC Run %d of %d (%d results so far) ===\n", i+1, numberOfSheetIterations, sheetMap.size());
+                List<Peptide> sheets = BetaSheetGenerator.generateSheets(6, 2000, 100000, 0.0005);
+                //List<Peptide> sheets = BetaSheetGenerator.generateSheets(5, 20, 100000, 0.0001);
+                for (Peptide p : sheets)
+                    {
+                        BackboneFingerprint fingerprint = new BackboneFingerprint(p);
+                        sheetMap.put(fingerprint,p);
+                    }
+                System.out.print("Serializing...");
+                Map<String,List<Peptide>> backup = new HashMap<>();
+                backup.put("MC run " + i, sheets);
+                PeptideArchive archive = new PeptideArchive(backup);
+                archive.checkpoint(String.format("checkpoints/sheet_run_%d.chk", i));
+                System.out.println("done.");
+            }
+        List<Peptide> sheets = new ArrayList<>(sheetMap.values());
 
         /*// remove duplicates
+        Collections.sort(sheets);
         int maxResults = 10000;
         double RMSDthreshold = 0.50;
         List<Peptide> results = new ArrayList<>();
@@ -111,7 +130,6 @@ public class CatalystDesigner implements Immutable
 
         // check the poses are actually sheets
         Map<String,List<Peptide>> resultMap = new HashMap<>(); // map from indices of TS,his,arg to peptides
-        Peptide singlePeptide = null;
         for (Peptide p : minimizedPoses)
             {
                 // check to see if the structure still looks catalytic
@@ -132,10 +150,12 @@ public class CatalystDesigner implements Immutable
                         resultMap.put(signature,list);
                     }
                 list.add(adjustedPeptide);
-                singlePeptide = adjustedPeptide;
-                break;
             }
 
+        PeptideArchive archive = new PeptideArchive(resultMap);
+        archive.checkpoint("checkpoints/designs.chk");
+        System.out.println(archive);
+/*
         // sort by design type
         
         // do MC packing
@@ -147,7 +167,7 @@ public class CatalystDesigner implements Immutable
         Peptide.writeGJFs(job.bestPeptides.getList(), "test_peptides/vsmcjob_", 2, 100);
 
         // remove duplicates
-
+*/
 /*
         // write out the results
         for (String signature : resultMap.keySet())

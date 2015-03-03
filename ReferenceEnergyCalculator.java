@@ -322,28 +322,55 @@ public class ReferenceEnergyCalculator
         // minimize all poses with AMOEBA with approximate single point solvation
         System.out.println("Minimizing all poses with AMOEBA...");
         List<List<Peptide>> bestPoses2 = new ArrayList<>(futures.size());
+        Map<Future<Result>,Integer> futureMap = new HashMap<>();
         for (int i=0; i < bestPoses.size(); i++)
             {
-                System.out.printf("Reference peptide %d of %d:\n", i+1, bestPoses.size());
                 List<Peptide> list = bestPoses.get(i);
-                List<Peptide> list2 = TinkerJob.minimize(list, Forcefield.AMOEBA, 2000, false, true, false, false, false); 
-                bestPoses2.add(list2);
+                for (Peptide p : list)
+                    {
+                        TinkerJob job = new TinkerJob(p, Forcefield.AMOEBA, 2000, false, false, true, false, true);
+                        Future<Result> f = GeneralThreadService.submit(job);
+                        futureMap.put(f, i);
+                    }
+                bestPoses2.add(new ArrayList<Peptide>());
+            }
+        futures = new ArrayList<>(futureMap.keySet());
+        GeneralThreadService.waitForFutures(futures);
+        for (Future<Result> f : futureMap.keySet())
+            {
+                Integer index = futureMap.get(f);
+                TinkerJob.TinkerResult result = null;
+                try
+                    {
+                        result = (TinkerJob.TinkerResult)f.get();
+                    }
+                catch (Exception e)
+                    {
+                        e.printStackTrace();
+                        continue;
+                    }
+                List<Peptide> list = bestPoses2.get(index);
+                list.add(result.minimizedPeptide);
             }
 
-        // take the best pose for each peptide and perform a gas phase AMOEBA energy breakdown
-        System.out.println("Getting gas phase AMOEBA breakdowns...");
+        for (List<Peptide> list : bestPoses2)
+            Collections.sort(list);
+
+        // take the best pose for each peptide
         List<Peptide> bestPoses3 = new ArrayList<>(bestPoses2.size());
         for (List<Peptide> list : bestPoses2)
             {
                 if ( list.size() > 0 )
                     bestPoses3.add(list.get(0));
+                if ( list.size() > 1 )
+                    bestPoses3.add(list.get(1));
             }
-        Peptide.writeGJFs(bestPoses3, "test_peptides/reference_", 3, 1000);
-        List<Peptide> bestPoses4 = TinkerJob.analyze(bestPoses3, Forcefield.AMOEBA);
-        
+        Peptide.writeGJFs(bestPoses3, "test_peptides/best_", 3, 1000);
+        Peptide.writeCHKs(bestPoses3, "test_peptides/best_", 3, 1000);
+
         // get AMOEBA reference energies
         System.out.println("Getting AMOEBA reference energies...");
-        Map<String,List<Double>> AMOEBAreferenceEnergies = getAMOEBAEnergies(bestPoses4);
+        Map<String,List<Double>> AMOEBAreferenceEnergies = getAMOEBAEnergies(bestPoses3);
         String AMOEBAstring = "";
         for (String description : AMOEBAreferenceEnergies.keySet())
             {
@@ -361,7 +388,7 @@ public class ReferenceEnergyCalculator
 
         // take the best poses for each peptide and perform a gas phase OPLS interaction calculation
         System.out.println("Getting OPLS reference energies...");
-        Map<String,List<Double>> OPLSreferenceEnergies = getOPLSEnergies(bestPoses4);
+        Map<String,List<Double>> OPLSreferenceEnergies = getOPLSEnergies(bestPoses3);
         String OPLSstring = "";
         for (String description : OPLSreferenceEnergies.keySet())
             {
