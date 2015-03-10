@@ -18,6 +18,9 @@ public class VariableSequenceMonteCarloJob extends MonteCarloJob implements Seri
     /** How many rotamers should be minimized on each iteration. */
     public final int rotamersPerIteration;
 
+    /** The current peptide. */
+    public Peptide currentPeptide;
+
     /** Stores the best results. */
     public final MonteCarloJob.PeptideList bestPeptides;
 
@@ -47,6 +50,7 @@ public class VariableSequenceMonteCarloJob extends MonteCarloJob implements Seri
         this.rotamersPerIteration = rotamersPerIteration;
         this.checkpointFilename = checkpointFilename;
         this.serverID = RemoteWorkUnit.ID_GENERATOR.incrementAndGet();
+        this.currentPeptide = startingPeptide;
     }
 
     public boolean isDone()
@@ -117,7 +121,7 @@ public class VariableSequenceMonteCarloJob extends MonteCarloJob implements Seri
                 Pair<Integer,ProtoAminoAcid> mutationOutcome = mutationOutcomes.get(mutationCount);
                 int i = mutationOutcome.getFirst();
                 ProtoAminoAcid paa = mutationOutcome.getSecond();
-                System.out.printf("Mutating position %d to %s (%d of %d possibilities).\n", i, paa.residue.description, mutationCount+1, mutationOutcomes.size());
+                System.out.printf("[%3d] Mutating position %d to %s (%d of %d possibilities).\n", serverID, i, paa.residue.description, mutationCount+1, mutationOutcomes.size());
 
                 // make the mutation
                 Residue residue = peptide.sequence.get(i);
@@ -198,7 +202,7 @@ public class VariableSequenceMonteCarloJob extends MonteCarloJob implements Seri
            
                 // adjust total energy for reference energy
                 double referencedEnergy = minimizedPeptide.energyBreakdown.totalEnergy - referenceEnergy;
-                System.out.printf("referenced energy is %.2f\n", referencedEnergy);
+                //System.out.printf("referenced energy is %.2f\n", referencedEnergy);
                 EnergyBreakdown energyBreakdown = new EnergyBreakdown(null, referencedEnergy, 0.0, referencedEnergy, null, Forcefield.AMOEBA);
                 minimizedPeptide = minimizedPeptide.setEnergyBreakdown(energyBreakdown);         
                 bestPeptides.add(minimizedPeptide);
@@ -273,9 +277,6 @@ public class VariableSequenceMonteCarloJob extends MonteCarloJob implements Seri
     @Override
     public MonteCarloResult call()
     {
-        // this is the current state of the Monte Carlo simulation
-        Peptide currentPeptide = startingPeptide;
-        
         // perform the Metropolis Monte Carlo
         double currentAlpha = 0.0;
         double firstEnergy = bestPeptides.getBestEnergy();

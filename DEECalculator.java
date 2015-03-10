@@ -438,7 +438,7 @@ public class DEECalculator implements Immutable
                 boolean hasArgContact = hasArgContact(p);
                 String signature = getSignature(p);
                 boolean pass = isSheet && hasBackboneContact && hasArgContact;
-                System.out.printf("%10s sheet: %5b   backbone: %5b   arg: %5b  pass: %5b\n", signature, isSheet, hasBackboneContact, hasArgContact, pass);
+                //System.out.printf("%10s sheet: %5b   backbone: %5b   arg: %5b  pass: %5b\n", signature, isSheet, hasBackboneContact, hasArgContact, pass);
                 if ( !pass )
                     continue;
                 

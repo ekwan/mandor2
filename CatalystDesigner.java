@@ -28,7 +28,7 @@ public class CatalystDesigner implements Immutable
         boolean hasArgContact = DEECalculator.hasArgContact(p);
         String signature = DEECalculator.getSignature(p);
         boolean pass = isSheet && hasBackboneContact && hasArgContact;
-        System.out.printf("%10s sheet: %5b   backbone: %5b   arg: %5b  pass: %5b\n", signature, isSheet, hasBackboneContact, hasArgContact, pass);
+        //System.out.printf("%10s sheet: %5b   backbone: %5b   arg: %5b  pass: %5b\n", signature, isSheet, hasBackboneContact, hasArgContact, pass);
         return pass;    
     }
 
@@ -282,36 +282,41 @@ public class CatalystDesigner implements Immutable
 */
 
         // do MC packing
+        DatabaseLoader.go();
+        int jobsPerPeptide = 30;
         List<Future<Result>> futures = new ArrayList<>();
         for (File f : new File("test_peptides/").listFiles())
             {
                 if ( !f.getName().endsWith(".chk") || f.getName().indexOf("design") == -1 )
                     continue;
                 Peptide p = Peptide.load("test_peptides/" + f.getName());
-                String filename = String.format("checkpoints/vsmcjob_%s", f.getName());
-                System.out.println(filename);
-                VariableSequenceMonteCarloJob job = null;
-                if ( new File(filename).exists() )
+                for (int jobIndex=0; jobIndex < jobsPerPeptide; jobIndex++)
                     {
-                        job = VariableSequenceMonteCarloJob.load(filename);
-                        if ( job != null )
+                        String filename = String.format("checkpoints/vsmcjob_%s_%02d", f.getName().replaceAll("_00",""), jobIndex);
+                        //System.out.println(filename);
+                        VariableSequenceMonteCarloJob job = null;
+                        if ( new File(filename).exists() )
                             {
-                                if ( job.isDone() )
+                                job = VariableSequenceMonteCarloJob.load(filename);
+                                if ( job != null )
                                     {
-                                        System.out.printf("Job from %s is complete, so doing nothing.\n", filename, job.currentIteration);
-                                        continue;
+                                        if ( job.isDone() )
+                                            {
+                                                System.out.printf("Job from %s is complete, so doing nothing.\n", filename, job.currentIteration);
+                                                continue;
+                                            }
+                                        else
+                                            System.out.printf("Resuming job from %s (%d iterations complete).\n", filename, job.currentIteration);
                                     }
-                                else
-                                    System.out.printf("Resuming job from %s (%d iterations complete).\n", filename, job.currentIteration);
                             }
+                        if ( job == null )
+                            {
+                                job = new VariableSequenceMonteCarloJob(p, 0.0005, 2000, 100, 4, filename);
+                                System.out.printf("Created new job for %s.\n", filename);
+                            }
+                        Future<Result> future = GeneralThreadService.submit(job);
+                        futures.add(future);
                     }
-                if ( job == null )
-                    {
-                        job = new VariableSequenceMonteCarloJob(p, 0.01, 100, 100, 4, filename);
-                        System.out.printf("Created new job for %s.\n", filename);
-                    }
-                Future<Result> f = GeneralThreadService.submit(job);
-                futures.add(f);
             }
         GeneralThreadService.silentWaitForFutures(futures);
         System.out.println("All MC jobs complete.");

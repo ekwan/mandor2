@@ -81,9 +81,9 @@ public abstract class RotamerSpace implements Immutable
         List<List<Atom>> backboneAtoms = getBackboneAtoms(tempPeptide, variablePositions, includeHN);
 
         // prune rotamers that clash with the backbone
-        printRotamerSizes("before pruning clashes     ", tempRotamerSpace);
+        //printRotamerSizes("before pruning clashes     ", tempRotamerSpace);
         tempRotamerSpace = pruneRotamerSpace(tempPeptide, backboneAtoms, tempRotamerSpace);
-        printRotamerSizes("after pruning clashes      ", tempRotamerSpace);
+        //printRotamerSizes("after pruning clashes      ", tempRotamerSpace);
         // check if any solutions are possible
         for (Integer i : variablePositions)
             {
@@ -126,7 +126,7 @@ public abstract class RotamerSpace implements Immutable
         pruneIncompatibleRotamers(tempRotamerSpace, tempIncompatiblePairs);
    
         // check if any solutions are possible
-        printRotamerSizes("after pruning incompatibles", tempRotamerSpace);
+        //printRotamerSizes("after pruning incompatibles", tempRotamerSpace);
         //checkRotamerSpace(tempRotamerSpace, tempPeptide, tempIncompatiblePairs, emptyPositions);
         checkRotamerSpace(tempRotamerSpace, tempPeptide, tempIncompatiblePairs);
 
