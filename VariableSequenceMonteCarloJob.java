@@ -27,6 +27,9 @@ public class VariableSequenceMonteCarloJob extends MonteCarloJob implements Seri
     /** Unique ID. */
     private long serverID;
 
+    /** The current iteration. */
+    public int currentIteration = 0;
+
     /**
      * Sets up job but doesn't run it.
      * @param startingPeptide the starting structure
@@ -46,6 +49,11 @@ public class VariableSequenceMonteCarloJob extends MonteCarloJob implements Seri
         this.serverID = RemoteWorkUnit.ID_GENERATOR.incrementAndGet();
     }
 
+    public boolean isDone()
+    {
+        return currentIteration >= maxIterations;
+    }
+
     /**
      * Mutates a residue at random without changing the backbone.  The procedure is:<p>
      * (1) Select a non-active-site residue at random.<p>
@@ -57,11 +65,11 @@ public class VariableSequenceMonteCarloJob extends MonteCarloJob implements Seri
      */
     public Peptide mutate(Peptide inputPeptide)
     {
-        Peptide.writeGJFs(bestPeptides.getList(), "test_peptides/best_", 2, 10);
-        Peptide.writeCHKs(bestPeptides.getList(), "test_peptides/best_", 2, 10);
+        //Peptide.writeGJFs(bestPeptides.getList(), "test_peptides/best_", 2, 10);
+        //Peptide.writeCHKs(bestPeptides.getList(), "test_peptides/best_", 2, 10);
 
         // random number generator
-        System.out.println(inputPeptide.name);
+        //System.out.println(inputPeptide.name);
         ThreadLocalRandom random = ThreadLocalRandom.current();
         Peptide peptide = HydrogenBondMutator.unmutate(inputPeptide);
 
@@ -230,8 +238,6 @@ public class VariableSequenceMonteCarloJob extends MonteCarloJob implements Seri
                 return minimizedPeptide; 
             }
 
-        // repack the peptide
-
         // we've run out of things to do, so throw an exception
         throw new IllegalArgumentException("nothing left to do");
     }
@@ -239,6 +245,17 @@ public class VariableSequenceMonteCarloJob extends MonteCarloJob implements Seri
     /** Writes the job to disk. */
     public void checkpoint()
     {
+        // if there is already a checkpoint, back it up
+        System.out.printf("[%3d] Serializing...", serverID);
+        File oldFile = new File(checkpointFilename);
+        if ( oldFile.exists() )
+            {
+                File backupFile = new File(checkpointFilename + ".bak");
+                try { org.apache.commons.io.FileUtils.copyFile(oldFile,backupFile); }
+                catch (IOException e) { System.out.printf("[%3d] Error backing up file: %s\n", serverID, checkpointFilename); }
+                //System.out.printf("backup made...");
+            }
+
         try
             {
                  FileOutputStream fileOut = new FileOutputStream(checkpointFilename);
@@ -263,8 +280,11 @@ public class VariableSequenceMonteCarloJob extends MonteCarloJob implements Seri
         double currentAlpha = 0.0;
         double firstEnergy = bestPeptides.getBestEnergy();
         double lastBestEnergy = firstEnergy;
-        for (int i=0; i < maxIterations; i++)
+        while ( currentIteration < maxIterations )
             {
+                if ( currentIteration > 10 && currentIteration % 10 == 0 )
+                    checkpoint();
+
                 // abort if kill file found
                 if ( new File("kill.txt").isFile() )
                     {
@@ -277,7 +297,7 @@ public class VariableSequenceMonteCarloJob extends MonteCarloJob implements Seri
 
                 // apply modified Metropolis criterion
                 boolean isAccepted = true;
-                if ( i > 0 ) // auto-accept first iteration
+                if ( currentIteration > 0 ) // auto-accept first iteration
                     isAccepted = MonteCarloJob.acceptChange(currentPeptide, candidate, currentAlpha);
                 double thisEnergy = candidate.energyBreakdown.totalEnergy;
                 double bestEnergy = bestPeptides.getBestEnergy();
@@ -285,16 +305,17 @@ public class VariableSequenceMonteCarloJob extends MonteCarloJob implements Seri
                     {
                         currentPeptide = candidate;
                         if ( bestEnergy < lastBestEnergy )
-                            System.out.printf("[%3d] Iter %d of %d (***new best***, alpha = %.6f, E = %.2f, bestE = %.2f, initialE = %.2f)\n", serverID, i+1, maxIterations, currentAlpha, thisEnergy, bestEnergy, firstEnergy);
+                            System.out.printf("[%3d] Iter %d of %d (***new best***, alpha = %.6f, E = %.2f, bestE = %.2f, initialE = %.2f)\n", serverID, currentIteration+1, maxIterations, currentAlpha, thisEnergy, bestEnergy, firstEnergy);
                         else
-                            System.out.printf("[%3d] Iter %d of %d (accepted, alpha = %.6f, E = %.2f, bestE = %.2f, initialE = %.2f)\n", serverID, i+1, maxIterations, currentAlpha, thisEnergy, bestEnergy, firstEnergy);
+                            System.out.printf("[%3d] Iter %d of %d (accepted, alpha = %.6f, E = %.2f, bestE = %.2f, initialE = %.2f)\n", serverID, currentIteration+1, maxIterations, currentAlpha, thisEnergy, bestEnergy, firstEnergy);
                     }
                 else
-                    System.out.printf("[%3d] Iter %d of %d (rejected, alpha = %.6f, E = %.2f, bestE = %.2f, initialE = %.2f)\n", serverID, i+1, maxIterations, currentAlpha, thisEnergy, bestEnergy, firstEnergy);
+                    System.out.printf("[%3d] Iter %d of %d (rejected, alpha = %.6f, E = %.2f, bestE = %.2f, initialE = %.2f)\n", serverID, currentIteration+1, maxIterations, currentAlpha, thisEnergy, bestEnergy, firstEnergy);
 
                 // update alpha
                 currentAlpha = currentAlpha + deltaAlpha;
                 lastBestEnergy = bestEnergy;
+                currentIteration++;
             }
         
         // save this result to disk if requested
@@ -304,6 +325,26 @@ public class VariableSequenceMonteCarloJob extends MonteCarloJob implements Seri
 
         // return result
         return new MonteCarloResult(bestPeptides.getList());
+    }
+
+    public static VariableSequenceMonteCarloJob load(String filename)
+    {
+        if ( filename == null || filename.length() == 0 )
+            throw new NullPointerException("must specify a filename");
+        try
+            {
+                FileInputStream fileIn = new FileInputStream(filename);
+                ObjectInputStream in = new ObjectInputStream(fileIn);
+                VariableSequenceMonteCarloJob j = (VariableSequenceMonteCarloJob)in.readObject();
+                in.close();
+                fileIn.close();
+                return j;
+            }
+        catch (Exception e)
+            {
+                e.printStackTrace();
+                return null;
+            }
     }
 
     public static void main(String[] args)

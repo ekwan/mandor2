@@ -330,8 +330,12 @@ public class DEECalculator implements Immutable
             }
         if ( TSindex == -1 || histidineIndex == -1 || arginineIndex == -1 )
             throw new IllegalArgumentException(String.format("Indices not found: TS %d, histidine %d, arginine %d", TSindex, histidineIndex, arginineIndex));
-        returnString = String.format("%d_%d_%d", TSindex, histidineIndex, arginineIndex);
-        return returnString;
+        //returnString = String.format("%d_%d_%d", TSindex, histidineIndex, arginineIndex);
+        Set<Integer> set = ImmutableSet.of(TSindex, histidineIndex, arginineIndex);
+        set = new TreeSet<>(set);
+        for (Integer i : set)
+            returnString += i + "_";
+        return returnString.substring(0,returnString.length()-1);
     }
 
     /** for testing */

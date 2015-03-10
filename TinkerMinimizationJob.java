@@ -22,7 +22,7 @@ public class TinkerMinimizationJob implements WorkUnit, Serializable, Immutable
     public static final String DEFAULT_OPLS_KEYWORDS = "parameters oplsaal.prm\nwriteout 200\n\n";
 
     /** jobs are killed after this length of time in seconds */
-    public static final double MAX_JOB_TIME = 180.0;
+    public static final double MAX_JOB_TIME = 300.0;
 
     /** the xyz file that tinker will read from */
     public final TinkerXYZInputFile tinkerXYZInputFile;

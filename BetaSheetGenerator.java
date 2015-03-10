@@ -59,7 +59,7 @@ public class BetaSheetGenerator
         // create the seed peptide
         List<String> arm = new ArrayList<>(armLength);
         for (int i=0; i < armLength; i++)
-            arm.add("standard_alanine");
+            arm.add("standard_glycine");
         List<String> peptideStringList = new ArrayList<>(armLength*2 + 2);
         for (String s : arm)
             peptideStringList.add(s);
